@@ -1,0 +1,593 @@
+// DIGITAL RANCHI — PRODUCTION POSTGRESQL DATABASE SCHEMA (PRISMA ORM)
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ---------------------------------------------------------
+// 1. TENANCY & USERS (RBAC AUTH)
+// ---------------------------------------------------------
+
+enum UserRole {
+  SUPER_ADMIN
+  BUSINESS_ADMIN
+  SALES_MANAGER
+  SALES_EXECUTIVE
+  OPERATIONS_MANAGER
+  ACCOUNT_MANAGER
+  DELIVERY_EXECUTIVE
+  FINANCE
+  CLIENT
+}
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  domain      String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  leads       Lead[]
+  clients     Client[]
+  services    Service[]
+  packages    Package[]
+  projects    Project[]
+  tasks       Task[]
+  invoices    Invoice[]
+  payments    PaymentRecord[]
+  tickets     Ticket[]
+  taxConfigs  TaxConfiguration[]
+  auditLogs   AuditLog[]
+}
+
+model User {
+  id            String    @id @default(cuid())
+  tenantId      String
+  name          String
+  email         String    @unique
+  phone         String
+  passwordHash  String
+  role          UserRole  @default(DELIVERY_EXECUTIVE)
+  department    String?
+  avatarUrl     String?
+  clientId      String?   // If role === CLIENT
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedLeads Lead[]    @relation("AssignedSalesUser")
+  managedClients Client[] @relation("AssignedAccountManager")
+  assignedTasks Task[]    @relation("AssignedDeliveryUser")
+  assignedTickets Ticket[] @relation("AssignedSupportUser")
+  taskComments  TaskComment[]
+  auditLogs     AuditLog[]
+
+  @@index([tenantId])
+  @@index([email])
+}
+
+// ---------------------------------------------------------
+// 2. LEADS & SALES PIPELINE
+// ---------------------------------------------------------
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  AUDIT
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+model LeadSource {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model Lead {
+  id                 String     @id @default(cuid())
+  tenantId           String
+  businessName       String
+  contactName        String
+  phone              String
+  whatsapp           String
+  email              String
+  category           String
+  city               String     @default("Ranchi")
+  state              String     @default("Jharkhand")
+  googleMapsUrl      String?
+  websiteUrl         String?
+  leadSource         String     @default("Website Direct")
+  interestedPackageId String?
+  estimatedValue     Float      @default(999.0)
+  leadScore          Int        @default(70)
+  assignedUserId     String?
+  status             LeadStatus @default(NEW)
+  nextFollowUp       DateTime?
+  notes              String?
+  auditScore         Int?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  tenant             Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedUser       User?      @relation("AssignedSalesUser", fields: [assignedUserId], references: [id])
+  convertedClient    Client?
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([phone])
+}
+
+// ---------------------------------------------------------
+// 3. CLIENT 360 & SERVICE SUITES
+// ---------------------------------------------------------
+
+enum ClientHealthScore {
+  GREEN
+  YELLOW
+  RED
+}
+
+enum ClientStatus {
+  ACTIVE
+  ONBOARDING
+  AT_RISK
+  PAUSED
+  CHURNED
+}
+
+model Client {
+  id                 String            @id @default(cuid())
+  tenantId           String
+  leadId             String?           @unique
+  businessName       String
+  legalName          String?
+  category           String
+  phone              String
+  whatsapp           String
+  email              String
+  address            String
+  city               String            @default("Ranchi")
+  state              String            @default("Jharkhand")
+  pincode            String            @default("834001")
+  googleMapsUrl      String?
+  websiteUrl         String?
+  assignedManagerId  String
+  packageId          String
+  packageName        String
+  healthScore        ClientHealthScore @default(GREEN)
+  healthReason       String?
+  monthlyRevenue     Float             @default(999.0)
+  activeSince        DateTime          @default(now())
+  renewalDate        DateTime
+  reviewCount        Int               @default(0)
+  averageRating      Float             @default(5.0)
+  gbpScore           Int               @default(80)
+  status             ClientStatus      @default(ONBOARDING)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead               Lead?             @relation(fields: [leadId], references: [id])
+  assignedManager    User              @relation("AssignedAccountManager", fields: [assignedManagerId], references: [id])
+  projects           Project[]
+  tasks              Task[]
+  invoices           Invoice[]
+  payments           PaymentRecord[]
+  tickets            Ticket[]
+  deliverables       DeliverableItem[]
+  gbpProfile         GbpProfile?
+  recurringRules     RecurringTaskRule[]
+  timelineActivities TimelineActivity[]
+
+  @@index([tenantId])
+  @@index([assignedManagerId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------
+// 4. SERVICE CATALOGUE & PACKAGES
+// ---------------------------------------------------------
+
+enum BillingFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model Service {
+  id              String           @id @default(cuid())
+  tenantId        String
+  name            String
+  slug            String           @unique
+  description     String
+  basePrice       Float
+  billingType     BillingFrequency @default(ONE_TIME)
+  deliverables    String[]
+  defaultSlaHours Int              @default(48)
+  category        String           @default("GBP")
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Package {
+  id               String           @id @default(cuid())
+  tenantId         String
+  name             String
+  code             String           @unique
+  tagline          String
+  price            Float
+  billingFrequency BillingFrequency @default(ONE_TIME)
+  serviceIds       String[]
+  features         String[]
+  isPopular        Boolean          @default(false)
+  isActive         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ---------------------------------------------------------
+// 5. WORK MANAGEMENT (PROJECTS & TASKS)
+// ---------------------------------------------------------
+
+enum TaskStatus {
+  BACKLOG
+  ASSIGNED
+  IN_PROGRESS
+  WAITING
+  CLIENT_APPROVAL
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+model Project {
+  id              String   @id @default(cuid())
+  tenantId        String
+  clientId        String
+  name            String
+  projectType     String   @default("ONBOARDING")
+  status          String   @default("IN_PROGRESS")
+  progressPercent Int      @default(0)
+  startDate       DateTime @default(now())
+  dueDate         DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tasks           Task[]
+
+  @@index([tenantId])
+  @@index([clientId])
+}
+
+model Task {
+  id              String        @id @default(cuid())
+  tenantId        String
+  projectId       String?
+  clientId        String
+  title           String
+  description     String
+  status          TaskStatus    @default(BACKLOG)
+  priority        TaskPriority  @default(MEDIUM)
+  assignedToId    String
+  slaDeadline     DateTime
+  dueDate         DateTime
+  isRecurring     Boolean       @default(false)
+  recurrenceRuleId String?
+  deliverableUrl  String?
+  deliverableType String?
+  approvalStatus  ApprovalStatus?
+  approvalComment String?
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client          Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project         Project?      @relation(fields: [projectId], references: [id])
+  assignedTo      User          @relation("AssignedDeliveryUser", fields: [assignedToId], references: [id])
+  comments        TaskComment[]
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([assignedToId])
+  @@index([status])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  comment   String
+  createdAt DateTime @default(now())
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+}
+
+model RecurringTaskRule {
+  id            String   @id @default(cuid())
+  tenantId      String
+  clientId      String
+  titleTemplate String
+  frequency     String   @default("MONTHLY")
+  category      String
+  assignedToId  String
+  nextRunDate   DateTime
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+// ---------------------------------------------------------
+// 6. DELIVERABLE APPROVALS & TICKETS
+// ---------------------------------------------------------
+
+model DeliverableItem {
+  id             String         @id @default(cuid())
+  tenantId       String
+  clientId       String
+  title          String
+  platform       String         @default("GOOGLE_BUSINESS")
+  previewUrl     String
+  captionText    String?
+  scheduledFor   DateTime
+  status         ApprovalStatus @default(PENDING)
+  clientFeedback String?
+  reviewedAt     DateTime?
+  createdAt      DateTime       @default(now())
+
+  client         Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+model Ticket {
+  id             String       @id @default(cuid())
+  tenantId       String
+  clientId       String
+  ticketNumber   String       @unique
+  category       String       @default("GOOGLE_MAPS")
+  subject        String
+  description    String
+  priority       TaskPriority @default(MEDIUM)
+  status         String       @default("OPEN")
+  assignedToId   String?
+  slaDeadline    DateTime
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedTo     User?        @relation("AssignedSupportUser", fields: [assignedToId], references: [id])
+
+  @@index([tenantId])
+  @@index([clientId])
+}
+
+// ---------------------------------------------------------
+// 7. GOOGLE BUSINESS PROFILE (GBP)
+// ---------------------------------------------------------
+
+model GbpProfile {
+  id                String   @id @default(cuid())
+  clientId          String   @unique
+  locationName      String
+  primaryCategory   String
+  rating            Float    @default(5.0)
+  reviewCount       Int      @default(0)
+  healthScore       Int      @default(80)
+  photosCount       Int      @default(0)
+  isVerified        Boolean  @default(true)
+  missingAttributes String[]
+  lastAuditDate     DateTime @default(now())
+
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------
+// 8. BILLING, INVOICING & TAX (NON-GST / GST)
+// ---------------------------------------------------------
+
+enum TaxMode {
+  NON_GST
+  GST
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentStatus {
+  CREATED
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+model TaxConfiguration {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  isGstRegistered    Boolean  @default(false)
+  gstin              String?
+  registrationDate   DateTime?
+  defaultTaxMode     TaxMode  @default(NON_GST)
+  cgstRatePercent    Float    @default(0.0)
+  sgstRatePercent    Float    @default(0.0)
+  igstRatePercent    Float    @default(0.0)
+  defaultSacCode     String   @default("998313")
+  invoicePrefix      String   @default("DR/BOS/")
+  termsAndConditions String
+  updatedAt          DateTime @updatedAt
+
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  tenantId      String
+  clientId      String
+  invoiceNumber String        @unique
+  invoiceType   String        @default("BILL_OF_SUPPLY")
+  taxMode       TaxMode       @default(NON_GST)
+  subtotal      Float
+  cgstAmount    Float         @default(0.0)
+  sgstAmount    Float         @default(0.0)
+  igstAmount    Float         @default(0.0)
+  totalTax      Float         @default(0.0)
+  totalAmount   Float
+  paidAmount    Float         @default(0.0)
+  dueAmount     Float         @default(0.0)
+  status        InvoiceStatus @default(ISSUED)
+  dueDate       DateTime
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client        Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  items         InvoiceItem[]
+  payments      PaymentRecord[]
+
+  @@index([tenantId])
+  @@index([clientId])
+}
+
+model InvoiceItem {
+  id              String   @id @default(cuid())
+  invoiceId       String
+  description     String
+  sacCode         String   @default("998313")
+  quantity        Int      @default(1)
+  unitPrice       Float
+  taxRatePercent  Float    @default(0.0)
+  taxAmount       Float    @default(0.0)
+  totalAmount     Float
+
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model PaymentRecord {
+  id                String        @id @default(cuid())
+  tenantId          String
+  clientId          String
+  invoiceId         String?
+  orderId           String?
+  gateway           String        @default("RAZORPAY")
+  gatewayPaymentId  String        @unique
+  gatewayOrderId    String?
+  amount            Float
+  currency          String        @default("INR")
+  paymentMethod     String        @default("UPI")
+  status            PaymentStatus @default(CAPTURED)
+  signatureVerified Boolean       @default(true)
+  paidAt            DateTime      @default(now())
+  notes             String?
+
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client            Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  invoice           Invoice?      @relation(fields: [invoiceId], references: [id])
+
+  @@index([tenantId])
+  @@index([clientId])
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String   @default("RAZORPAY")
+  eventId     String   @unique
+  eventType   String
+  payload     Json
+  processed   Boolean  @default(true)
+  processedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([provider, eventId])
+}
+
+// ---------------------------------------------------------
+// 9. AUDIT LOGS & TIMELINE
+// ---------------------------------------------------------
+
+model TimelineActivity {
+  id          String   @id @default(cuid())
+  clientId    String
+  type        String
+  title       String
+  description String
+  actorName   String
+  timestamp   DateTime @default(now())
+
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String?
+  entityType  String
+  entityId    String
+  action      String
+  beforeState Json?
+  afterState  Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([entityType, entityId])
+}
