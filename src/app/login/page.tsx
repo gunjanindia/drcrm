@@ -6,20 +6,14 @@ import Link from 'next/link';
 import {
   Lock,
   Mail,
-  Shield,
-  Sparkles,
   ArrowRight,
-  UserCheck,
-  Building,
-  KeyRound,
-  CheckCircle2,
 } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('gunjan@digitalranchi.in');
-  const [password, setPassword] = useState('Password@123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -34,7 +28,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
 
       const data = await res.json();
@@ -55,11 +49,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickDemoLogin = (demoEmail: string, isClient: boolean = false) => {
-    setEmail(demoEmail);
-    setPassword('Password@123');
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-950 p-4">
       {/* Background ambient glow */}
@@ -77,10 +66,10 @@ export default function LoginPage() {
             </span>
           </Link>
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            Secure Platform Authentication
+            Secure Platform Login
           </h2>
           <p className="text-xs text-slate-500">
-            JWT Session Token + Bcrypt Protected Access
+            Sign in with your staff or client account credentials
           </p>
         </div>
 
@@ -95,7 +84,7 @@ export default function LoginPage() {
           <Input
             label="Email Address *"
             type="email"
-            placeholder="your.name@digitalranchi.in"
+            placeholder="your.email@digitalranchi.in"
             icon={Mail}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -120,50 +109,9 @@ export default function LoginPage() {
             isLoading={isLoading}
             icon={ArrowRight}
           >
-            Sign In with Real Auth
+            Sign In to Account
           </Button>
         </form>
-
-        {/* 1-Click Role Logins for Quick Testing */}
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center">
-            Quick 1-Click Demo Profiles (Pre-filled):
-          </span>
-
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <button
-              onClick={() => handleQuickDemoLogin('gunjan@digitalranchi.in')}
-              className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950 hover:bg-indigo-50 border border-slate-200 dark:border-slate-800 text-left font-semibold text-slate-700 dark:text-slate-300"
-            >
-              👑 Super Admin
-              <span className="block text-[9px] font-normal text-slate-400">Gunjan Sharma</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickDemoLogin('pooja@digitalranchi.in')}
-              className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950 hover:bg-indigo-50 border border-slate-200 dark:border-slate-800 text-left font-semibold text-slate-700 dark:text-slate-300"
-            >
-              💼 Business Admin
-              <span className="block text-[9px] font-normal text-slate-400">Pooja Verma</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickDemoLogin('neha.p@digitalranchi.in')}
-              className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950 hover:bg-indigo-50 border border-slate-200 dark:border-slate-800 text-left font-semibold text-slate-700 dark:text-slate-300"
-            >
-              📞 Account Mgr
-              <span className="block text-[9px] font-normal text-slate-400">Neha Pandey</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickDemoLogin('client@ranchidental.com', true)}
-              className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950 hover:bg-sky-50 border border-slate-200 dark:border-slate-800 text-left font-semibold text-slate-700 dark:text-slate-300"
-            >
-              🏥 Client Portal
-              <span className="block text-[9px] font-normal text-slate-400">Dr. Alok (Ranchi Dental)</span>
-            </button>
-          </div>
-        </div>
 
         <div className="text-center pt-2">
           <Link href="/" className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
