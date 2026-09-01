@@ -515,9 +515,10 @@ export class AppStore {
       try {
         const { prisma } = require('@/lib/prisma');
         if (prisma) {
-          const [dbUsers, dbClients, dbTasks, dbProjects, dbServices, dbPackages, dbTax] = await Promise.all([
+          const [dbUsers, dbClients, dbLeads, dbTasks, dbProjects, dbServices, dbPackages, dbTax] = await Promise.all([
             prisma.user.findMany().catch(() => []),
             prisma.client.findMany().catch(() => []),
+            prisma.lead.findMany().catch(() => []),
             prisma.task.findMany().catch(() => []),
             prisma.project.findMany().catch(() => []),
             prisma.service.findMany().catch(() => []),
@@ -571,6 +572,31 @@ export class AppStore {
             }));
           }
 
+          if (dbLeads && dbLeads.length > 0) {
+            this.leads = dbLeads.map((l: any) => ({
+              id: l.id,
+              tenantId: l.tenantId,
+              businessName: l.businessName,
+              contactName: l.contactName,
+              phone: l.phone,
+              whatsapp: l.whatsapp,
+              email: l.email,
+              category: l.category,
+              city: l.city,
+              state: l.state,
+              googleMapsUrl: l.googleMapsUrl || undefined,
+              websiteUrl: l.websiteUrl || undefined,
+              leadSource: l.leadSource,
+              interestedPackageId: l.interestedPackageId || undefined,
+              estimatedValue: l.estimatedValue || 999,
+              leadScore: l.leadScore || 70,
+              status: l.status,
+              auditScore: l.auditScore || undefined,
+              createdAt: l.createdAt ? new Date(l.createdAt).toISOString() : new Date().toISOString(),
+              updatedAt: l.updatedAt ? new Date(l.updatedAt).toISOString() : new Date().toISOString(),
+            }));
+          }
+
           if (dbTasks && dbTasks.length > 0) {
             this.tasks = dbTasks.map((t: any) => ({
               id: t.id,
@@ -605,6 +631,40 @@ export class AppStore {
     };
     this.leads.unshift(newLead);
     this.saveToFile();
+
+    // Async persist to Neon PostgreSQL
+    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+      try {
+        const { prisma } = require('@/lib/prisma');
+        if (prisma) {
+          prisma.lead.create({
+            data: {
+              id: newLead.id,
+              tenantId: newLead.tenantId,
+              businessName: newLead.businessName,
+              contactName: newLead.contactName,
+              phone: newLead.phone,
+              whatsapp: newLead.whatsapp,
+              email: newLead.email,
+              category: newLead.category,
+              city: newLead.city,
+              state: newLead.state,
+              googleMapsUrl: newLead.googleMapsUrl || null,
+              websiteUrl: newLead.websiteUrl || null,
+              leadSource: newLead.leadSource || 'Website Direct',
+              interestedPackageId: newLead.interestedPackageId || null,
+              estimatedValue: newLead.estimatedValue || 999.0,
+              leadScore: newLead.leadScore || 70,
+              status: newLead.status || 'NEW',
+              auditScore: newLead.auditScore || null,
+            },
+          }).catch((err: any) => console.error('Prisma lead.create error:', err));
+        }
+      } catch (e) {
+        console.error('Failed to trigger Prisma createLead:', e);
+      }
+    }
+
     return newLead;
   }
 
@@ -617,6 +677,26 @@ export class AppStore {
       updatedAt: new Date().toISOString(),
     };
     this.saveToFile();
+
+    // Async persist update to Neon PostgreSQL
+    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+      try {
+        const { prisma } = require('@/lib/prisma');
+        if (prisma) {
+          prisma.lead.update({
+            where: { id: leadId },
+            data: {
+              status: data.status,
+              estimatedValue: data.estimatedValue,
+              leadScore: data.leadScore,
+            },
+          }).catch((err: any) => console.error('Prisma lead.update error:', err));
+        }
+      } catch (e) {
+        console.error('Failed to trigger Prisma updateLead:', e);
+      }
+    }
+
     return this.leads[index];
   }
 
