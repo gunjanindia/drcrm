@@ -17,6 +17,7 @@ import {
 } from '@/types';
 import { initialTaxConfig, globalTaxEngine } from './tax-engine';
 import { generateId } from './utils';
+import { prisma } from './prisma';
 
 export class AppStore {
   public users: User[] = [];
