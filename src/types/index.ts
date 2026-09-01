@@ -63,6 +63,7 @@ export interface User {
   name: string;
   email: string;
   phone: string;
+  passwordHash?: string;
   role: UserRole;
   avatarUrl?: string;
   department?: string;

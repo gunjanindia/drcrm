@@ -91,15 +91,30 @@ export default function LoginPage() {
             required
           />
 
-          <Input
-            label="Password *"
-            type="password"
-            placeholder="••••••••••••"
-            icon={Lock}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Password *
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                Forgot Password?
+              </Link>
+            </div>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="password"
+                placeholder="••••••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+              />
+            </div>
+          </div>
 
           <Button
             type="submit"
