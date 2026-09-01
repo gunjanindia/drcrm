@@ -41,75 +41,51 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setIsProcessing(true);
 
     try {
-      // 1. Create Lead in Store
-      const lead = globalStore.createLead({
-        businessName,
-        contactName,
-        phone,
-        whatsapp: phone,
-        email: email || `${phone}@client.digitalranchi.in`,
-        category,
-        city,
-        state: 'Jharkhand',
-        leadSource: 'Website Direct Checkout',
-        interestedPackageId: pkg.id,
-        estimatedValue: pkg.price,
-        leadScore: 90,
-        status: 'WON',
+      const res = await fetch('/api/orders/public-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          packageId: pkg.id,
+          businessName,
+          contactName,
+          phone,
+          email,
+          city,
+          category,
+        }),
       });
 
-      // 2. Initialize Gateway Order
-      const order = await paymentProvider.createOrder({
-        amount: pkg.price,
-        currency: 'INR',
-        receipt: `rcpt_${lead.id}`,
-        customer: {
-          name: contactName,
-          email: email || `${phone}@client.digitalranchi.in`,
-          contact: phone,
-        },
-      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Checkout processing failed');
+      }
 
-      // 3. Simulate Server-Side Razorpay Webhook Payment Capture & Conversion
-      setTimeout(() => {
-        const payment = globalStore.recordPayment(
-          'pending_conversion',
-          pkg.price,
-          `pay_RZP_${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-          order.gatewayOrderId
-        );
-
-        // 4. Convert Lead to Client + Automated 7-Day Onboarding Tasks
-        const conversion = globalStore.convertLeadToClient(lead.id, pkg.id);
-        payment.clientId = conversion.client.id;
-
-        setIsProcessing(false);
-        setIsSuccess(true);
-        setNewClientSummary({
-          client: conversion.client,
-          project: conversion.project,
-          taskCount: conversion.tasks.length,
-          paymentId: payment.gatewayPaymentId,
-        });
-
-        // Trigger confetti celebration
-        try {
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 },
-          });
-        } catch {
-          // Ignore if canvas-confetti is not loaded
-        }
-
-        if (onSuccess) {
-          onSuccess(conversion.client.id);
-        }
-      }, 1200);
-    } catch (err) {
       setIsProcessing(false);
-      alert('Error during checkout verification. Please try again.');
+      setIsSuccess(true);
+      setNewClientSummary({
+        client: data.client,
+        project: data.project,
+        taskCount: data.tasks?.length || 7,
+        paymentId: data.payment?.gatewayPaymentId || 'pay_RZP_VERIFIED',
+      });
+
+      // Trigger confetti celebration
+      try {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+      } catch {
+        // Ignore if canvas-confetti is not loaded
+      }
+
+      if (onSuccess && data.client?.id) {
+        onSuccess(data.client.id);
+      }
+    } catch (err: any) {
+      setIsProcessing(false);
+      alert(err?.message || 'Error during checkout verification. Please try again.');
     }
   };
 
