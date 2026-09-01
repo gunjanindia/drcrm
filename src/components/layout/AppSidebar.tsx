@@ -98,13 +98,13 @@ export const AppSidebar: React.FC = () => {
       <div className="p-4 border-t border-slate-800 bg-slate-950/40 space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-sky-400 flex items-center justify-center text-xs font-bold text-white shrink-0">
-            GS
+            GK
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-white truncate">Gunjan Sharma</p>
+            <p className="text-xs font-bold text-white truncate">Gunjan Kumar</p>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              <span className="text-[10px] text-slate-400 font-medium truncate">Super Admin</span>
+              <span className="text-[10px] text-slate-400 font-medium truncate">Super Admin • Neon DB</span>
             </div>
           </div>
         </div>
