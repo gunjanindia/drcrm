@@ -104,7 +104,7 @@ export const AppSidebar: React.FC = () => {
             <p className="text-xs font-bold text-white truncate">Gunjan Kumar</p>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              <span className="text-[10px] text-slate-400 font-medium truncate">Super Admin • Neon DB</span>
+              <span className="text-[10px] text-slate-400 font-medium truncate">Super Admin</span>
             </div>
           </div>
         </div>
