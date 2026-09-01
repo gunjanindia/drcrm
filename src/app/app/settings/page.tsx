@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   Settings,
@@ -18,6 +18,10 @@ import {
   DollarSign,
   Briefcase,
   Share2,
+  Mail,
+  UserCheck,
+  Lock,
+  Phone,
 } from 'lucide-react';
 import { Button, Input, Modal, Badge } from '@/components/ui';
 import { globalStore } from '@/lib/store';
@@ -26,7 +30,20 @@ import { User, UserRole, Service, Package, BillingFrequency } from '@/types';
 import { formatINR, formatDate } from '@/lib/utils';
 
 export default function MasterDataSettingsPage() {
-  const [activeTab, setActiveTab] = useState<'staff' | 'services' | 'packages' | 'tax' | 'sources'>('staff');
+  const [activeTab, setActiveTab] = useState<'profile' | 'staff' | 'services' | 'packages' | 'tax' | 'sources'>('profile');
+
+  // --- CURRENT USER PROFILE STATE ---
+  const [myProfile, setMyProfile] = useState<any>(null);
+  const [profileName, setProfileName] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // --- PASSWORD UPDATE STATE ---
+  const [currentPwd, setCurrentPwd] = useState('');
+  const [newPwd, setNewPwd] = useState('');
+  const [confirmNewPwd, setConfirmNewPwd] = useState('');
+  const [isChangingPwd, setIsChangingPwd] = useState(false);
 
   // Local state reflecting globalStore
   const [users, setUsers] = useState<User[]>(globalStore.users);
@@ -34,6 +51,91 @@ export default function MasterDataSettingsPage() {
   const [packages, setPackages] = useState<Package[]>(globalStore.packages);
   const [leadSources, setLeadSources] = useState<string[]>(globalStore.leadSources);
   const [taxConfig, setTaxConfig] = useState(globalStore.taxConfig);
+
+  useEffect(() => {
+    fetch('/api/auth/profile')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && d.user) {
+          setMyProfile(d.user);
+          setProfileName(d.user.name || '');
+          setProfileEmail(d.user.email || '');
+          setProfilePhone(d.user.phone || '');
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileEmail.trim()) return;
+
+    setIsSavingProfile(true);
+    try {
+      const res = await fetch('/api/auth/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: profileName,
+          email: profileEmail,
+          phone: profilePhone,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showNotification(data.error || 'Failed to update email');
+      } else {
+        showNotification('Profile and Email updated successfully!');
+        setMyProfile(data.user);
+        setUsers([...globalStore.users]);
+      }
+    } catch {
+      showNotification('Network error updating profile');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPwd || !newPwd || !confirmNewPwd) return;
+
+    if (newPwd.length < 6) {
+      showNotification('New password must be at least 6 characters long');
+      return;
+    }
+
+    if (newPwd !== confirmNewPwd) {
+      showNotification('New passwords do not match');
+      return;
+    }
+
+    setIsChangingPwd(true);
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'change_password',
+          currentPassword: currentPwd,
+          newPassword: newPwd,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showNotification(data.error || 'Failed to update password');
+      } else {
+        showNotification('Password changed successfully!');
+        setCurrentPwd('');
+        setNewPwd('');
+        setConfirmNewPwd('');
+      }
+    } catch {
+      showNotification('Network error updating password');
+    } finally {
+      setIsChangingPwd(false);
+    }
+  };
 
   // --- STAFF MODAL STATES ---
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
@@ -325,6 +427,7 @@ export default function MasterDataSettingsPage() {
       {/* Navigation Tabs */}
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 overflow-x-auto">
         {[
+          { id: 'profile', label: 'My Account & Email', icon: UserCheck },
           { id: 'staff', label: `Staff & RBAC (${users.length})`, icon: Users },
           { id: 'services', label: `Services Catalogue (${services.length})`, icon: Layers },
           { id: 'packages', label: `Packages & Pricing (${packages.length})`, icon: PackageIcon },
@@ -349,6 +452,153 @@ export default function MasterDataSettingsPage() {
           );
         })}
       </div>
+
+      {/* ========================================================================= */}
+      {/* TAB 0: MY ACCOUNT & EMAIL UPDATE */}
+      {/* ========================================================================= */}
+      {activeTab === 'profile' && (
+        <div className="space-y-6 animate-in fade-in max-w-4xl">
+          {/* Profile & Email Card */}
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-indigo-600" />
+                  Personal Profile & Email Address
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Update your login email address, contact phone number, and display name.
+                </p>
+              </div>
+              {myProfile && (
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  Role: {myProfile.role}
+                </span>
+              )}
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Full Name *"
+                  type="text"
+                  placeholder="Your full name"
+                  icon={Users}
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  required
+                />
+
+                <Input
+                  label="Login Email Address *"
+                  type="email"
+                  placeholder="your.email@digitalranchi.in"
+                  icon={Mail}
+                  value={profileEmail}
+                  onChange={(e) => setProfileEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Phone / WhatsApp Number *"
+                  type="tel"
+                  placeholder="+91 98765 43210"
+                  icon={Phone}
+                  value={profilePhone}
+                  onChange={(e) => setProfilePhone(e.target.value)}
+                  required
+                />
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider text-[10px]">
+                    Department
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={myProfile?.department || 'Executive'}
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 p-2.5 text-xs text-slate-500 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  icon={Save}
+                  isLoading={isSavingProfile}
+                  className="shadow-indigo-600/30"
+                >
+                  Save Profile & Update Email
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          {/* Account Password Change Card */}
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            <div>
+              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <Lock className="w-5 h-5 text-indigo-600" />
+                Change Password
+              </h3>
+              <p className="text-xs text-slate-500">
+                Update your account password. Must be at least 6 characters.
+              </p>
+            </div>
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  label="Current Password *"
+                  type="password"
+                  placeholder="••••••••••••"
+                  icon={Lock}
+                  value={currentPwd}
+                  onChange={(e) => setCurrentPwd(e.target.value)}
+                  required
+                />
+
+                <Input
+                  label="New Password *"
+                  type="password"
+                  placeholder="Minimum 6 characters"
+                  icon={Lock}
+                  value={newPwd}
+                  onChange={(e) => setNewPwd(e.target.value)}
+                  required
+                />
+
+                <Input
+                  label="Confirm New Password *"
+                  type="password"
+                  placeholder="Re-enter new password"
+                  icon={Lock}
+                  value={confirmNewPwd}
+                  onChange={(e) => setConfirmNewPwd(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  size="md"
+                  icon={CheckCircle2}
+                  isLoading={isChangingPwd}
+                >
+                  Update Password
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* TAB 1: STAFF & TEAM RBAC MASTER DATA */}
