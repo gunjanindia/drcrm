@@ -9,7 +9,7 @@ import { Lead, LeadStatus } from '@/types';
 import { formatINR, getStatusBadgeClass } from '@/lib/utils';
 
 export default function PipelinePage() {
-  const [leads, setLeads] = useState<Lead[]>(globalStore.leads);
+  const [leads, setLeads] = useState<Lead[]>([]);
 
   const fetchPipelineLeads = async () => {
     try {

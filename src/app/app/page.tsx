@@ -20,11 +20,11 @@ import { globalStore } from '@/lib/store';
 import { formatINR, getHealthScoreColor, getStatusBadgeClass, formatDate } from '@/lib/utils';
 
 export default function AgencyDashboardPage() {
-  const [leads, setLeads] = React.useState(globalStore.leads);
-  const [clients, setClients] = React.useState(globalStore.clients);
-  const [tasks, setTasks] = React.useState(globalStore.tasks);
-  const [invoices, setInvoices] = React.useState(globalStore.invoices);
-  const [activities, setActivities] = React.useState(globalStore.activities);
+  const [leads, setLeads] = React.useState<any[]>([]);
+  const [clients, setClients] = React.useState<any[]>([]);
+  const [tasks, setTasks] = React.useState<any[]>([]);
+  const [invoices, setInvoices] = React.useState<any[]>([]);
+  const [activities, setActivities] = React.useState<any[]>([]);
 
   React.useEffect(() => {
     fetch('/api/leads')

@@ -473,8 +473,12 @@ export class AppStore {
     }
   }
 
-  public loadFromFile() {
+  public async loadFromFile() {
     if (typeof window === 'undefined') {
+      if (process.env.DATABASE_URL) {
+        await this.syncFromDb();
+        return;
+      }
       try {
         const fs = require('fs');
         const path = require('path');
@@ -518,15 +522,15 @@ export class AppStore {
           const [dbUsers, dbClients, dbLeads, dbTasks, dbProjects, dbServices, dbPackages, dbTax] = await Promise.all([
             prisma.user.findMany().catch(() => []),
             prisma.client.findMany().catch(() => []),
-            prisma.lead.findMany().catch(() => []),
-            prisma.task.findMany().catch(() => []),
+            prisma.lead.findMany({ orderBy: { createdAt: 'desc' } }).catch(() => []),
+            prisma.task.findMany({ orderBy: { createdAt: 'desc' } }).catch(() => []),
             prisma.project.findMany().catch(() => []),
             prisma.service.findMany().catch(() => []),
             prisma.package.findMany().catch(() => []),
             prisma.taxConfiguration.findFirst().catch(() => null),
           ]);
 
-          if (dbUsers && dbUsers.length > 0) {
+          if (dbUsers && Array.isArray(dbUsers) && dbUsers.length > 0) {
             this.users = dbUsers.map((u: any) => ({
               id: u.id,
               tenantId: u.tenantId,
@@ -542,11 +546,12 @@ export class AppStore {
             }));
           }
 
-          if (dbClients && dbClients.length > 0) {
+          if (dbClients && Array.isArray(dbClients)) {
             this.clients = dbClients.map((c: any) => ({
               id: c.id,
               tenantId: c.tenantId,
               businessName: c.businessName,
+              legalName: c.legalName || `${c.businessName} Pvt Ltd`,
               category: c.category,
               contactName: c.contactName || c.businessName,
               phone: c.phone,
@@ -561,6 +566,7 @@ export class AppStore {
               assignedManagerId: c.assignedManagerId,
               assignedManagerName: 'Neha Pandey',
               healthScore: c.healthScore || 'GREEN',
+              healthReason: c.healthReason || 'Active account verified in CRM',
               monthlyRevenue: c.monthlyRevenue || 999,
               activeSince: c.activeSince ? new Date(c.activeSince).toISOString() : new Date().toISOString(),
               renewalDate: c.renewalDate ? new Date(c.renewalDate).toISOString() : new Date(Date.now() + 30 * 86400000).toISOString(),
@@ -572,7 +578,7 @@ export class AppStore {
             }));
           }
 
-          if (dbLeads && dbLeads.length > 0) {
+          if (dbLeads && Array.isArray(dbLeads)) {
             this.leads = dbLeads.map((l: any) => ({
               id: l.id,
               tenantId: l.tenantId,
@@ -597,20 +603,24 @@ export class AppStore {
             }));
           }
 
-          if (dbTasks && dbTasks.length > 0) {
+          if (dbTasks && Array.isArray(dbTasks)) {
             this.tasks = dbTasks.map((t: any) => ({
               id: t.id,
               tenantId: t.tenantId,
               clientId: t.clientId,
+              clientName: t.clientName || 'Client',
               projectId: t.projectId || undefined,
               title: t.title,
-              category: t.category,
+              description: t.description || t.title,
+              category: t.category || 'GBP_SETUP',
               priority: t.priority,
               status: t.status,
               assignedToId: t.assignedToId,
               assignedToName: t.assignedToId === 'usr_del_exec1' ? 'Rohan Gupta' : 'Anjali Kumari',
               slaHours: 48,
+              slaDeadline: t.slaDeadline ? new Date(t.slaDeadline).toISOString() : new Date().toISOString(),
               dueDate: t.dueDate ? new Date(t.dueDate).toISOString() : new Date().toISOString(),
+              isRecurring: t.isRecurring || false,
               createdAt: t.createdAt ? new Date(t.createdAt).toISOString() : new Date().toISOString(),
             }));
           }

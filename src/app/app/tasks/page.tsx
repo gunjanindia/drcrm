@@ -23,9 +23,9 @@ import { Task, TaskStatus, TaskPriority, Client, Lead } from '@/types';
 import { formatDate, getStatusBadgeClass } from '@/lib/utils';
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>(globalStore.tasks);
-  const [clients, setClients] = useState<Client[]>(globalStore.clients);
-  const [leads, setLeads] = useState<Lead[]>(globalStore.leads);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedPriority, setSelectedPriority] = useState<string>('ALL');

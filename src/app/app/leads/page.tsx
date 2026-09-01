@@ -27,8 +27,8 @@ import { formatINR, formatDate, getStatusBadgeClass } from '@/lib/utils';
 import { aiAssistantEngine } from '@/lib/ai-engine';
 
 export default function LeadsPage() {
-  const [leads, setLeads] = useState<Lead[]>(globalStore.leads);
-  const [isLoadingLeads, setIsLoadingLeads] = useState(false);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [isLoadingLeads, setIsLoadingLeads] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedLeadForAi, setSelectedLeadForAi] = useState<Lead | null>(null);

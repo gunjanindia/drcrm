@@ -20,7 +20,7 @@ import { Client } from '@/types';
 import { formatINR, formatDate, getHealthScoreColor } from '@/lib/utils';
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>(globalStore.clients);
+  const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
   const [filterHealth, setFilterHealth] = useState('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
