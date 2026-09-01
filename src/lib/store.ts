@@ -621,7 +621,7 @@ export class AppStore {
     }
   }
 
-  public createLead(leadData: Omit<Lead, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Lead {
+  public async createLead(leadData: Omit<Lead, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Promise<Lead> {
     const newLead: Lead = {
       id: generateId('lead'),
       tenantId: 'tenant_main',
@@ -632,12 +632,12 @@ export class AppStore {
     this.leads.unshift(newLead);
     this.saveToFile();
 
-    // Async persist to Neon PostgreSQL
+    // Await persist to Neon PostgreSQL
     if (typeof window === 'undefined' && process.env.DATABASE_URL) {
       try {
         const { prisma } = require('@/lib/prisma');
         if (prisma) {
-          prisma.lead.create({
+          await prisma.lead.create({
             data: {
               id: newLead.id,
               tenantId: newLead.tenantId,
@@ -658,17 +658,17 @@ export class AppStore {
               status: newLead.status || 'NEW',
               auditScore: newLead.auditScore || null,
             },
-          }).catch((err: any) => console.error('Prisma lead.create error:', err));
+          });
         }
       } catch (e) {
-        console.error('Failed to trigger Prisma createLead:', e);
+        console.error('Failed to persist createLead to Neon:', e);
       }
     }
 
     return newLead;
   }
 
-  public updateLead(leadId: string, data: Partial<Lead>): Lead {
+  public async updateLead(leadId: string, data: Partial<Lead>): Promise<Lead> {
     const index = this.leads.findIndex((l) => l.id === leadId);
     if (index === -1) throw new Error('Lead not found');
     this.leads[index] = {
@@ -678,35 +678,35 @@ export class AppStore {
     };
     this.saveToFile();
 
-    // Async persist update to Neon PostgreSQL
+    // Await update to Neon PostgreSQL
     if (typeof window === 'undefined' && process.env.DATABASE_URL) {
       try {
         const { prisma } = require('@/lib/prisma');
         if (prisma) {
-          prisma.lead.update({
+          await prisma.lead.update({
             where: { id: leadId },
             data: {
               status: data.status,
               estimatedValue: data.estimatedValue,
               leadScore: data.leadScore,
             },
-          }).catch((err: any) => console.error('Prisma lead.update error:', err));
+          });
         }
       } catch (e) {
-        console.error('Failed to trigger Prisma updateLead:', e);
+        console.error('Failed to update lead in Neon:', e);
       }
     }
 
     return this.leads[index];
   }
 
-  public convertLeadToClient(leadId: string, packageId: string = 'pkg_growth_999'): {
+  public async convertLeadToClient(leadId: string, packageId: string = 'pkg_growth_999'): Promise<{
     client: Client;
     project: Project;
     tasks: Task[];
     invoice: Invoice;
     lead: Lead;
-  } {
+  }> {
     const lead = this.leads.find((l) => l.id === leadId);
     if (!lead) throw new Error('Lead not found');
 
@@ -878,6 +878,51 @@ export class AppStore {
     });
 
     this.saveToFile();
+
+    // Persist to Neon PostgreSQL
+    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+      try {
+        const { prisma } = require('@/lib/prisma');
+        if (prisma) {
+          await prisma.lead.update({
+            where: { id: lead.id },
+            data: { status: 'WON' },
+          }).catch(() => null);
+
+          await prisma.client.upsert({
+            where: { id: newClient.id },
+            update: {},
+            create: {
+              id: newClient.id,
+              tenantId: newClient.tenantId,
+              leadId: lead.id,
+              businessName: newClient.businessName,
+              category: newClient.category,
+              phone: newClient.phone,
+              whatsapp: newClient.whatsapp,
+              email: newClient.email,
+              address: newClient.address,
+              city: newClient.city,
+              state: newClient.state,
+              pincode: newClient.pincode,
+              assignedManagerId: newClient.assignedManagerId,
+              packageId: newClient.packageId,
+              packageName: newClient.packageName,
+              healthScore: newClient.healthScore,
+              monthlyRevenue: newClient.monthlyRevenue,
+              activeSince: new Date(newClient.activeSince),
+              renewalDate: new Date(newClient.renewalDate),
+              reviewCount: newClient.reviewCount,
+              averageRating: newClient.averageRating,
+              gbpScore: newClient.gbpScore,
+              status: newClient.status,
+            },
+          }).catch((err: any) => console.error('Prisma client.upsert error:', err));
+        }
+      } catch (e) {
+        console.error('Failed to persist convertLeadToClient in Neon:', e);
+      }
+    }
 
     return { client: newClient, project: newProject, tasks: createdTasks, invoice: newInvoice, lead };
   }

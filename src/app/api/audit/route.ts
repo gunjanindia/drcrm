@@ -55,7 +55,7 @@ export async function POST(request: Request) {
           globalStore.saveToFile();
         } else {
           // Create new lead in CRM
-          globalStore.createLead({
+          await globalStore.createLead({
             businessName: audit.businessName,
             contactName: contactName?.trim() || audit.businessName,
             phone: cleanPhone,

@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         : `${phone.replace(/[^0-9]/g, '')}@client.digitalranchi.in`;
 
     // 1. Ingest & Create Lead in Store with WON status
-    const lead = globalStore.createLead({
+    const lead = await globalStore.createLead({
       businessName: businessName.trim(),
       contactName: contactName.trim(),
       phone: phone.trim(),
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     });
 
     // 3. Convert Lead to Client + Automated 7-Day Onboarding Project & Tasks
-    const conversion = globalStore.convertLeadToClient(lead.id, pkg.id);
+    const conversion = await globalStore.convertLeadToClient(lead.id, pkg.id);
 
     // 4. Record Verified Payment in CRM Store
     const gatewayPaymentId = `pay_RZP_${Math.random().toString(36).substring(2, 9).toUpperCase()}`;

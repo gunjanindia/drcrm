@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Lead ID is required' }, { status: 400 });
     }
 
-    const result = globalStore.convertLeadToClient(leadId, packageId || 'pkg_growth_999');
+    const result = await globalStore.convertLeadToClient(leadId, packageId || 'pkg_growth_999');
 
     return NextResponse.json({
       success: true,

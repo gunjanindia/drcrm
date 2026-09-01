@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
       // Find matching lead or pending conversion
       const lead = globalStore.leads.find((l) => l.id === receipt) || globalStore.leads[0];
-      const conversion = globalStore.convertLeadToClient(lead.id, lead.interestedPackageId || 'pkg_growth_999');
+      const conversion = await globalStore.convertLeadToClient(lead.id, lead.interestedPackageId || 'pkg_growth_999');
 
       globalStore.recordPayment(conversion.client.id, amount, paymentId);
 
