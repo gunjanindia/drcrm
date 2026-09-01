@@ -8,9 +8,14 @@ import { formatINR, formatDate, getStatusBadgeClass } from '@/lib/utils';
 import { CheckoutModal } from '@/components/billing/CheckoutModal';
 
 export default function ClientInvoicesPage() {
-  const client = globalStore.clients[0];
+  const client = globalStore.clients[0] || {
+    id: 'cli_demo',
+    businessName: 'Your Business',
+    packageId: 'pkg_growth_999',
+    monthlyRevenue: 999,
+  };
   const invoices = globalStore.invoices.filter((inv) => inv.clientId === client.id);
-  const pkg = globalStore.packages.find((p) => p.id === client.packageId) || globalStore.packages[2];
+  const pkg = globalStore.packages.find((p) => p.id === client.packageId) || globalStore.packages[1];
 
   const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
 

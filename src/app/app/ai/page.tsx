@@ -7,13 +7,14 @@ import { globalStore } from '@/lib/store';
 import { aiAssistantEngine } from '@/lib/ai-engine';
 
 export default function AiOperationsHubPage() {
-  const [selectedClientId, setSelectedClientId] = useState(globalStore.clients[0].id);
+  const [selectedClientId, setSelectedClientId] = useState(globalStore.clients[0]?.id || '');
   const [reportResult, setReportResult] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const selectedClient = globalStore.clients.find((c) => c.id === selectedClientId) || globalStore.clients[0];
 
   const handleGenerateReport = () => {
+    if (!selectedClient) return;
     setIsGenerating(true);
     setTimeout(() => {
       const res = aiAssistantEngine.generateMonthlyClientReport(selectedClient);

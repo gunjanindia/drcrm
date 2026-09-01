@@ -20,15 +20,41 @@ import { globalStore } from '@/lib/store';
 import { formatINR, getHealthScoreColor, getStatusBadgeClass, formatDate } from '@/lib/utils';
 
 export default function AgencyDashboardPage() {
-  const leads = globalStore.leads;
-  const clients = globalStore.clients;
-  const tasks = globalStore.tasks;
-  const invoices = globalStore.invoices;
-  const activities = globalStore.activities;
+  const [leads, setLeads] = React.useState(globalStore.leads);
+  const [clients, setClients] = React.useState(globalStore.clients);
+  const [tasks, setTasks] = React.useState(globalStore.tasks);
+  const [invoices, setInvoices] = React.useState(globalStore.invoices);
+  const [activities, setActivities] = React.useState(globalStore.activities);
 
-  const totalMRR = clients.reduce((acc, c) => acc + c.monthlyRevenue, 0);
-  const activeClientsCount = clients.filter((c) => c.status === 'ACTIVE').length;
-  const pendingLeadsCount = leads.filter((l) => l.status === 'NEW' || l.status === 'CONTACTED').length;
+  React.useEffect(() => {
+    fetch('/api/leads')
+      .then((r) => r.json())
+      .then((d) => d.success && Array.isArray(d.data) && setLeads(d.data))
+      .catch(() => {});
+
+    fetch('/api/clients')
+      .then((r) => r.json())
+      .then((d) => d.success && Array.isArray(d.data) && setClients(d.data))
+      .catch(() => {});
+
+    fetch('/api/tasks')
+      .then((r) => r.json())
+      .then((d) => d.success && Array.isArray(d.data) && setTasks(d.data))
+      .catch(() => {});
+
+    fetch('/api/billing')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && d.data) {
+          if (d.data.invoices) setInvoices(d.data.invoices);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const totalMRR = clients.reduce((acc, c) => acc + (c.monthlyRevenue || 0), 0);
+  const activeClientsCount = clients.filter((c) => c.status === 'ACTIVE' || c.status === 'ONBOARDING').length;
+  const pendingLeadsCount = leads.filter((l) => l.status === 'NEW' || l.status === 'CONTACTED' || l.status === 'AUDIT').length;
   const completedTasksCount = tasks.filter((t) => t.status === 'COMPLETED').length;
   const overdueOrUrgentTasks = tasks.filter((t) => t.priority === 'URGENT' && t.status !== 'COMPLETED');
 

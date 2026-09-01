@@ -1,0 +1,670 @@
+{
+  "leads": [
+    {
+      "id": "lead_1j94cj8_mtile471",
+      "tenantId": "tenant_main",
+      "businessName": "Glow Heaven Beauty Parlour",
+      "contactName": "Manisha Sinha",
+      "phone": "9879879876",
+      "whatsapp": "9879879876",
+      "email": "9879879876@lead.digitalranchi.in",
+      "category": "Beauty Parlour",
+      "city": "Ranchi",
+      "state": "Jharkhand",
+      "leadSource": "CRM Direct Ingestion",
+      "estimatedValue": 999,
+      "leadScore": 85,
+      "status": "WON",
+      "notes": "Manually logged in CRM.",
+      "createdAt": "2026-09-01T11:36:59.581Z",
+      "updatedAt": "2026-09-01T11:38:54.860Z"
+    }
+  ],
+  "clients": [
+    {
+      "id": "cli_dw7ha4o_mtilgl58",
+      "tenantId": "tenant_main",
+      "leadId": "lead_1j94cj8_mtile471",
+      "businessName": "Glow Heaven Beauty Parlour",
+      "legalName": "Glow Heaven Beauty Parlour Pvt Ltd",
+      "category": "Beauty Parlour",
+      "phone": "9879879876",
+      "whatsapp": "9879879876",
+      "email": "9879879876@lead.digitalranchi.in",
+      "address": "Ranchi, Jharkhand",
+      "city": "Ranchi",
+      "state": "Jharkhand",
+      "pincode": "834001",
+      "assignedManagerId": "usr_acct_mgr1",
+      "assignedManagerName": "Neha Pandey",
+      "packageId": "pkg_growth_999",
+      "packageName": "Growth Kickstart",
+      "healthScore": "GREEN",
+      "healthReason": "Newly onboarded client with verified onboarding kickoff",
+      "monthlyRevenue": 999,
+      "activeSince": "2026-09-01T11:38:54.861Z",
+      "renewalDate": "2026-10-01T11:38:54.861Z",
+      "reviewCount": 12,
+      "averageRating": 4.5,
+      "gbpScore": 78,
+      "status": "ONBOARDING",
+      "createdAt": "2026-09-01T11:38:54.861Z"
+    }
+  ],
+  "projects": [
+    {
+      "id": "prj_cf27mvj_mtilgl59",
+      "tenantId": "tenant_main",
+      "clientId": "cli_dw7ha4o_mtilgl58",
+      "clientName": "Glow Heaven Beauty Parlour",
+      "name": "7-Day Onboarding & Growth Kickoff",
+      "projectType": "ONBOARDING",
+      "status": "IN_PROGRESS",
+      "progressPercent": 10,
+      "startDate": "2026-09-01T11:38:54.863Z",
+      "dueDate": "2026-09-08T11:38:54.863Z",
+      "createdAt": "2026-09-01T11:38:54.863Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "tsk_5vlkp9l_mtilgl5c",
+      "tenantId": "tenant_main",
+      "projectId": "prj_cf27mvj_mtilgl59",
+      "clientId": "cli_dw7ha4o_mtilgl58",
+      "clientName": "Glow Heaven Beauty Parlour",
+      "title": "Day 7: Official Launch & WhatsApp Welcome Broadcast - Glow Heaven Beauty Parlour",
+      "description": "Automated onboarding task generated upon package purchase. Execute according to standard operating procedure.",
+      "status": "BACKLOG",
+      "priority": "MEDIUM",
+      "assignedToId": "usr_del_exec1",
+      "assignedToName": "Rohan Gupta",
+      "slaDeadline": "2026-09-08T11:38:54.864Z",
+      "dueDate": "2026-09-08T11:38:54.864Z",
+      "isRecurring": false,
+      "createdAt": "2026-09-01T11:38:54.864Z"
+    },
+    {
+      "id": "tsk_5tyhvhj_mtilgl5c",
+      "tenantId": "tenant_main",
+      "projectId": "prj_cf27mvj_mtilgl59",
+      "clientId": "cli_dw7ha4o_mtilgl58",
+      "clientName": "Glow Heaven Beauty Parlour",
+      "title": "Day 6: Submit Deliverables for Client Portal Approval - Glow Heaven Beauty Parlour",
+      "description": "Automated onboarding task generated upon package purchase. Execute according to standard operating procedure.",
+      "status": "BACKLOG",
+      "priority": "MEDIUM",
+      "assignedToId": "usr_del_exec1",
+      "assignedToName": "Rohan Gupta",
+      "slaDeadline": "2026-09-07T11:38:54.864Z",
+      "dueDate": "2026-09-07T11:38:54.864Z",
+      "isRecurring": false,
+      "createdAt": "2026-09-01T11:38:54.864Z"
+    },
+    {
+      "id": "tsk_08yyhfh_mtilgl5b",
+      "tenantId": "tenant_main",
+      "projectId": "prj_cf27mvj_mtilgl59",
+      "clientId": "cli_dw7ha4o_mtilgl58",
+      "clientName": "Glow Heaven Beauty Parlour",
+      "title": "Day 5: Internal Quality Audit & NAP Verification - Glow Heaven Beauty Parlour",
+      "description": "Automated onboarding task generated upon package purchase. Execute according to standard operating procedure.",
+      "status": "BACKLOG",
+      "priority": "MEDIUM",
+      "assignedToId": "usr_del_exec1",
+      "assignedToName": "Rohan Gupta",
+      "slaDeadline": "2026-09-06T11:38:54.863Z",
+      "dueDate": "2026-09-06T11:38:54.863Z",
+      "isRecurring": false,
+      "createdAt": "2026-09-01T11:38:54.863Z"
+    },
+    {
+      "id": "tsk_yjn13br_mtilgl5b",
+      "tenantId": "tenant_main",
+      "projectId": "prj_cf27mvj_mtilgl59",
+      "clientId": "cli_dw7ha4o_mtilgl58",
+      "clientName": "Glow Heaven Beauty Parlour",
+      "title": "Day 4: Deploy High-Converting 1-Page Mini Website - Glow Heaven Beauty Parlour",
+      "description": "Automated onboarding task generated upon package purchase. Execute according to standard operating procedure.",
+      "status": "BACKLOG",
+      "priority": "MEDIUM",
+      "assignedToId": "usr_del_exec1",
+      "assignedToName": "Rohan Gupta",
+      "slaDeadline": "2026-09-05T11:38:54.863Z",
+      "dueDate": "2026-09-05T11:38:54.863Z",
+      "isRecurring": false,
+      "createdAt": "2026-09-01T11:38:54.863Z"
+    },
+    {
+      "id": "tsk_6k2swg7_mtilgl5b",
+      "tenantId": "tenant_main",
+      "projectId": "prj_cf27mvj_mtilgl59",
+      "clientId": "cli_dw7ha4o_mtilgl58",
+      "clientName": "Glow Heaven Beauty Parlour",
+      "title": "Day 3: Design Customized Review QR Code Acrylic Stand - Glow Heaven Beauty Parlour",
+      "description": "Automated onboarding task generated upon package purchase. Execute according to standard operating procedure.",
+      "status": "BACKLOG",
+      "priority": "HIGH",
+      "assignedToId": "usr_del_exec1",
+      "assignedToName": "Rohan Gupta",
+      "slaDeadline": "2026-09-04T11:38:54.863Z",
+      "dueDate": "2026-09-04T11:38:54.863Z",
+      "isRecurring": false,
+      "createdAt": "2026-09-01T11:38:54.863Z"
+    },
+    {
+      "id": "tsk_zq1gbuj_mtilgl5b",
+      "tenantId": "tenant_main",
+      "projectId": "prj_cf27mvj_mtilgl59",
+      "clientId": "cli_dw7ha4o_mtilgl58",
+      "clientName": "Glow Heaven Beauty Parlour",
+      "title": "Day 2: Perform Google Maps Geotagging & Category Optimization - Glow Heaven Beauty Parlour",
+      "description": "Automated onboarding task generated upon package purchase. Execute according to standard operating procedure.",
+      "status": "BACKLOG",
+      "priority": "HIGH",
+      "assignedToId": "usr_del_exec1",
+      "assignedToName": "Rohan Gupta",
+      "slaDeadline": "2026-09-03T11:38:54.863Z",
+      "dueDate": "2026-09-03T11:38:54.863Z",
+      "isRecurring": false,
+      "createdAt": "2026-09-01T11:38:54.863Z"
+    },
+    {
+      "id": "tsk_scnzq6a_mtilgl5b",
+      "tenantId": "tenant_main",
+      "projectId": "prj_cf27mvj_mtilgl59",
+      "clientId": "cli_dw7ha4o_mtilgl58",
+      "clientName": "Glow Heaven Beauty Parlour",
+      "title": "Day 1: Collect Logo, Photos & Exact Address Details - Glow Heaven Beauty Parlour",
+      "description": "Automated onboarding task generated upon package purchase. Execute according to standard operating procedure.",
+      "status": "ASSIGNED",
+      "priority": "HIGH",
+      "assignedToId": "usr_del_exec1",
+      "assignedToName": "Rohan Gupta",
+      "slaDeadline": "2026-09-02T11:38:54.863Z",
+      "dueDate": "2026-09-02T11:38:54.863Z",
+      "isRecurring": false,
+      "createdAt": "2026-09-01T11:38:54.863Z"
+    }
+  ],
+  "invoices": [
+    {
+      "id": "inv_ry5zao0_mtilgl5c",
+      "tenantId": "tenant_main",
+      "clientId": "cli_dw7ha4o_mtilgl58",
+      "clientName": "Glow Heaven Beauty Parlour",
+      "invoiceNumber": "DR/BOS/734864",
+      "invoiceType": "BILL_OF_SUPPLY",
+      "taxMode": "NON_GST",
+      "subtotal": 999,
+      "cgstAmount": 0,
+      "sgstAmount": 0,
+      "igstAmount": 0,
+      "totalTax": 0,
+      "totalAmount": 999,
+      "paidAmount": 0,
+      "dueAmount": 999,
+      "status": "ISSUED",
+      "dueDate": "2026-09-08T11:38:54.864Z",
+      "items": [
+        {
+          "id": "item_hvv9h1p_mtilgl5c",
+          "description": "Growth Kickstart - Initial Onboarding & Monthly Retainer",
+          "sacCode": "998313",
+          "quantity": 1,
+          "unitPrice": 999,
+          "taxRatePercent": 0,
+          "taxAmount": 0,
+          "totalAmount": 999
+        }
+      ],
+      "createdAt": "2026-09-01T11:38:54.864Z"
+    }
+  ],
+  "payments": [],
+  "deliverables": [],
+  "tickets": [],
+  "gbpProfiles": [],
+  "activities": [
+    {
+      "id": "act_gcne08s_mtilgl5c",
+      "clientId": "cli_dw7ha4o_mtilgl58",
+      "type": "ONBOARDING_STARTED",
+      "title": "Automated Onboarding Started",
+      "description": "Client converted from Lead lead_1j94cj8_mtile471. 7 onboarding tasks scheduled. Invoice DR/BOS/734864 issued for Growth Kickstart.",
+      "actorName": "Digital Ranchi OS Engine",
+      "timestamp": "2026-09-01T11:38:54.864Z"
+    }
+  ],
+  "taxConfig": {
+    "id": "tax_cfg_dr_default",
+    "tenantId": "tenant_digital_ranchi_main",
+    "isGstRegistered": false,
+    "gstin": null,
+    "registrationDate": null,
+    "defaultTaxMode": "NON_GST",
+    "cgstRatePercent": 0,
+    "sgstRatePercent": 0,
+    "igstRatePercent": 0,
+    "defaultSacCode": "998313",
+    "invoicePrefix": "DR/BOS/",
+    "termsAndConditions": "Composition / Non-GST Bill of Supply for Digital Services. GST is not currently applicable."
+  },
+  "services": [
+    {
+      "id": "srv_gbp_setup",
+      "tenantId": "tenant_main",
+      "name": "Google Business Profile Verification & Setup",
+      "slug": "gbp-setup",
+      "description": "Complete claim, verification, address geotagging, category mapping, and business hours setup.",
+      "basePrice": 499,
+      "billingType": "ONE_TIME",
+      "deliverables": [
+        "Verified GBP Listing",
+        "Category Optimization",
+        "Keyword Description"
+      ],
+      "defaultSlaHours": 48,
+      "category": "GBP",
+      "isActive": true
+    },
+    {
+      "id": "srv_review_qr",
+      "tenantId": "tenant_main",
+      "name": "Smart Review QR Stand & Reputation Kit",
+      "slug": "review-qr-stand",
+      "description": "Custom printable acrylic stand design with direct-to-Google review QR code and NFC link.",
+      "basePrice": 499,
+      "billingType": "ONE_TIME",
+      "deliverables": [
+        "Custom QR PDF Design",
+        "Direct Review Link",
+        "Counter Sticker Template"
+      ],
+      "defaultSlaHours": 24,
+      "category": "REVIEWS",
+      "isActive": true
+    },
+    {
+      "id": "srv_mini_website",
+      "tenantId": "tenant_main",
+      "name": "High-Converting 1-Page Mini Website",
+      "slug": "mini-website",
+      "description": "Blazing fast mobile-optimized landing page with direct WhatsApp chat, call button, and Google Maps embed.",
+      "basePrice": 999,
+      "billingType": "ONE_TIME",
+      "deliverables": [
+        "Hosted 1-Page Site",
+        "WhatsApp Integration",
+        "SEO Meta Tags"
+      ],
+      "defaultSlaHours": 72,
+      "category": "WEBSITE",
+      "isActive": true
+    },
+    {
+      "id": "srv_gbp_retainer",
+      "tenantId": "tenant_main",
+      "name": "Monthly GBP Maintenance & Ranking Booster",
+      "slug": "gbp-retainer",
+      "description": "Weekly geotagged photo uploads, weekly GBP promotional posts, and Q&A management.",
+      "basePrice": 1499,
+      "billingType": "MONTHLY",
+      "deliverables": [
+        "4 Weekly GBP Posts",
+        "10 Geotagged Photos",
+        "Q&A Optimization"
+      ],
+      "defaultSlaHours": 168,
+      "category": "GBP",
+      "isActive": true
+    },
+    {
+      "id": "srv_review_management",
+      "tenantId": "tenant_main",
+      "name": "Active Review Monitoring & AI Responses",
+      "slug": "review-management",
+      "description": "Daily review tracking and prompt professional responses to positive and negative reviews.",
+      "basePrice": 799,
+      "billingType": "MONTHLY",
+      "deliverables": [
+        "100% Review Responses",
+        "Negative Review Escalation",
+        "Monthly Sentiment Report"
+      ],
+      "defaultSlaHours": 24,
+      "category": "REVIEWS",
+      "isActive": true
+    },
+    {
+      "id": "srv_local_seo",
+      "tenantId": "tenant_main",
+      "name": "Local Citation & Map Pack SEO",
+      "slug": "local-seo",
+      "description": "High-authority local business directory citations, NAP consistency check, and competitor keyword tracking.",
+      "basePrice": 1299,
+      "billingType": "MONTHLY",
+      "deliverables": [
+        "15 Local Citations",
+        "Keyword Rank Tracker",
+        "NAP Audit"
+      ],
+      "defaultSlaHours": 120,
+      "category": "SEO",
+      "isActive": true
+    },
+    {
+      "id": "srv_social_content",
+      "tenantId": "tenant_main",
+      "name": "Social Media Creatives & Festival Posts",
+      "slug": "social-content",
+      "description": "Branded festive graphics, special offer banners, and Instagram/Facebook feed creatives.",
+      "basePrice": 999,
+      "billingType": "MONTHLY",
+      "deliverables": [
+        "8 Branded Creatives",
+        "Captions & Hashtags",
+        "Client Approval Workflow"
+      ],
+      "defaultSlaHours": 72,
+      "category": "SOCIAL",
+      "isActive": true
+    },
+    {
+      "id": "srv_whatsapp_growth",
+      "tenantId": "tenant_main",
+      "name": "WhatsApp Business Growth Automation",
+      "slug": "whatsapp-automation",
+      "description": "Automated greeting catalog, quick replies, and broadcast follow-up templates.",
+      "basePrice": 699,
+      "billingType": "ONE_TIME",
+      "deliverables": [
+        "Catalog Setup",
+        "Auto-Reply Rules",
+        "QR Code Badge"
+      ],
+      "defaultSlaHours": 48,
+      "category": "SOCIAL",
+      "isActive": true
+    },
+    {
+      "id": "srv_digital_audit",
+      "tenantId": "tenant_main",
+      "name": "Comprehensive 360° Digital Audit Report",
+      "slug": "digital-audit",
+      "description": "Detailed competitive analysis, local map pack ranking report, and 30-day growth action plan.",
+      "basePrice": 299,
+      "billingType": "ONE_TIME",
+      "deliverables": [
+        "PDF Audit Report",
+        "Competitor Comparison",
+        "Keyword Opportunities"
+      ],
+      "defaultSlaHours": 24,
+      "category": "AUDIT",
+      "isActive": true
+    },
+    {
+      "id": "srv_website_amc",
+      "tenantId": "tenant_main",
+      "name": "Website Maintenance & SSL Retainer",
+      "slug": "website-amc",
+      "description": "Hosting uptime monitoring, security patches, monthly content updates, and backups.",
+      "basePrice": 499,
+      "billingType": "MONTHLY",
+      "deliverables": [
+        "99.9% Uptime Check",
+        "Monthly Content Updates",
+        "Cloud Backups"
+      ],
+      "defaultSlaHours": 48,
+      "category": "WEBSITE",
+      "isActive": true
+    }
+  ],
+  "packages": [
+    {
+      "id": "pkg_starter_499",
+      "tenantId": "tenant_main",
+      "name": "Starter Verification",
+      "code": "STARTER",
+      "tagline": "Ideal for new local shops getting on Google Maps for the first time.",
+      "price": 499,
+      "billingFrequency": "ONE_TIME",
+      "serviceIds": [
+        "srv_gbp_setup",
+        "srv_review_qr"
+      ],
+      "features": [
+        "Google Maps Listing Verification",
+        "Primary & Secondary Category Optimization",
+        "Keyword-Rich Business Description",
+        "Phone & WhatsApp Number Linking",
+        "Printable Review QR Code Kit",
+        "Instant Google Discovery"
+      ],
+      "isPopular": false,
+      "isActive": true
+    },
+    {
+      "id": "pkg_growth_999",
+      "tenantId": "tenant_main",
+      "name": "Growth Kickstart",
+      "code": "GROWTH",
+      "tagline": "Our best-selling package for active local businesses wanting more calls and walk-ins.",
+      "price": 999,
+      "billingFrequency": "ONE_TIME",
+      "serviceIds": [
+        "srv_gbp_setup",
+        "srv_review_qr",
+        "srv_mini_website",
+        "srv_whatsapp_growth"
+      ],
+      "features": [
+        "Everything in Starter",
+        "20 High-Res Geotagged Photo Uploads",
+        "High-Converting 1-Page Mini Website",
+        "Custom Review QR Stand Acrylic Design",
+        "Direct WhatsApp Chat Integration",
+        "Local Business Directory Submission",
+        "Priority 48-Hour Setup SLA"
+      ],
+      "isPopular": true,
+      "isActive": true
+    },
+    {
+      "id": "pkg_premium_2499",
+      "tenantId": "tenant_main",
+      "name": "Premium Growth Retainer",
+      "code": "PREMIUM",
+      "tagline": "Complete hands-off monthly digital growth and local dominance.",
+      "price": 2499,
+      "billingFrequency": "MONTHLY",
+      "serviceIds": [
+        "srv_gbp_retainer",
+        "srv_review_management",
+        "srv_local_seo",
+        "srv_social_content",
+        "srv_website_amc"
+      ],
+      "features": [
+        "Complete Monthly Google Business Profile Management",
+        "Weekly Geotagged Photos & Promotional Posts",
+        "100% Review Monitoring & Professional Responses",
+        "Local SEO Citations & Keyword Rank Tracking",
+        "8 Custom Branded Social Media Creatives",
+        "Mini Website Hosting & Maintenance Included",
+        "Comprehensive Monthly Performance Report (PDF & Web)",
+        "Dedicated Account Manager & Priority WhatsApp Support"
+      ],
+      "isPopular": false,
+      "isActive": true
+    },
+    {
+      "id": "pkg_seo_booster_1499",
+      "tenantId": "tenant_main",
+      "name": "Local SEO Booster",
+      "code": "LOCAL_SEO_BOOST",
+      "tagline": "Focused citation building and keyword ranking acceleration.",
+      "price": 1499,
+      "billingFrequency": "MONTHLY",
+      "serviceIds": [
+        "srv_local_seo",
+        "srv_gbp_retainer"
+      ],
+      "features": [
+        "Monthly Citation Building (15+ Portals)",
+        "Map Pack 3-Pack Keyword Tracking",
+        "Competitor NAP Gap Analysis",
+        "Bi-weekly Ranking Status Alerts"
+      ],
+      "isPopular": false,
+      "isActive": true
+    },
+    {
+      "id": "pkg_social_elite_1999",
+      "tenantId": "tenant_main",
+      "name": "Social & Reputation Elite",
+      "code": "SOCIAL_ELITE",
+      "tagline": "Active social media presence and review acceleration.",
+      "price": 1999,
+      "billingFrequency": "MONTHLY",
+      "serviceIds": [
+        "srv_social_content",
+        "srv_review_management",
+        "srv_whatsapp_growth"
+      ],
+      "features": [
+        "12 Branded Social Creatives per Month",
+        "Festival & Offer Announcements",
+        "Active Google & Facebook Review Management",
+        "Client Approval Workflow in Portal"
+      ],
+      "isPopular": false,
+      "isActive": true
+    }
+  ],
+  "users": [
+    {
+      "id": "usr_super_admin",
+      "tenantId": "tenant_main",
+      "name": "Gunjan Sharma",
+      "email": "gunjan@digitalranchi.in",
+      "phone": "+91 9876543210",
+      "role": "SUPER_ADMIN",
+      "department": "Executive",
+      "createdAt": "2026-01-01T10:00:00Z"
+    },
+    {
+      "id": "usr_biz_admin",
+      "tenantId": "tenant_main",
+      "name": "Pooja Verma",
+      "email": "pooja@digitalranchi.in",
+      "phone": "+91 9876543211",
+      "role": "BUSINESS_ADMIN",
+      "department": "Operations",
+      "createdAt": "2026-01-05T10:00:00Z"
+    },
+    {
+      "id": "usr_sales_mgr",
+      "tenantId": "tenant_main",
+      "name": "Rahul Kumar",
+      "email": "rahul.k@digitalranchi.in",
+      "phone": "+91 9876543212",
+      "role": "SALES_MANAGER",
+      "department": "Sales",
+      "createdAt": "2026-01-10T10:00:00Z"
+    },
+    {
+      "id": "usr_sales_exec1",
+      "tenantId": "tenant_main",
+      "name": "Amit Singh",
+      "email": "amit.s@digitalranchi.in",
+      "phone": "+91 9876543213",
+      "role": "SALES_EXECUTIVE",
+      "department": "Sales",
+      "createdAt": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "usr_ops_mgr",
+      "tenantId": "tenant_main",
+      "name": "Siddharth Roy",
+      "email": "siddharth@digitalranchi.in",
+      "phone": "+91 9876543214",
+      "role": "OPERATIONS_MANAGER",
+      "department": "Delivery",
+      "createdAt": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "usr_acct_mgr1",
+      "tenantId": "tenant_main",
+      "name": "Neha Pandey",
+      "email": "neha.p@digitalranchi.in",
+      "phone": "+91 9876543215",
+      "role": "ACCOUNT_MANAGER",
+      "department": "Client Success",
+      "createdAt": "2026-01-20T10:00:00Z"
+    },
+    {
+      "id": "usr_acct_mgr2",
+      "tenantId": "tenant_main",
+      "name": "Vikram Mehta",
+      "email": "vikram.m@digitalranchi.in",
+      "phone": "+91 9876543216",
+      "role": "ACCOUNT_MANAGER",
+      "department": "Client Success",
+      "createdAt": "2026-01-20T10:00:00Z"
+    },
+    {
+      "id": "usr_del_exec1",
+      "tenantId": "tenant_main",
+      "name": "Rohan Gupta",
+      "email": "rohan.g@digitalranchi.in",
+      "phone": "+91 9876543217",
+      "role": "DELIVERY_EXECUTIVE",
+      "department": "Design & GBP",
+      "createdAt": "2026-02-01T10:00:00Z"
+    },
+    {
+      "id": "usr_del_exec2",
+      "tenantId": "tenant_main",
+      "name": "Anjali Kumari",
+      "email": "anjali.k@digitalranchi.in",
+      "phone": "+91 9876543218",
+      "role": "DELIVERY_EXECUTIVE",
+      "department": "Content & SEO",
+      "createdAt": "2026-02-01T10:00:00Z"
+    },
+    {
+      "id": "usr_finance",
+      "tenantId": "tenant_main",
+      "name": "Manish Tiwari",
+      "email": "manish.t@digitalranchi.in",
+      "phone": "+91 9876543219",
+      "role": "FINANCE",
+      "department": "Finance",
+      "createdAt": "2026-01-10T10:00:00Z"
+    },
+    {
+      "id": "usr_client_demo",
+      "tenantId": "tenant_main",
+      "name": "Dr. Alok Srivastava",
+      "email": "client@ranchidental.com",
+      "phone": "+91 9431109876",
+      "role": "CLIENT",
+      "clientId": "cli_1",
+      "department": "Client",
+      "createdAt": "2026-02-10T10:00:00Z"
+    }
+  ],
+  "leadSources": [
+    "Website Free Audit",
+    "Website Direct Checkout",
+    "WhatsApp Direct",
+    "Google Search",
+    "Field Sales",
+    "Instagram Ads",
+    "Referral",
+    "CRM Direct Ingestion"
+  ]
+}

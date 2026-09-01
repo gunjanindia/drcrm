@@ -7,8 +7,15 @@ import { globalStore } from '@/lib/store';
 import { aiAssistantEngine } from '@/lib/ai-engine';
 
 export default function ClientReportsPage() {
-  const client = globalStore.clients[0];
-  const report = aiAssistantEngine.generateMonthlyClientReport(client);
+  const client = globalStore.clients[0] || {
+    id: 'cli_demo',
+    businessName: 'Your Business',
+    averageRating: 4.8,
+    reviewCount: 24,
+    gbpScore: 88,
+    category: 'Local Business',
+  };
+  const report = aiAssistantEngine.generateMonthlyClientReport(client as any);
 
   return (
     <div className="space-y-6 max-w-5xl">

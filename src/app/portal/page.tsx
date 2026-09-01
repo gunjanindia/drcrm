@@ -18,7 +18,16 @@ import { globalStore } from '@/lib/store';
 import { formatINR, formatDate } from '@/lib/utils';
 
 export default function ClientPortalDashboard() {
-  const client = globalStore.clients[0]; // Ranchi Dental Care
+  const client = globalStore.clients[0] || {
+    id: 'cli_demo',
+    businessName: 'Your Business Portal',
+    packageName: 'Growth Retainer',
+    packageId: 'pkg_growth_999',
+    assignedManagerName: 'Neha Pandey',
+    reviewCount: 0,
+    averageRating: 5.0,
+    gbpScore: 85,
+  };
   const pendingDeliverables = globalStore.deliverables.filter(
     (d) => d.clientId === client.id && d.status === 'PENDING'
   );

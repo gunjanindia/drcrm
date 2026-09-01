@@ -6,7 +6,10 @@ import { globalStore } from '@/lib/store';
 import { formatDate, getStatusBadgeClass } from '@/lib/utils';
 
 export default function ClientTasksProgressPage() {
-  const client = globalStore.clients[0];
+  const client = globalStore.clients[0] || {
+    id: 'cli_demo',
+    businessName: 'Your Business',
+  };
   const clientTasks = globalStore.tasks.filter((t) => t.clientId === client.id);
 
   return (

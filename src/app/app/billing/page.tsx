@@ -11,25 +11,52 @@ export default function BillingPage() {
   const [invoices, setInvoices] = useState(globalStore.invoices);
   const [payments, setPayments] = useState(globalStore.payments);
   const [taxConfig, setTaxConfig] = useState(globalStore.taxConfig);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchBillingData = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/billing');
+      const data = await res.json();
+      if (data.success && data.data) {
+        if (data.data.invoices) setInvoices(data.data.invoices);
+        if (data.data.payments) setPayments(data.data.payments);
+        if (data.data.taxConfig) setTaxConfig(data.data.taxConfig);
+      }
+    } catch (err) {
+      console.error('Failed to load billing data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchBillingData();
+  }, []);
 
   const totalBilled = invoices.reduce((acc, inv) => acc + inv.totalAmount, 0);
   const totalCollected = payments.reduce((acc, p) => acc + p.amount, 0);
   const outstandingAmount = totalBilled - totalCollected;
 
-  const handleToggleGstMode = () => {
-    const nextGst = !taxConfig.isGstRegistered;
-    const updated = globalTaxEngine.updateConfig({
-      isGstRegistered: nextGst,
-      defaultTaxMode: nextGst ? 'GST' : 'NON_GST',
-      gstin: nextGst ? '20ABCDE1234F1Z5' : null,
-    });
-    globalStore.taxConfig = updated;
-    setTaxConfig({ ...updated });
-    alert(
-      nextGst
-        ? 'GST Mode Activated! Future invoices will compute CGST (9%) + SGST (9%) with GSTIN 20ABCDE1234F1Z5.'
-        : 'Switched back to Non-GST Mode (Bill of Supply). 0% Tax applicable.'
-    );
+  const handleToggleGstMode = async () => {
+    try {
+      const res = await fetch('/api/billing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle_gst' }),
+      });
+      const data = await res.json();
+      if (data.success && data.taxConfig) {
+        setTaxConfig(data.taxConfig);
+        alert(
+          data.taxConfig.isGstRegistered
+            ? 'GST Mode Activated! Future invoices will compute CGST (9%) + SGST (9%) with GSTIN 20ABCDE1234F1Z5.'
+            : 'Switched back to Non-GST Mode (Bill of Supply). 0% Tax applicable.'
+        );
+      }
+    } catch (err) {
+      console.error('Failed to toggle GST mode:', err);
+    }
   };
 
   return (

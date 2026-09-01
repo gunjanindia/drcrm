@@ -34,13 +34,89 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
     'overview' | 'services' | 'tasks' | 'approvals' | 'billing' | 'tickets' | 'timeline' | 'ai'
   >('overview');
 
-  const client = globalStore.clients.find((c) => c.id === clientId) || globalStore.clients[0];
-  const clientTasks = globalStore.tasks.filter((t) => t.clientId === client.id);
-  const clientInvoices = globalStore.invoices.filter((inv) => inv.clientId === client.id);
-  const clientPayments = globalStore.payments.filter((p) => p.clientId === client.id);
-  const clientTickets = globalStore.tickets.filter((t) => t.clientId === client.id);
-  const clientDeliverables = globalStore.deliverables.filter((d) => d.clientId === client.id);
-  const clientActivities = globalStore.activities.filter((a) => a.clientId === client.id);
+  const [client, setClient] = useState<any>(() => {
+    return globalStore.clients.find((c) => c.id === clientId) || globalStore.clients[0] || {
+      id: clientId || 'cli_demo',
+      businessName: 'Client Account',
+      legalName: 'Client Account LLP',
+      category: 'Local Business',
+      phone: '+91 94311 00000',
+      whatsapp: '+91 94311 00000',
+      email: 'client@business.in',
+      address: 'Ranchi, Jharkhand',
+      city: 'Ranchi',
+      state: 'Jharkhand',
+      pincode: '834001',
+      assignedManagerId: 'usr_acct_mgr1',
+      assignedManagerName: 'Neha Pandey',
+      packageId: 'pkg_growth_999',
+      packageName: 'Growth Package',
+      healthScore: 'GREEN' as const,
+      healthReason: 'Active account',
+      monthlyRevenue: 999,
+      activeSince: new Date().toISOString(),
+      renewalDate: new Date().toISOString(),
+      reviewCount: 0,
+      averageRating: 5.0,
+      gbpScore: 80,
+      status: 'ACTIVE' as const,
+      createdAt: new Date().toISOString(),
+    };
+  });
+
+  const [clientTasks, setClientTasks] = useState<any[]>(() =>
+    globalStore.tasks.filter((t) => t.clientId === client.id)
+  );
+  const [clientInvoices, setClientInvoices] = useState<any[]>(() =>
+    globalStore.invoices.filter((inv) => inv.clientId === client.id)
+  );
+  const [clientPayments, setClientPayments] = useState<any[]>(() =>
+    globalStore.payments.filter((p) => p.clientId === client.id)
+  );
+  const [clientTickets, setClientTickets] = useState<any[]>(() =>
+    globalStore.tickets.filter((t) => t.clientId === client.id)
+  );
+  const [clientDeliverables, setClientDeliverables] = useState<any[]>(() =>
+    globalStore.deliverables.filter((d) => d.clientId === client.id)
+  );
+  const [clientActivities, setClientActivities] = useState<any[]>(() =>
+    globalStore.activities.filter((a) => a.clientId === client.id)
+  );
+
+  React.useEffect(() => {
+    fetch('/api/clients')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.data)) {
+          const found = d.data.find((c: any) => c.id === clientId) || d.data[0];
+          if (found) setClient(found);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/tasks')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.data)) {
+          setClientTasks(d.data.filter((t: any) => t.clientId === clientId));
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/billing')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && d.data) {
+          if (Array.isArray(d.data.invoices)) {
+            setClientInvoices(d.data.invoices.filter((inv: any) => inv.clientId === clientId));
+          }
+          if (Array.isArray(d.data.payments)) {
+            setClientPayments(d.data.payments.filter((p: any) => p.clientId === clientId));
+          }
+        }
+      })
+      .catch(() => {});
+  }, [clientId]);
 
   const tabs = [
     { id: 'overview', label: 'Overview' },

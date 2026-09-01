@@ -341,8 +341,33 @@ export interface GbpProfile {
 // Digital Presence Audit Output
 export interface DigitalPresenceAuditResult {
   businessName: string;
+  city?: string;
   overallScore: number;
   isVerifiedOnGoogle: boolean;
+  validationStatus: 'VERIFIED_MATCH' | 'UNVERIFIED_OR_NOT_FOUND' | 'INVALID_URL';
+  matchedPlace?: {
+    placeId?: string;
+    name?: string;
+    formattedAddress?: string;
+    rating?: number;
+    userRatingsTotal?: number;
+    photosCount?: number;
+    googleMapsUrl?: string;
+    isOperational?: boolean;
+    hasWebsite?: boolean;
+    matchedCategory?: string;
+  };
+  candidates?: Array<{
+    placeId: string;
+    name: string;
+    formattedAddress: string;
+    rating?: number;
+    userRatingsTotal?: number;
+    photosCount?: number;
+    googleMapsUrl?: string;
+    isOperational?: boolean;
+    matchedCategory?: string;
+  }>;
   breakdown: {
     googleBusinessProfile: number;
     reviewsAndReputation: number;

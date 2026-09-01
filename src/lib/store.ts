@@ -408,379 +408,107 @@ export class AppStore {
       },
     ];
 
-    // 4. Clients (25 realistic Indian SMBs)
-    const indianBusinesses = [
-      { name: 'Ranchi Dental Care & Implant Center', cat: 'Dentist / Clinic', city: 'Ranchi', phone: '+91 9431109876', pkg: 'pkg_premium_2499', rev: 2499, rating: 4.8, count: 184, gbp: 92, health: 'GREEN' as const },
-      { name: 'Hotel Maple Wood & Banquet', cat: 'Hotel / Banquet', city: 'Ranchi', phone: '+91 9431109877', pkg: 'pkg_premium_2499', rev: 2499, rating: 4.5, count: 320, gbp: 88, health: 'GREEN' as const },
-      { name: 'Apex Academy IIT-JEE Coaching', cat: 'Coaching / Education', city: 'Ranchi', phone: '+91 9431109878', pkg: 'pkg_growth_999', rev: 999, rating: 4.6, count: 96, gbp: 79, health: 'GREEN' as const },
-      { name: 'Chinar Sweets & Restaurant', cat: 'Restaurant / Food', city: 'Ranchi', phone: '+91 9431109879', pkg: 'pkg_premium_2499', rev: 2499, rating: 4.3, count: 412, gbp: 84, health: 'YELLOW' as const },
-      { name: 'Kaveri Family Salon & Bridal Studio', cat: 'Salon / Beauty', city: 'Ranchi', phone: '+91 9431109880', pkg: 'pkg_premium_2499', rev: 2499, rating: 4.7, count: 142, gbp: 90, health: 'GREEN' as const },
-      { name: 'Jharkhand Eye Care Hospital', cat: 'Hospital / Eye Care', city: 'Ranchi', phone: '+91 9431109881', pkg: 'pkg_premium_2499', rev: 2499, rating: 4.9, count: 260, gbp: 95, health: 'GREEN' as const },
-      { name: 'City Car Care & Detailing Studio', cat: 'Automobile Service', city: 'Ranchi', phone: '+91 9431109882', pkg: 'pkg_growth_999', rev: 999, rating: 4.4, count: 78, gbp: 76, health: 'YELLOW' as const },
-      { name: 'Ranchi Furniture Mart', cat: 'Retail / Furniture', city: 'Ranchi', phone: '+91 9431109883', pkg: 'pkg_starter_499', rev: 499, rating: 4.1, count: 34, gbp: 68, health: 'YELLOW' as const },
-      { name: 'Dr. Kumar Orthopedic Clinic', cat: 'Clinic / Orthopedics', city: 'Ranchi', phone: '+91 9431109884', pkg: 'pkg_premium_2499', rev: 2499, rating: 4.7, count: 198, gbp: 91, health: 'GREEN' as const },
-      { name: 'Urban Glow Unisex Spa', cat: 'Spa / Wellness', city: 'Ranchi', phone: '+91 9431109885', pkg: 'pkg_growth_999', rev: 999, rating: 3.9, count: 52, gbp: 64, health: 'RED' as const },
-      { name: 'Shree Krishna Jewellers', cat: 'Retail / Jewellery', city: 'Ranchi', phone: '+91 9431109886', pkg: 'pkg_premium_2499', rev: 2499, rating: 4.8, count: 310, gbp: 94, health: 'GREEN' as const },
-      { name: 'Blue Diamond Cafe & Bakery', cat: 'Cafe / Bakery', city: 'Ranchi', phone: '+91 9431109887', pkg: 'pkg_growth_999', rev: 999, rating: 4.2, count: 115, gbp: 78, health: 'GREEN' as const },
-      { name: 'Ranchi Diagnostics & Path Lab', cat: 'Diagnostics Lab', city: 'Ranchi', phone: '+91 9431109888', pkg: 'pkg_premium_2499', rev: 2499, rating: 4.6, count: 180, gbp: 89, health: 'GREEN' as const },
-      { name: 'Speedy Wheels Bike Rental', cat: 'Travel / Rental', city: 'Ranchi', phone: '+91 9431109889', pkg: 'pkg_starter_499', rev: 499, rating: 4.0, count: 28, gbp: 62, health: 'YELLOW' as const },
-      { name: 'Green Leaf Organic Groceries', cat: 'Retail / Grocery', city: 'Ranchi', phone: '+91 9431109890', pkg: 'pkg_growth_999', rev: 999, rating: 4.5, count: 64, gbp: 75, health: 'GREEN' as const },
-      { name: 'Ranchi Physio & Rehab Center', cat: 'Physiotherapy', city: 'Ranchi', phone: '+91 9431109891', pkg: 'pkg_premium_2499', rev: 2499, rating: 4.9, count: 88, gbp: 93, health: 'GREEN' as const },
-      { name: 'Classic Builders & Developers', cat: 'Real Estate', city: 'Ranchi', phone: '+91 9431109892', pkg: 'pkg_premium_2499', rev: 2499, rating: 4.4, count: 145, gbp: 86, health: 'GREEN' as const },
-      { name: 'The Gym Zone Fitness Hub', cat: 'Fitness / Gym', city: 'Ranchi', phone: '+91 9431109893', pkg: 'pkg_growth_999', rev: 999, rating: 4.6, count: 92, gbp: 81, health: 'GREEN' as const },
-      { name: 'Royal Rajputana Dhaba', cat: 'Dhaba / Highway Dining', city: 'Ranchi', phone: '+91 9431109894', pkg: 'pkg_starter_499', rev: 499, rating: 4.2, count: 210, gbp: 72, health: 'YELLOW' as const },
-      { name: 'Sparkle Pet Clinic & Grooming', cat: 'Veterinary / Pets', city: 'Ranchi', phone: '+91 9431109895', pkg: 'pkg_growth_999', rev: 999, rating: 4.7, count: 74, gbp: 85, health: 'GREEN' as const },
-      { name: 'Sai Ram Motors Two Wheeler Sales', cat: 'Automobile Showroom', city: 'Ranchi', phone: '+91 9431109896', pkg: 'pkg_premium_2499', rev: 2499, rating: 4.3, count: 165, gbp: 82, health: 'YELLOW' as const },
-      { name: 'Modern Kids Play School', cat: 'School / Pre-school', city: 'Ranchi', phone: '+91 9431109897', pkg: 'pkg_growth_999', rev: 999, rating: 4.8, count: 58, gbp: 87, health: 'GREEN' as const },
-      { name: 'Ranchi Tile & Sanitary Hub', cat: 'Hardware / Sanitary', city: 'Ranchi', phone: '+91 9431109898', pkg: 'pkg_starter_499', rev: 499, rating: 3.8, count: 22, gbp: 58, health: 'RED' as const },
-      { name: 'Celebrations Event Planners', cat: 'Event Management', city: 'Ranchi', phone: '+91 9431109899', pkg: 'pkg_growth_999', rev: 999, rating: 4.5, count: 48, gbp: 80, health: 'GREEN' as const },
-      { name: 'Aroma Spice Biryani House', cat: 'Restaurant / Cloud Kitchen', city: 'Ranchi', phone: '+91 9431109900', pkg: 'pkg_premium_2499', rev: 2499, rating: 4.4, count: 380, gbp: 86, health: 'GREEN' as const },
-    ];
+    // 4. Clients (Empty by default for production use)
+    this.clients = [];
 
-    this.clients = indianBusinesses.map((b, i) => {
-      const id = `cli_${i + 1}`;
-      const manager = i % 2 === 0 ? this.users[5] : this.users[6];
-      const pkg = this.packages.find((p) => p.id === b.pkg) || this.packages[1];
+    // 5. Leads (Empty by default for production use)
+    this.leads = [];
 
-      return {
-        id,
-        tenantId: 'tenant_main',
-        leadId: `lead_${i + 1}`,
-        businessName: b.name,
-        legalName: `${b.name} LLP`,
-        category: b.cat,
-        phone: b.phone,
-        whatsapp: b.phone,
-        email: `contact@${b.name.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 15)}.in`,
-        address: `${100 + i}, Main Road, Lalpur / Circular Road`,
-        city: b.city,
-        state: 'Jharkhand',
-        pincode: '834001',
-        googleMapsUrl: `https://maps.google.com/?cid=${1000000000 + i}`,
-        websiteUrl: `https://${b.name.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 12)}.in`,
-        assignedManagerId: manager.id,
-        assignedManagerName: manager.name,
-        packageId: pkg.id,
-        packageName: pkg.name,
-        healthScore: b.health,
-        healthReason:
-          b.health === 'GREEN'
-            ? 'High engagement, timely invoice payments, rating above 4.5'
-            : b.health === 'YELLOW'
-            ? 'Renewal due in 7 days, 2 unanswered negative reviews'
-            : 'Recent SLA delay and pending invoice payment for 15+ days',
-        monthlyRevenue: b.rev,
-        activeSince: '2026-01-10T10:00:00Z',
-        renewalDate: '2026-09-10T10:00:00Z',
-        reviewCount: b.count,
-        averageRating: b.rating,
-        gbpScore: b.gbp,
-        status: 'ACTIVE',
-        createdAt: '2026-01-10T10:00:00Z',
-      };
-    });
+    // 6. Work Projects (Empty by default for production use)
+    this.projects = [];
 
-    // 5. Leads (50 realistic leads across pipeline stages)
-    const leadCategories = ['Dentist', 'Restaurant', 'Salon', 'Gym', 'Retail', 'Clinic', 'Coaching', 'Real Estate'];
-    const leadSources = ['Website Free Audit', 'WhatsApp Direct', 'Google Search', 'Field Sales', 'Instagram Ads', 'Referral'];
-    const statuses: Lead['status'][] = ['NEW', 'CONTACTED', 'QUALIFIED', 'AUDIT', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'];
+    // 7. Tasks (Empty by default for production use)
+    this.tasks = [];
 
-    this.leads = Array.from({ length: 50 }).map((_, i) => {
-      const status = statuses[i % statuses.length];
-      const cat = leadCategories[i % leadCategories.length];
-      const src = leadSources[i % leadSources.length];
-      const assigned = this.users[3]; // Amit Singh
-      const auditScore = 45 + ((i * 7) % 50);
+    // 8. Deliverable Approvals (Empty by default for production use)
+    this.deliverables = [];
 
-      return {
-        id: `lead_${i + 1}`,
-        tenantId: 'tenant_main',
-        businessName: `Ranchi ${cat} Center #${i + 1}`,
-        contactName: `Rahul & Sunita Sharma (${i + 1})`,
-        phone: `+91 98350${String(10000 + i).substring(1)}`,
-        whatsapp: `+91 98350${String(10000 + i).substring(1)}`,
-        email: `inquiry${i + 1}@ranchibiz.com`,
-        category: cat,
-        city: 'Ranchi',
-        state: 'Jharkhand',
-        googleMapsUrl: `https://maps.google.com/?q=ranchi+${cat.toLowerCase()}+${i + 1}`,
-        websiteUrl: i % 3 === 0 ? `https://ranchibiz${i + 1}.in` : undefined,
-        leadSource: src,
-        interestedPackageId: i % 2 === 0 ? 'pkg_growth_999' : 'pkg_premium_2499',
-        estimatedValue: i % 2 === 0 ? 999 : 2499,
-        leadScore: auditScore,
-        assignedUserId: assigned.id,
-        assignedUserName: assigned.name,
-        status,
-        nextFollowUp: '2026-08-28T11:00:00Z',
-        notes: `Inquired via ${src}. Looking to boost footfall and Google map ratings in Ranchi area.`,
-        auditScore,
-        createdAt: new Date(Date.now() - i * 86400000 * 1.5).toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-    });
+    // 9. Invoices & Payments (Empty by default for production use)
+    this.invoices = [];
+    this.payments = [];
 
-    // 6. Work Projects (20 projects)
-    this.projects = this.clients.slice(0, 20).map((c, i) => ({
-      id: `prj_${i + 1}`,
-      tenantId: 'tenant_main',
-      clientId: c.id,
-      clientName: c.businessName,
-      name: i % 3 === 0 ? '7-Day Onboarding Launch' : 'Monthly Growth Retainer - August',
-      projectType: i % 3 === 0 ? 'ONBOARDING' : 'RECURRING_MONTHLY',
-      status: 'IN_PROGRESS',
-      progressPercent: 35 + ((i * 12) % 65),
-      startDate: '2026-08-01T09:00:00Z',
-      dueDate: '2026-08-31T18:00:00Z',
-      createdAt: '2026-08-01T09:00:00Z',
-    }));
+    // 10. Support Tickets (Empty by default for production use)
+    this.tickets = [];
 
-    // 7. Tasks (100 realistic tasks)
-    const taskTitles = [
-      'Claim and verify Google Business Profile address',
-      'Optimize primary category and secondary tags',
-      'Upload 20 geotagged showroom/clinic photos',
-      'Generate Review QR Stand printable PDF',
-      'Setup 1-page mobile responsive mini-website',
-      'Publish weekly festive offer post on GBP',
-      'Respond to 5 new customer Google reviews',
-      'Check local ranking for top 5 search keywords',
-      'Audit NAP consistency on local directories',
-      'Generate monthly PDF & Web growth report',
-    ];
+    // 11. GBP Profiles (Empty by default for production use)
+    this.gbpProfiles = [];
 
-    const taskStatuses: Task['status'][] = [
-      'BACKLOG',
-      'ASSIGNED',
-      'IN_PROGRESS',
-      'WAITING',
-      'CLIENT_APPROVAL',
-      'COMPLETED',
-    ];
-
-    this.tasks = Array.from({ length: 100 }).map((_, i) => {
-      const client = this.clients[i % this.clients.length];
-      const project = this.projects[i % this.projects.length];
-      const title = taskTitles[i % taskTitles.length];
-      const status = taskStatuses[i % taskStatuses.length];
-      const assigned = i % 2 === 0 ? this.users[7] : this.users[8]; // Delivery executives
-
-      return {
-        id: `tsk_${i + 1}`,
-        tenantId: 'tenant_main',
-        projectId: project.id,
-        clientId: client.id,
-        clientName: client.businessName,
-        title: `${title} - ${client.businessName.split(' ')[0]}`,
-        description: `Execute ${title.toLowerCase()} following Digital Ranchi delivery SOP and upload proof.`,
-        status,
-        priority: i % 4 === 0 ? 'HIGH' : i % 5 === 0 ? 'URGENT' : 'MEDIUM',
-        assignedToId: assigned.id,
-        assignedToName: assigned.name,
-        slaDeadline: new Date(Date.now() + (i % 5 + 1) * 86400000).toISOString(),
-        dueDate: new Date(Date.now() + (i % 7 + 1) * 86400000).toISOString(),
-        isRecurring: i % 2 === 0,
-        deliverableUrl: status === 'CLIENT_APPROVAL' || status === 'COMPLETED' ? 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=600' : undefined,
-        deliverableType: 'CREATIVE',
-        approvalStatus: status === 'CLIENT_APPROVAL' ? 'PENDING' : status === 'COMPLETED' ? 'APPROVED' : undefined,
-        createdAt: new Date(Date.now() - i * 3600000 * 8).toISOString(),
-      };
-    });
-
-    // 8. Deliverable Approvals (Client Portal)
-    this.deliverables = [
-      {
-        id: 'deliv_1',
-        tenantId: 'tenant_main',
-        clientId: 'cli_1',
-        title: 'Independence Day Special Clinic Offer Creative',
-        platform: 'GOOGLE_BUSINESS',
-        previewUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=600',
-        captionText: '🦷 Celebrate Freedom with a Healthy Smile! Get 20% off on complete dental checkup & cleaning this week at Ranchi Dental Care.',
-        scheduledFor: '2026-08-30T10:00:00Z',
-        status: 'PENDING',
-        createdAt: '2026-08-26T10:00:00Z',
-      },
-      {
-        id: 'deliv_2',
-        tenantId: 'tenant_main',
-        clientId: 'cli_1',
-        title: 'Review Stand NFC Acrylic Design (Proof v2)',
-        platform: 'REPORT',
-        previewUrl: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=600',
-        captionText: 'Printable counter stand with customized QR code linked directly to Google 5-Star review submission.',
-        scheduledFor: '2026-08-29T12:00:00Z',
-        status: 'APPROVED',
-        reviewedAt: '2026-08-26T14:30:00Z',
-        createdAt: '2026-08-25T11:00:00Z',
-      },
-      {
-        id: 'deliv_3',
-        tenantId: 'tenant_main',
-        clientId: 'cli_2',
-        title: 'Hotel Banquet Wedding Season Promo',
-        platform: 'INSTAGRAM',
-        previewUrl: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=600',
-        captionText: 'Book your dream wedding reception at Hotel Maple Wood! Grand AC banquet hall with luxury catering.',
-        scheduledFor: '2026-09-01T15:00:00Z',
-        status: 'PENDING',
-        createdAt: '2026-08-26T12:00:00Z',
-      },
-    ];
-
-    // 9. Invoices & Payments (20 Invoices + 20 Payments)
-    this.invoices = this.clients.slice(0, 20).map((c, i) => {
-      const isPaid = i % 4 !== 0;
-      const subtotal = c.monthlyRevenue;
-      const taxCalc = globalTaxEngine.calculateInvoiceTotals([{ unitPrice: subtotal, quantity: 1 }], c.state);
-
-      return {
-        id: `inv_${i + 1}`,
-        tenantId: 'tenant_main',
-        clientId: c.id,
-        clientName: c.businessName,
-        invoiceNumber: `DR/BOS/2026-27/${String(1001 + i)}`,
-        invoiceType: 'BILL_OF_SUPPLY',
-        taxMode: 'NON_GST',
-        subtotal: taxCalc.subtotal,
-        cgstAmount: taxCalc.cgstAmount,
-        sgstAmount: taxCalc.sgstAmount,
-        igstAmount: taxCalc.igstAmount,
-        totalTax: taxCalc.totalTax,
-        totalAmount: taxCalc.totalAmount,
-        paidAmount: isPaid ? taxCalc.totalAmount : 0,
-        dueAmount: isPaid ? 0 : taxCalc.totalAmount,
-        status: isPaid ? 'PAID' : 'ISSUED',
-        dueDate: '2026-08-30T18:00:00Z',
-        paidAt: isPaid ? '2026-08-10T11:30:00Z' : undefined,
-        items: [
-          {
-            id: `item_${i + 1}`,
-            description: `${c.packageName} - Monthly Service Retainer`,
-            sacCode: '998313',
-            quantity: 1,
-            unitPrice: subtotal,
-            taxRatePercent: 0,
-            taxAmount: 0,
-            totalAmount: subtotal,
-          },
-        ],
-        createdAt: '2026-08-01T10:00:00Z',
-      };
-    });
-
-    this.payments = this.invoices
-      .filter((inv) => inv.status === 'PAID')
-      .map((inv, i) => ({
-        id: `pay_${i + 1}`,
-        tenantId: 'tenant_main',
-        clientId: inv.clientId,
-        clientName: inv.clientName,
-        invoiceId: inv.id,
-        gateway: 'RAZORPAY',
-        gatewayPaymentId: `pay_${Math.random().toString(36).substring(2, 12).toUpperCase()}`,
-        gatewayOrderId: `order_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-        amount: inv.totalAmount,
-        currency: 'INR',
-        paymentMethod: i % 2 === 0 ? 'UPI' : 'NetBanking',
-        status: 'CAPTURED',
-        signatureVerified: true,
-        paidAt: inv.paidAt || '2026-08-10T11:30:00Z',
-        notes: `Paid via Razorpay Checkout for ${inv.invoiceNumber}`,
-      }));
-
-    // 10. Support Tickets (10 tickets)
-    this.tickets = [
-      {
-        id: 'tkt_1',
-        tenantId: 'tenant_main',
-        clientId: 'cli_1',
-        clientName: 'Ranchi Dental Care & Implant Center',
-        ticketNumber: 'TKT-2026-042',
-        category: 'GOOGLE_MAPS',
-        subject: 'Need to update Sunday emergency clinic hours on Google Maps',
-        description: 'We are now open on Sundays from 10:00 AM to 2:00 PM for emergencies. Please update on GBP.',
-        priority: 'HIGH',
-        status: 'IN_PROGRESS',
-        assignedToId: 'usr_del_exec1',
-        assignedToName: 'Rohan Gupta',
-        slaDeadline: '2026-08-28T18:00:00Z',
-        createdAt: '2026-08-27T08:30:00Z',
-        updatedAt: '2026-08-27T08:45:00Z',
-      },
-      {
-        id: 'tkt_2',
-        tenantId: 'tenant_main',
-        clientId: 'cli_2',
-        clientName: 'Hotel Maple Wood & Banquet',
-        ticketNumber: 'TKT-2026-043',
-        category: 'CREATIVE',
-        subject: 'Request new banquet flyer for corporate meeting packages',
-        description: 'Please design an A4 PDF creative for conference hall booking with projector and lunch options.',
-        priority: 'MEDIUM',
-        status: 'OPEN',
-        assignedToId: 'usr_del_exec2',
-        assignedToName: 'Anjali Kumari',
-        slaDeadline: '2026-08-29T18:00:00Z',
-        createdAt: '2026-08-27T09:00:00Z',
-        updatedAt: '2026-08-27T09:00:00Z',
-      },
-    ];
-
-    // 11. GBP Profiles (20 profiles)
-    this.gbpProfiles = this.clients.slice(0, 20).map((c, i) => ({
-      id: `gbp_${i + 1}`,
-      clientId: c.id,
-      clientName: c.businessName,
-      locationName: `${c.businessName}, ${c.address}`,
-      primaryCategory: c.category,
-      rating: c.averageRating,
-      reviewCount: c.reviewCount,
-      healthScore: c.gbpScore,
-      photosCount: 25 + ((i * 7) % 40),
-      isVerified: true,
-      missingAttributes: i % 3 === 0 ? ['Wheelchair Accessible Entrance', 'Appointment Required'] : [],
-      topKeywords: [
-        { keyword: `best ${c.category.toLowerCase().split('/')[0].trim()} in ranchi`, rank: (i % 3) + 1, localSearchVolume: '1.2k/mo' },
-        { keyword: `${c.category.toLowerCase().split('/')[0].trim()} near me`, rank: (i % 4) + 1, localSearchVolume: '2.8k/mo' },
-        { keyword: `${c.businessName.split(' ')[0]} ranchi`, rank: 1, localSearchVolume: '850/mo' },
-      ],
-      lastAuditDate: '2026-08-20T10:00:00Z',
-    }));
-
-    // 12. Activity Timeline
-    this.activities = [
-      {
-        id: 'act_1',
-        clientId: 'cli_1',
-        type: 'PAYMENT_RECEIVED',
-        title: 'Payment of ₹2,499 Captured via Razorpay',
-        description: 'Razorpay Payment ID: pay_RZP98124 captured successfully. Webhook verified.',
-        actorName: 'Razorpay Webhook Engine',
-        timestamp: '2026-08-10T11:30:00Z',
-      },
-      {
-        id: 'act_2',
-        clientId: 'cli_1',
-        type: 'APPROVAL_GIVEN',
-        title: 'Review Stand QR Design Approved',
-        description: 'Client Dr. Alok approved the acrylic QR stand design without modifications.',
-        actorName: 'Dr. Alok Srivastava (Client)',
-        timestamp: '2026-08-26T14:30:00Z',
-      },
-      {
-        id: 'act_3',
-        clientId: 'cli_1',
-        type: 'TASK_COMPLETED',
-        title: 'Weekly GBP Optimization Completed',
-        description: 'Uploaded 5 geotagged clinic photos and updated doctor availability schedule.',
-        actorName: 'Rohan Gupta',
-        timestamp: '2026-08-25T16:00:00Z',
-      },
-    ];
+    // 12. Activity Timeline (Empty by default for production use)
+    this.activities = [];
   }
 
   // --- Dynamic Operations ---
+
+  public saveToFile() {
+    if (typeof window === 'undefined') {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const dataDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'data');
+        if (!fs.existsSync(dataDir)) {
+          fs.mkdirSync(dataDir, { recursive: true });
+        }
+        const storeFile = path.join(dataDir, 'crm_store.json');
+        const data = {
+          leads: this.leads,
+          clients: this.clients,
+          projects: this.projects,
+          tasks: this.tasks,
+          invoices: this.invoices,
+          payments: this.payments,
+          deliverables: this.deliverables,
+          tickets: this.tickets,
+          gbpProfiles: this.gbpProfiles,
+          activities: this.activities,
+          taxConfig: this.taxConfig,
+          services: this.services,
+          packages: this.packages,
+          users: this.users,
+          leadSources: this.leadSources,
+        };
+        fs.writeFileSync(storeFile, JSON.stringify(data, null, 2), 'utf-8');
+      } catch (e) {
+        console.error('Failed to save CRM store to disk:', e);
+      }
+    }
+  }
+
+  public loadFromFile() {
+    if (typeof window === 'undefined') {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const localStoreFile = path.join(process.cwd(), 'data', 'crm_store.json');
+        const tmpStoreFile = path.join('/tmp', 'crm_store.json');
+        const storeFile = fs.existsSync(tmpStoreFile)
+          ? tmpStoreFile
+          : fs.existsSync(localStoreFile)
+          ? localStoreFile
+          : null;
+
+        if (storeFile && fs.existsSync(storeFile)) {
+          const raw = fs.readFileSync(storeFile, 'utf-8');
+          const data = JSON.parse(raw);
+          if (data.leads && Array.isArray(data.leads)) this.leads = data.leads;
+          if (data.clients && Array.isArray(data.clients)) this.clients = data.clients;
+          if (data.projects && Array.isArray(data.projects)) this.projects = data.projects;
+          if (data.tasks && Array.isArray(data.tasks)) this.tasks = data.tasks;
+          if (data.invoices && Array.isArray(data.invoices)) this.invoices = data.invoices;
+          if (data.payments && Array.isArray(data.payments)) this.payments = data.payments;
+          if (data.deliverables && Array.isArray(data.deliverables)) this.deliverables = data.deliverables;
+          if (data.tickets && Array.isArray(data.tickets)) this.tickets = data.tickets;
+          if (data.gbpProfiles && Array.isArray(data.gbpProfiles)) this.gbpProfiles = data.gbpProfiles;
+          if (data.activities && Array.isArray(data.activities)) this.activities = data.activities;
+          if (data.taxConfig) this.taxConfig = data.taxConfig;
+          if (data.services && Array.isArray(data.services)) this.services = data.services;
+          if (data.packages && Array.isArray(data.packages)) this.packages = data.packages;
+          if (data.users && Array.isArray(data.users)) this.users = data.users;
+        }
+      } catch (e) {
+        console.error('Failed to load CRM store from disk:', e);
+      }
+    }
+  }
 
   public createLead(leadData: Omit<Lead, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Lead {
     const newLead: Lead = {
@@ -791,17 +519,42 @@ export class AppStore {
       updatedAt: new Date().toISOString(),
     };
     this.leads.unshift(newLead);
+    this.saveToFile();
     return newLead;
   }
 
-  public convertLeadToClient(leadId: string, packageId: string = 'pkg_growth_999'): { client: Client; project: Project; tasks: Task[] } {
+  public updateLead(leadId: string, data: Partial<Lead>): Lead {
+    const index = this.leads.findIndex((l) => l.id === leadId);
+    if (index === -1) throw new Error('Lead not found');
+    this.leads[index] = {
+      ...this.leads[index],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    this.saveToFile();
+    return this.leads[index];
+  }
+
+  public convertLeadToClient(leadId: string, packageId: string = 'pkg_growth_999'): {
+    client: Client;
+    project: Project;
+    tasks: Task[];
+    invoice: Invoice;
+    lead: Lead;
+  } {
     const lead = this.leads.find((l) => l.id === leadId);
     if (!lead) throw new Error('Lead not found');
 
     lead.status = 'WON';
-    const pkg = this.packages.find((p) => p.id === packageId) || this.packages[1];
+    lead.updatedAt = new Date().toISOString();
+    const pkg = this.packages.find((p) => p.id === packageId) || this.packages[1] || {
+      id: 'pkg_growth_999',
+      name: 'Growth Accelerate',
+      price: 999,
+      billingFrequency: 'MONTHLY',
+    };
     const clientId = generateId('cli');
-    const manager = this.users[5]; // Neha Pandey
+    const manager = this.users[5] || this.users[0]; // Neha Pandey or Admin
 
     const newClient: Client = {
       id: clientId,
@@ -836,6 +589,27 @@ export class AppStore {
     };
     this.clients.unshift(newClient);
 
+    // Auto-provision Client User account for Client Portal Login
+    const existingClientUser = this.users.find(
+      (u) => u.email.toLowerCase() === newClient.email.toLowerCase()
+    );
+    if (!existingClientUser) {
+      const clientUser: User = {
+        id: generateId('usr'),
+        tenantId: 'tenant_main',
+        name: lead.contactName || lead.businessName,
+        email: newClient.email,
+        phone: newClient.phone,
+        role: 'CLIENT',
+        clientId: newClient.id,
+        department: 'Client',
+        createdAt: new Date().toISOString(),
+      };
+      this.users.unshift(clientUser);
+    } else {
+      existingClientUser.clientId = newClient.id;
+    }
+
     // Automatic 7-day Onboarding Project
     const projectId = generateId('prj');
     const newProject: Project = {
@@ -864,6 +638,7 @@ export class AppStore {
       'Day 7: Official Launch & WhatsApp Welcome Broadcast',
     ];
 
+    const assignee = this.users[7] || this.users[0];
     const createdTasks: Task[] = onboardingTaskTitles.map((title, dayIndex) => {
       const task: Task = {
         id: generateId('tsk'),
@@ -875,8 +650,8 @@ export class AppStore {
         description: `Automated onboarding task generated upon package purchase. Execute according to standard operating procedure.`,
         status: dayIndex === 0 ? 'ASSIGNED' : 'BACKLOG',
         priority: dayIndex < 3 ? 'HIGH' : 'MEDIUM',
-        assignedToId: this.users[7].id,
-        assignedToName: this.users[7].name,
+        assignedToId: assignee.id,
+        assignedToName: assignee.name,
         slaDeadline: new Date(Date.now() + (dayIndex + 1) * 86400000).toISOString(),
         dueDate: new Date(Date.now() + (dayIndex + 1) * 86400000).toISOString(),
         isRecurring: false,
@@ -886,18 +661,60 @@ export class AppStore {
       return task;
     });
 
+    // Generate Initial Invoice for Client Retainer / Package Purchase
+    const taxResult = globalTaxEngine.calculateInvoiceTotals(
+      [{ unitPrice: pkg.price, quantity: 1 }],
+      newClient.state || 'Jharkhand'
+    );
+    const invoiceNumber = `${this.taxConfig.invoicePrefix || 'DR/BOS/'}${Date.now().toString().slice(-6)}`;
+    const newInvoice: Invoice = {
+      id: generateId('inv'),
+      tenantId: 'tenant_main',
+      clientId: newClient.id,
+      clientName: newClient.businessName,
+      invoiceNumber,
+      invoiceType: taxResult.invoiceType,
+      taxMode: taxResult.taxMode,
+      subtotal: taxResult.subtotal,
+      cgstAmount: taxResult.cgstAmount,
+      sgstAmount: taxResult.sgstAmount,
+      igstAmount: taxResult.igstAmount,
+      totalTax: taxResult.totalTax,
+      totalAmount: taxResult.totalAmount,
+      paidAmount: 0,
+      dueAmount: taxResult.totalAmount,
+      status: 'ISSUED',
+      dueDate: new Date(Date.now() + 7 * 86400000).toISOString(),
+      items: [
+        {
+          id: generateId('item'),
+          description: `${pkg.name} - Initial Onboarding & Monthly Retainer`,
+          sacCode: this.taxConfig.defaultSacCode || '998313',
+          quantity: 1,
+          unitPrice: pkg.price,
+          taxRatePercent: taxResult.taxMode === 'GST' ? 18 : 0,
+          taxAmount: taxResult.totalTax,
+          totalAmount: taxResult.totalAmount,
+        },
+      ],
+      createdAt: new Date().toISOString(),
+    };
+    this.invoices.unshift(newInvoice);
+
     // Record Timeline Activity
     this.activities.unshift({
       id: generateId('act'),
       clientId: newClient.id,
       type: 'ONBOARDING_STARTED',
       title: 'Automated Onboarding Started',
-      description: `Client converted from Lead ${lead.id}. ${createdTasks.length} onboarding tasks scheduled.`,
+      description: `Client converted from Lead ${lead.id}. ${createdTasks.length} onboarding tasks scheduled. Invoice ${invoiceNumber} issued for ${pkg.name}.`,
       actorName: 'Digital Ranchi OS Engine',
       timestamp: new Date().toISOString(),
     });
 
-    return { client: newClient, project: newProject, tasks: createdTasks };
+    this.saveToFile();
+
+    return { client: newClient, project: newProject, tasks: createdTasks, invoice: newInvoice, lead };
   }
 
   public recordPayment(
@@ -937,7 +754,50 @@ export class AppStore {
       timestamp: new Date().toISOString(),
     });
 
+    this.saveToFile();
     return payment;
+  }
+
+  // --- Tasks CRUD ---
+  public createTask(taskData: Omit<Task, 'id' | 'tenantId' | 'createdAt'>): Task {
+    const newTask: Task = {
+      id: generateId('tsk'),
+      tenantId: 'tenant_main',
+      ...taskData,
+      createdAt: new Date().toISOString(),
+    };
+    this.tasks.unshift(newTask);
+    this.saveToFile();
+    return newTask;
+  }
+
+  public updateTask(taskId: string, data: Partial<Task>): Task {
+    const index = this.tasks.findIndex((t) => t.id === taskId);
+    if (index === -1) throw new Error('Task not found');
+    this.tasks[index] = { ...this.tasks[index], ...data };
+    this.saveToFile();
+    return this.tasks[index];
+  }
+
+  // --- Invoices CRUD ---
+  public createInvoice(invoiceData: Omit<Invoice, 'id' | 'tenantId' | 'createdAt'>): Invoice {
+    const newInvoice: Invoice = {
+      id: generateId('inv'),
+      tenantId: 'tenant_main',
+      ...invoiceData,
+      createdAt: new Date().toISOString(),
+    };
+    this.invoices.unshift(newInvoice);
+    this.saveToFile();
+    return newInvoice;
+  }
+
+  public updateInvoice(invoiceId: string, data: Partial<Invoice>): Invoice {
+    const index = this.invoices.findIndex((inv) => inv.id === invoiceId);
+    if (index === -1) throw new Error('Invoice not found');
+    this.invoices[index] = { ...this.invoices[index], ...data };
+    this.saveToFile();
+    return this.invoices[index];
   }
 
   // --- Master Data Management Methods (Super Admin CRUD) ---
@@ -951,6 +811,7 @@ export class AppStore {
       createdAt: new Date().toISOString(),
     };
     this.users.unshift(newUser);
+    this.saveToFile();
     return newUser;
   }
 
@@ -958,12 +819,14 @@ export class AppStore {
     const index = this.users.findIndex((u) => u.id === userId);
     if (index === -1) throw new Error('User not found');
     this.users[index] = { ...this.users[index], ...data };
+    this.saveToFile();
     return this.users[index];
   }
 
   public deleteUser(userId: string): boolean {
     const initialLen = this.users.length;
     this.users = this.users.filter((u) => u.id !== userId);
+    this.saveToFile();
     return this.users.length < initialLen;
   }
 
@@ -975,6 +838,7 @@ export class AppStore {
       ...serviceData,
     };
     this.services.unshift(newService);
+    this.saveToFile();
     return newService;
   }
 
@@ -982,12 +846,14 @@ export class AppStore {
     const index = this.services.findIndex((s) => s.id === serviceId);
     if (index === -1) throw new Error('Service not found');
     this.services[index] = { ...this.services[index], ...data };
+    this.saveToFile();
     return this.services[index];
   }
 
   public deleteService(serviceId: string): boolean {
     const initialLen = this.services.length;
     this.services = this.services.filter((s) => s.id !== serviceId);
+    this.saveToFile();
     return this.services.length < initialLen;
   }
 
@@ -999,6 +865,7 @@ export class AppStore {
       ...pkgData,
     };
     this.packages.unshift(newPkg);
+    this.saveToFile();
     return newPkg;
   }
 
@@ -1006,12 +873,14 @@ export class AppStore {
     const index = this.packages.findIndex((p) => p.id === pkgId);
     if (index === -1) throw new Error('Package not found');
     this.packages[index] = { ...this.packages[index], ...data };
+    this.saveToFile();
     return this.packages[index];
   }
 
   public deletePackage(pkgId: string): boolean {
     const initialLen = this.packages.length;
     this.packages = this.packages.filter((p) => p.id !== pkgId);
+    this.saveToFile();
     return this.packages.length < initialLen;
   }
 
@@ -1019,6 +888,7 @@ export class AppStore {
   public addLeadSource(name: string): string {
     if (!this.leadSources.includes(name)) {
       this.leadSources.push(name);
+      this.saveToFile();
     }
     return name;
   }
@@ -1026,9 +896,21 @@ export class AppStore {
   public deleteLeadSource(name: string): boolean {
     const initialLen = this.leadSources.length;
     this.leadSources = this.leadSources.filter((s) => s !== name);
+    this.saveToFile();
     return this.leadSources.length < initialLen;
   }
 }
 
-// Global in-memory singleton for development and demonstration
-export const globalStore = new AppStore();
+const globalForStore = globalThis as unknown as {
+  crmStore: AppStore | undefined;
+};
+
+export const globalStore = (() => {
+  if (!globalForStore.crmStore) {
+    const store = new AppStore();
+    store.loadFromFile();
+    globalForStore.crmStore = store;
+  }
+  return globalForStore.crmStore;
+})();
+

@@ -8,7 +8,11 @@ import { Ticket, TicketCategory } from '@/types';
 import { formatDate, getStatusBadgeClass } from '@/lib/utils';
 
 export default function ClientTicketsPage() {
-  const client = globalStore.clients[0];
+  const client = globalStore.clients[0] || {
+    id: 'cli_demo',
+    businessName: 'Your Business',
+    assignedManagerName: 'Neha Pandey',
+  };
   const [tickets, setTickets] = useState<Ticket[]>(
     globalStore.tickets.filter((t) => t.clientId === client.id)
   );

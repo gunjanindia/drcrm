@@ -72,14 +72,114 @@ export class AIAssistantEngine {
     suggestedQuestions: string[];
     suggestedWhatsAppPitch: string;
   } {
+    const score = lead.auditScore ?? lead.leadScore ?? 70;
+    const pkgName = score >= 75 ? 'Premium Retainer (₹2,499/mo)' : score >= 50 ? 'Growth Package (₹999)' : 'Starter Verification Setup (₹499)';
+
     return {
-      qualificationSummary: `${lead.businessName} is a local ${lead.category} business in ${lead.city} with a presence score of ${lead.leadScore}/100. Key gap: unoptimized Google Maps profile and missing review automation. High conversion probability for the ${lead.interestedPackageId === 'pkg_growth_999' ? 'Growth Package (₹999)' : 'Premium Retainer (₹2,499/mo)'}.`,
+      qualificationSummary: `${lead.businessName} is a local ${lead.category} business in ${lead.city} with a digital presence score of ${score}/100. Conversion target: ${pkgName}.`,
       suggestedQuestions: [
-        `"Are you currently getting daily customer calls directly from Google Maps?"`,
-        `"Do you have an active Review QR stand placed at your counter/reception?"`,
-        `"How quickly do you respond when a customer leaves a review on Google?"`,
+        `"Are you currently getting daily customer calls directly from Google Maps in ${lead.city}?"`,
+        `"Do you have an active Review QR stand placed at your billing counter/reception?"`,
+        `"When potential customers search for '${lead.category.toLowerCase()} near me', does your listing appear in the Top-3 Map Pack?"`,
       ],
-      suggestedWhatsAppPitch: `Namaste ${lead.contactName}! 🙏 We noticed that customers searching for the best ${lead.category.toLowerCase()} in ${lead.city} might be discovering your competitors first on Google Maps. We have prepared a free Digital Presence Audit for ${lead.businessName} showing how to get 3x more calls and walk-ins. Can we share the 1-page action plan?`,
+      suggestedWhatsAppPitch: `Namaste ${lead.contactName}! 🙏 We prepared a 1-Page Google Maps Visibility Audit for *${lead.businessName}* in ${lead.city}.\n\nYour current Google Presence Score is *${score}/100*.\n\nWe found 2 critical gaps causing local customers to discover competitors first. Can we share the action plan showing how to get 3x more calls and walk-ins?`,
+    };
+  }
+
+  public generateDetailedSalesPitch(lead: Lead): {
+    emailSubject: string;
+    emailBody: string;
+    whatsAppText: string;
+    recommendedPackage: { id: string; name: string; price: number; reason: string };
+  } {
+    const score = lead.auditScore ?? lead.leadScore ?? 65;
+    let pkg = {
+      id: 'pkg_growth_999',
+      name: 'Growth Setup Package',
+      price: 999,
+      reason: 'Optimize Google Maps keywords, deploy in-store Review QR stand, and boost local Ranchi citations.',
+    };
+
+    if (score < 50) {
+      pkg = {
+        id: 'pkg_starter_499',
+        name: 'Starter Verification Package',
+        price: 499,
+        reason: 'Claim & verify unlisted Google profile, correct pin address, and prevent competitor hijacking.',
+      };
+    } else if (score >= 75) {
+      pkg = {
+        id: 'pkg_premium_2499',
+        name: 'Premium Growth Retainer',
+        price: 2499,
+        reason: 'Active monthly ranking management, weekly geotagged showcase posts, and review filtering.',
+      };
+    }
+
+    const emailSubject = `Google Maps Visibility Audit Report for ${lead.businessName} (Score: ${score}/100)`;
+    const emailBody = `Dear ${lead.contactName},
+
+Thank you for requesting a Digital Presence Audit with Digital Ranchi for ${lead.businessName}.
+
+AUDIT SUMMARY & FINDINGS:
+----------------------------------------
+• Business Name: ${lead.businessName} (${lead.city}, Jharkhand)
+• Category: ${lead.category}
+• Digital Presence Score: ${score} / 100
+• Visibility Status: ${score >= 75 ? 'Good (Ready for Scale)' : score >= 50 ? 'Moderate (Growth Required)' : 'Critical (Unverified / Missing Gaps)'}
+
+KEY IDENTIFIED GAPS:
+1. Missing automated in-store Review QR mechanism to capture 5-star Google reviews.
+2. Incomplete local search keyword targeting for high-intent "${lead.category.toLowerCase()}" queries in ${lead.city}.
+3. Absence of a fast-loading mobile landing page with direct 1-click WhatsApp inquiry buttons.
+
+RECOMMENDED SERVICE FOR YOUR BUSINESS:
+----------------------------------------
+We recommend activating the **${pkg.name}** (₹${pkg.price.toLocaleString('en-IN')}) for ${lead.businessName}.
+
+Why this package?
+${pkg.reason}
+
+What is included:
+• Official Google Business Profile Verification & Category Optimization
+• Custom Printable Acrylic Review QR Stand (Linked to 5-Star Review Form)
+• Local Ranchi Business Directory Citations
+• 1-Click WhatsApp & Call Auto-Responder Mini Page
+
+Ready to boost your daily footfall and Google inquiries?
+Reply directly to this email or activate online at:
+https://digitalranchi.in/audit
+
+Warm regards,
+Digital Ranchi Growth Team
+support@digitalranchi.in | +91 94311 09876`;
+
+    const whatsAppText = `Namaste *${lead.contactName}*! 🙏
+
+Here is the Google Presence Audit summary for *${lead.businessName}* in ${lead.city}:
+
+📊 *Presence Score:* ${score}/100
+🎯 *Status:* ${score >= 75 ? 'Optimization Ready' : 'Growth Required'}
+
+⚠️ *Key Gaps Identified:*
+1. Unoptimized keywords on Google Maps
+2. Missing in-store Review QR Stand
+3. Competitors ranking ahead in local search
+
+💡 *Recommended Action:*
+Activate the *${pkg.name}* (₹${pkg.price.toLocaleString('en-IN')})
+_${pkg.reason}_
+
+👉 *View Full 1-Page Report & Activate:*
+https://digitalranchi.in/audit
+
+Can we schedule a 5-minute call today to discuss your setup?`;
+
+    return {
+      emailSubject,
+      emailBody,
+      whatsAppText,
+      recommendedPackage: pkg,
     };
   }
 

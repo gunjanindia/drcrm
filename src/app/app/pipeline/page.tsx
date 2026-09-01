@@ -11,6 +11,22 @@ import { formatINR, getStatusBadgeClass } from '@/lib/utils';
 export default function PipelinePage() {
   const [leads, setLeads] = useState<Lead[]>(globalStore.leads);
 
+  const fetchPipelineLeads = async () => {
+    try {
+      const res = await fetch('/api/leads');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setLeads(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch pipeline leads:', err);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchPipelineLeads();
+  }, []);
+
   const stages: { id: LeadStatus; label: string; color: string }[] = [
     { id: 'NEW', label: 'New Inquiries', color: 'border-indigo-500' },
     { id: 'CONTACTED', label: 'Contacted', color: 'border-blue-500' },
@@ -21,15 +37,44 @@ export default function PipelinePage() {
     { id: 'WON', label: 'Won / Active', color: 'border-emerald-500' },
   ];
 
-  const moveStage = (leadId: string, nextStatus: LeadStatus) => {
-    const lead = globalStore.leads.find((l) => l.id === leadId);
+  const moveStage = async (leadId: string, nextStatus: LeadStatus) => {
+    const lead = leads.find((l) => l.id === leadId);
     if (!lead) return;
 
-    lead.status = nextStatus;
-    if (nextStatus === 'WON') {
-      globalStore.convertLeadToClient(lead.id, lead.interestedPackageId || 'pkg_growth_999');
+    // Optimistically update UI
+    setLeads((prev) =>
+      prev.map((l) => (l.id === leadId ? { ...l, status: nextStatus } : l))
+    );
+
+    try {
+      if (nextStatus === 'WON') {
+        const res = await fetch('/api/leads/convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId: lead.id,
+            packageId: lead.interestedPackageId || 'pkg_growth_999',
+          }),
+        });
+        if (res.ok) {
+          await fetchPipelineLeads();
+        }
+      } else {
+        const res = await fetch('/api/leads', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: lead.id,
+            status: nextStatus,
+          }),
+        });
+        if (res.ok) {
+          await fetchPipelineLeads();
+        }
+      }
+    } catch (err) {
+      console.error('Failed to advance deal stage:', err);
     }
-    setLeads([...globalStore.leads]);
   };
 
   return (
@@ -80,7 +125,12 @@ export default function PipelinePage() {
 
               {/* Cards Feed */}
               <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
-                {stageLeads.map((lead) => (
+                {stageLeads.length === 0 ? (
+                  <div className="py-8 text-center text-slate-400 text-[11px] italic">
+                    No leads in this stage
+                  </div>
+                ) : (
+                  stageLeads.map((lead) => (
                   <div
                     key={lead.id}
                     className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all space-y-2 text-xs"
@@ -128,7 +178,8 @@ export default function PipelinePage() {
                       )}
                     </div>
                   </div>
-                ))}
+                )))
+              }
               </div>
             </div>
           );
