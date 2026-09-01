@@ -94,10 +94,10 @@ export const AppSidebar: React.FC = () => {
         })}
       </div>
 
-      {/* Role & Staff Profile Snapshot */}
-      <div className="p-4 border-t border-slate-800 bg-slate-950/40">
+      {/* Role & Staff Profile Snapshot + Logout */}
+      <div className="p-4 border-t border-slate-800 bg-slate-950/40 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-sky-400 flex items-center justify-center text-xs font-bold text-white">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-sky-400 flex items-center justify-center text-xs font-bold text-white shrink-0">
             GS
           </div>
           <div className="flex-1 min-w-0">
@@ -108,6 +108,16 @@ export const AppSidebar: React.FC = () => {
             </div>
           </div>
         </div>
+
+        <button
+          onClick={async () => {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+          }}
+          className="w-full py-1.5 px-3 rounded-lg bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5 border border-slate-700/60"
+        >
+          <span>Sign Out of CRM</span>
+        </button>
       </div>
     </aside>
   );
