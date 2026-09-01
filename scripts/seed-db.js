@@ -34,9 +34,9 @@ async function main() {
     {
       id: 'usr_super_admin',
       tenantId: tenant.id,
-      name: 'Gunjan Sharma',
-      email: 'gunjan@digitalranchi.in',
-      phone: '+91 9431100001',
+      name: 'Gunjan Kumar',
+      email: 'gunjan.india@gmail.com',
+      phone: '+91 7004700318',
       role: 'SUPER_ADMIN',
       department: 'Executive',
       passwordHash: defaultPasswordHash,

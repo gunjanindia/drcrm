@@ -55,114 +55,13 @@ export class AppStore {
       {
         id: 'usr_super_admin',
         tenantId: 'tenant_main',
-        name: 'Gunjan Sharma',
-        email: 'gunjan@digitalranchi.in',
-        phone: '+91 9876543210',
+        name: 'Gunjan Kumar',
+        email: 'gunjan.india@gmail.com',
+        phone: '+91 7004700318',
         role: 'SUPER_ADMIN',
         department: 'Executive',
         createdAt: '2026-01-01T10:00:00Z',
-      },
-      {
-        id: 'usr_biz_admin',
-        tenantId: 'tenant_main',
-        name: 'Pooja Verma',
-        email: 'pooja@digitalranchi.in',
-        phone: '+91 9876543211',
-        role: 'BUSINESS_ADMIN',
-        department: 'Operations',
-        createdAt: '2026-01-05T10:00:00Z',
-      },
-      {
-        id: 'usr_sales_mgr',
-        tenantId: 'tenant_main',
-        name: 'Rahul Kumar',
-        email: 'rahul.k@digitalranchi.in',
-        phone: '+91 9876543212',
-        role: 'SALES_MANAGER',
-        department: 'Sales',
-        createdAt: '2026-01-10T10:00:00Z',
-      },
-      {
-        id: 'usr_sales_exec1',
-        tenantId: 'tenant_main',
-        name: 'Amit Singh',
-        email: 'amit.s@digitalranchi.in',
-        phone: '+91 9876543213',
-        role: 'SALES_EXECUTIVE',
-        department: 'Sales',
-        createdAt: '2026-01-15T10:00:00Z',
-      },
-      {
-        id: 'usr_ops_mgr',
-        tenantId: 'tenant_main',
-        name: 'Siddharth Roy',
-        email: 'siddharth@digitalranchi.in',
-        phone: '+91 9876543214',
-        role: 'OPERATIONS_MANAGER',
-        department: 'Delivery',
-        createdAt: '2026-01-15T10:00:00Z',
-      },
-      {
-        id: 'usr_acct_mgr1',
-        tenantId: 'tenant_main',
-        name: 'Neha Pandey',
-        email: 'neha.p@digitalranchi.in',
-        phone: '+91 9876543215',
-        role: 'ACCOUNT_MANAGER',
-        department: 'Client Success',
-        createdAt: '2026-01-20T10:00:00Z',
-      },
-      {
-        id: 'usr_acct_mgr2',
-        tenantId: 'tenant_main',
-        name: 'Vikram Mehta',
-        email: 'vikram.m@digitalranchi.in',
-        phone: '+91 9876543216',
-        role: 'ACCOUNT_MANAGER',
-        department: 'Client Success',
-        createdAt: '2026-01-20T10:00:00Z',
-      },
-      {
-        id: 'usr_del_exec1',
-        tenantId: 'tenant_main',
-        name: 'Rohan Gupta',
-        email: 'rohan.g@digitalranchi.in',
-        phone: '+91 9876543217',
-        role: 'DELIVERY_EXECUTIVE',
-        department: 'Design & GBP',
-        createdAt: '2026-02-01T10:00:00Z',
-      },
-      {
-        id: 'usr_del_exec2',
-        tenantId: 'tenant_main',
-        name: 'Anjali Kumari',
-        email: 'anjali.k@digitalranchi.in',
-        phone: '+91 9876543218',
-        role: 'DELIVERY_EXECUTIVE',
-        department: 'Content & SEO',
-        createdAt: '2026-02-01T10:00:00Z',
-      },
-      {
-        id: 'usr_finance',
-        tenantId: 'tenant_main',
-        name: 'Manish Tiwari',
-        email: 'manish.t@digitalranchi.in',
-        phone: '+91 9876543219',
-        role: 'FINANCE',
-        department: 'Finance',
-        createdAt: '2026-01-10T10:00:00Z',
-      },
-      {
-        id: 'usr_client_demo',
-        tenantId: 'tenant_main',
-        name: 'Dr. Alok Srivastava',
-        email: 'client@ranchidental.com',
-        phone: '+91 9431109876',
-        role: 'CLIENT',
-        clientId: 'cli_1',
-        department: 'Client',
-        createdAt: '2026-02-10T10:00:00Z',
-      },
+      }
     ];
 
     // 2. Services (10 core local growth services)
@@ -487,8 +386,8 @@ export class AppStore {
         const storeFile = fs.existsSync(tmpStoreFile)
           ? tmpStoreFile
           : fs.existsSync(localStoreFile)
-          ? localStoreFile
-          : null;
+            ? localStoreFile
+            : null;
 
         if (storeFile && fs.existsSync(storeFile)) {
           const raw = fs.readFileSync(storeFile, 'utf-8');
