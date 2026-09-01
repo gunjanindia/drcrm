@@ -636,6 +636,8 @@ export class AppStore {
       id: generateId('lead'),
       tenantId: 'tenant_main',
       ...leadData,
+      leadScore: leadData.leadScore !== undefined ? leadData.leadScore : (leadData.auditScore || 0),
+      auditScore: leadData.auditScore !== undefined ? leadData.auditScore : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -664,7 +666,7 @@ export class AppStore {
               leadSource: newLead.leadSource || 'Website Direct',
               interestedPackageId: newLead.interestedPackageId || null,
               estimatedValue: newLead.estimatedValue || 999.0,
-              leadScore: newLead.leadScore || 70,
+              leadScore: newLead.leadScore,
               status: newLead.status || 'NEW',
               auditScore: newLead.auditScore || null,
             },
@@ -693,13 +695,26 @@ export class AppStore {
       try {
         const { prisma } = require('@/lib/prisma');
         if (prisma) {
+          const updatePayload: any = {};
+          if (data.businessName !== undefined) updatePayload.businessName = data.businessName;
+          if (data.contactName !== undefined) updatePayload.contactName = data.contactName;
+          if (data.phone !== undefined) updatePayload.phone = data.phone;
+          if (data.whatsapp !== undefined) updatePayload.whatsapp = data.whatsapp;
+          if (data.email !== undefined) updatePayload.email = data.email;
+          if (data.category !== undefined) updatePayload.category = data.category;
+          if (data.city !== undefined) updatePayload.city = data.city;
+          if (data.state !== undefined) updatePayload.state = data.state;
+          if (data.googleMapsUrl !== undefined) updatePayload.googleMapsUrl = data.googleMapsUrl;
+          if (data.websiteUrl !== undefined) updatePayload.websiteUrl = data.websiteUrl;
+          if (data.status !== undefined) updatePayload.status = data.status;
+          if (data.estimatedValue !== undefined) updatePayload.estimatedValue = data.estimatedValue;
+          if (data.leadScore !== undefined) updatePayload.leadScore = data.leadScore;
+          if (data.auditScore !== undefined) updatePayload.auditScore = data.auditScore;
+          if (data.notes !== undefined) updatePayload.notes = data.notes;
+
           await prisma.lead.update({
             where: { id: leadId },
-            data: {
-              status: data.status,
-              estimatedValue: data.estimatedValue,
-              leadScore: data.leadScore,
-            },
+            data: updatePayload,
           });
         }
       } catch (e) {
@@ -708,6 +723,28 @@ export class AppStore {
     }
 
     return this.leads[index];
+  }
+
+  public async deleteLead(leadId: string): Promise<boolean> {
+    const index = this.leads.findIndex((l) => l.id === leadId);
+    if (index !== -1) {
+      this.leads.splice(index, 1);
+    }
+    this.saveToFile();
+
+    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+      try {
+        const { prisma } = require('@/lib/prisma');
+        if (prisma) {
+          await prisma.lead.delete({
+            where: { id: leadId },
+          }).catch(() => null);
+        }
+      } catch (e) {
+        console.error('Failed to delete lead from Neon:', e);
+      }
+    }
+    return true;
   }
 
   public async convertLeadToClient(leadId: string, packageId: string = 'pkg_growth_999'): Promise<{

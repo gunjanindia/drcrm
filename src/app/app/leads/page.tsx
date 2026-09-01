@@ -18,11 +18,16 @@ import {
   CheckCircle2,
   Filter,
   ShieldCheck,
-  PackageCheck
+  PackageCheck,
+  Edit2,
+  Trash2,
+  Activity,
+  Zap,
+  RotateCw
 } from 'lucide-react';
 import { Button, Input, Modal, Badge } from '@/components/ui';
 import { globalStore } from '@/lib/store';
-import { Lead } from '@/types';
+import { Lead, LeadStatus } from '@/types';
 import { formatINR, formatDate, getStatusBadgeClass } from '@/lib/utils';
 import { aiAssistantEngine } from '@/lib/ai-engine';
 
@@ -31,12 +36,54 @@ export default function LeadsPage() {
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+
+  // Modals state
   const [selectedLeadForAi, setSelectedLeadForAi] = useState<Lead | null>(null);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
-  const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
   const [selectedLeadForPitch, setSelectedLeadForPitch] = useState<Lead | null>(null);
+  const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
   const [pitchChannel, setPitchChannel] = useState<'WHATSAPP' | 'EMAIL'>('WHATSAPP');
   const [copied, setCopied] = useState(false);
+
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [leadToConvert, setLeadToConvert] = useState<Lead | null>(null);
+  const [selectedPackageId, setSelectedPackageId] = useState('pkg_growth_999');
+  const [isConverting, setIsConverting] = useState(false);
+
+  // Edit Lead Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedLeadForEdit, setSelectedLeadForEdit] = useState<Lead | null>(null);
+  const [editBizName, setEditBizName] = useState('');
+  const [editContact, setEditContact] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editWhatsapp, setEditWhatsapp] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editState, setEditState] = useState('');
+  const [editStatus, setEditStatus] = useState<LeadStatus>('NEW');
+  const [editEstimatedValue, setEditEstimatedValue] = useState(999);
+  const [editNotes, setEditNotes] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Quick Add Modal State
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newBizName, setNewBizName] = useState('');
+  const [newContact, setNewContact] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newWhatsapp, setNewWhatsapp] = useState('');
+  const [newCategory, setNewCategory] = useState('Clinic / Healthcare');
+  const [newCity, setNewCity] = useState('Ranchi');
+  const [newEstValue, setNewEstValue] = useState(999);
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Audit scanning state
+  const [auditingLeadId, setAuditingLeadId] = useState<string | null>(null);
 
   const fetchLatestLeads = async () => {
     try {
@@ -60,17 +107,6 @@ export default function LeadsPage() {
     fetchLatestLeads();
   }, []);
 
-  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
-  const [leadToConvert, setLeadToConvert] = useState<Lead | null>(null);
-  const [selectedPackageId, setSelectedPackageId] = useState('pkg_growth_999');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  // New Lead Form
-  const [newBizName, setNewBizName] = useState('');
-  const [newContact, setNewContact] = useState('');
-  const [newPhone, setNewPhone] = useState('');
-  const [newCategory, setNewCategory] = useState('Clinic');
-
   const filteredLeads = leads.filter((l) => {
     const matchesSearch =
       l.businessName.toLowerCase().includes(search.toLowerCase()) ||
@@ -81,6 +117,7 @@ export default function LeadsPage() {
     return matchesSearch && matchesStatus;
   });
 
+  // --- Handlers ---
   const handleOpenAiSummary = (lead: Lead) => {
     setSelectedLeadForAi(lead);
     setIsAiModalOpen(true);
@@ -97,7 +134,138 @@ export default function LeadsPage() {
     setIsConvertModalOpen(true);
   };
 
-  const [isConverting, setIsConverting] = useState(false);
+  const handleOpenEdit = (lead: Lead) => {
+    setSelectedLeadForEdit(lead);
+    setEditBizName(lead.businessName);
+    setEditContact(lead.contactName || '');
+    setEditPhone(lead.phone || '');
+    setEditWhatsapp(lead.whatsapp || lead.phone || '');
+    setEditEmail(lead.email || '');
+    setEditCategory(lead.category || 'Local Business');
+    setEditCity(lead.city || 'Ranchi');
+    setEditState(lead.state || 'Jharkhand');
+    setEditStatus(lead.status || 'NEW');
+    setEditEstimatedValue(lead.estimatedValue || 999);
+    setEditNotes(lead.notes || '');
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLeadForEdit) return;
+
+    try {
+      setIsSavingEdit(true);
+      const updates = {
+        businessName: editBizName.trim(),
+        contactName: editContact.trim() || editBizName.trim(),
+        phone: editPhone.trim(),
+        whatsapp: editWhatsapp.trim() || editPhone.trim(),
+        email: editEmail.trim(),
+        category: editCategory.trim(),
+        city: editCity.trim() || 'Ranchi',
+        state: editState.trim() || 'Jharkhand',
+        status: editStatus,
+        estimatedValue: Number(editEstimatedValue) || 999,
+        notes: editNotes.trim(),
+      };
+
+      const res = await fetch('/api/leads', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedLeadForEdit.id,
+          ...updates,
+        }),
+      });
+
+      if (res.ok) {
+        setLeads((prev) =>
+          prev.map((l) => (l.id === selectedLeadForEdit.id ? { ...l, ...updates } : l))
+        );
+        setIsEditModalOpen(false);
+      } else {
+        alert('Failed to update lead');
+      }
+    } catch (err) {
+      console.error('Update lead error:', err);
+      alert('Error updating lead');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleOpenDelete = (lead: Lead) => {
+    setLeadToDelete(lead);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!leadToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/leads?id=${leadToDelete.id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setLeads((prev) => prev.filter((l) => l.id !== leadToDelete.id));
+        setIsDeleteModalOpen(false);
+      } else {
+        alert('Failed to delete lead from database.');
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Network error while deleting lead.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleRunAuditForLead = async (lead: Lead) => {
+    try {
+      setAuditingLeadId(lead.id);
+      const res = await fetch('/api/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: lead.businessName,
+          googleMapsUrl: lead.googleMapsUrl,
+          category: lead.category,
+          city: lead.city,
+          phone: lead.phone,
+          contactName: lead.contactName,
+        }),
+      });
+
+      if (res.ok) {
+        const auditRes = await res.json();
+        if (auditRes.success && auditRes.data) {
+          const newScore = auditRes.data.overallScore;
+          // Update in database
+          await fetch('/api/leads', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: lead.id,
+              auditScore: newScore,
+              leadScore: newScore,
+              status: lead.status === 'NEW' ? 'AUDIT' : lead.status,
+              notes: `${lead.notes || ''} | Presence Audit Score: ${newScore}/100 (${auditRes.data.validationStatus}).`,
+            }),
+          });
+          await fetchLatestLeads();
+          alert(`✅ Live Audit Complete for "${lead.businessName}"!\nScore: ${newScore}/100\nStatus: ${auditRes.data.validationStatus}\nRecommended: ${auditRes.data.suggestedPackage?.name}`);
+        }
+      } else {
+        alert('Audit scan could not be completed. Please check connection or business name.');
+      }
+    } catch (err) {
+      console.error('Audit run error:', err);
+      alert('Error triggering audit scan.');
+    } finally {
+      setAuditingLeadId(null);
+    }
+  };
 
   const handleConfirmConvert = async () => {
     if (!leadToConvert) return;
@@ -114,11 +282,9 @@ export default function LeadsPage() {
 
       const data = await res.json();
       if (data.success) {
-        // Update local leads list with WON status
         setLeads((prev) =>
           prev.map((l) => (l.id === leadToConvert.id ? { ...l, status: 'WON' } : l))
         );
-        // Refresh full leads from server to ensure complete sync
         await fetchLatestLeads();
         setIsConvertModalOpen(false);
         alert(
@@ -157,23 +323,25 @@ export default function LeadsPage() {
     if (!newBizName || !newPhone) return;
 
     try {
+      setIsCreating(true);
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          businessName: newBizName,
-          contactName: newContact || newBizName,
-          phone: newPhone,
-          whatsapp: newPhone,
-          email: `${newPhone}@lead.digitalranchi.in`,
+          businessName: newBizName.trim(),
+          contactName: newContact.trim() || newBizName.trim(),
+          phone: newPhone.trim(),
+          whatsapp: newWhatsapp.trim() || newPhone.trim(),
+          email: `${newPhone.replace(/[^0-9]/g, '')}@lead.digitalranchi.in`,
           category: newCategory,
-          city: 'Ranchi',
+          city: newCity.trim() || 'Ranchi',
           state: 'Jharkhand',
           leadSource: 'CRM Direct Ingestion',
-          estimatedValue: 999,
-          leadScore: 85,
+          estimatedValue: Number(newEstValue) || 999,
+          leadScore: 0,
+          auditScore: null,
           status: 'NEW',
-          notes: 'Manually logged in CRM.',
+          notes: 'Manually logged by Admin.',
         }),
       });
 
@@ -183,9 +351,15 @@ export default function LeadsPage() {
         setNewBizName('');
         setNewContact('');
         setNewPhone('');
+        setNewWhatsapp('');
+      } else {
+        alert('Failed to save lead');
       }
     } catch (err) {
       console.error('Failed to create lead:', err);
+      alert('Error creating lead');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -194,11 +368,14 @@ export default function LeadsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Lead Management & Pipeline Ingestion
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <span>Lead Management & Ingestion</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-200 dark:border-indigo-800">
+              {leads.length} Leads
+            </span>
           </h2>
           <p className="text-xs text-slate-500">
-            {leads.length} Total Inquiries captured across Website, WhatsApp, and Field Sales
+            Real-time pipeline synced with Neon Cloud Database. Click "Audit Now" to calculate real presence scores.
           </p>
         </div>
 
@@ -208,12 +385,13 @@ export default function LeadsPage() {
             size="sm"
             onClick={fetchLatestLeads}
             isLoading={isLoadingLeads}
+            icon={RotateCw}
           >
-            Refresh Leads
+            Refresh
           </Button>
           <Link href="/app/pipeline">
             <Button variant="outline" size="sm">
-              View Kanban Pipeline
+              Kanban View
             </Button>
           </Link>
           <Button variant="primary" size="sm" icon={Plus} onClick={() => setIsCreateModalOpen(true)}>
@@ -228,15 +406,15 @@ export default function LeadsPage() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search business name, category, phone..."
+            placeholder="Search business name, owner, phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
           />
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-          {['ALL', 'NEW', 'CONTACTED', 'AUDIT', 'QUALIFIED', 'PROPOSAL', 'WON', 'LOST'].map((st) => (
+          {['ALL', 'NEW', 'CONTACTED', 'AUDIT', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'].map((st) => (
             <button
               key={st}
               onClick={() => setSelectedStatus(st)}
@@ -258,13 +436,13 @@ export default function LeadsPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 dark:bg-slate-950/70 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="py-3.5 px-4">Business & Contact</th>
-                <th className="py-3.5 px-4">Category / City</th>
+                <th className="py-3.5 px-4">Business & Owner Name</th>
+                <th className="py-3.5 px-4">Category & Location</th>
                 <th className="py-3.5 px-4">Presence Score</th>
-                <th className="py-3.5 px-4">Lead Source</th>
+                <th className="py-3.5 px-4">Deal Value</th>
                 <th className="py-3.5 px-4">Stage</th>
-                <th className="py-3.5 px-4">Assigned Rep</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
+                <th className="py-3.5 px-4">Source</th>
+                <th className="py-3.5 px-4 text-right">Admin Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -273,97 +451,372 @@ export default function LeadsPage() {
                   <td colSpan={7} className="py-12 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Users className="w-8 h-8 text-slate-300 dark:text-slate-700" />
-                      <p className="font-semibold text-sm">No leads in the pipeline yet</p>
+                      <p className="font-semibold text-sm">No matching leads found</p>
                       <p className="text-xs text-slate-400">
-                        New inquiries from the Free Audit scanner, WhatsApp, and manual entry will appear here automatically.
+                        Add a lead using the button above or run an audit scanner from the landing page.
                       </p>
                     </div>
                   </td>
                 </tr>
               ) : (
-                filteredLeads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
-                  <td className="py-3 px-4">
-                    <div className="font-bold text-slate-900 dark:text-white">{lead.businessName}</div>
-                    <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
-                      <span>{lead.contactName}</span>
-                      <span>•</span>
-                      <span className="text-slate-400">{lead.phone}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="font-medium text-slate-800 dark:text-slate-200">{lead.category}</span>
-                    <div className="text-[10px] text-slate-400">{lead.city}, Jharkhand</div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-indigo-600 dark:text-indigo-400">{lead.leadScore}/100</span>
-                      <div className="w-12 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-indigo-500 rounded-full"
-                          style={{ width: `${lead.leadScore}%` }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-                      {lead.leadSource}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase ${getStatusBadgeClass(
-                        lead.status
-                      )}`}
-                    >
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-slate-600 dark:text-slate-400 text-[11px]">
-                    {lead.assignedUserName || 'Unassigned'}
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => handleOpenPitchModal(lead)}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 transition-colors font-semibold text-[11px] flex items-center gap-1"
-                        title="Send Audit Pitch & Report"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        <span>Pitch Report</span>
-                      </button>
+                filteredLeads.map((lead) => {
+                  const hasAuditScore = lead.auditScore !== null && lead.auditScore !== undefined && Number(lead.auditScore) > 0;
+                  const scoreVal = hasAuditScore ? Number(lead.auditScore) : 0;
+                  const isAuditing = auditingLeadId === lead.id;
 
-                      <button
-                        onClick={() => handleOpenAiSummary(lead)}
-                        className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border border-amber-500/30 transition-colors"
-                        title="AI Lead Intelligence"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                      </button>
+                  return (
+                    <tr key={lead.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-slate-900 dark:text-white text-sm">{lead.businessName}</div>
+                        <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{lead.contactName || 'Owner'}</span>
+                          <span>•</span>
+                          <span className="text-indigo-600 dark:text-indigo-400">{lead.phone}</span>
+                        </div>
+                      </td>
 
-                      {lead.status !== 'WON' ? (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => handleOpenConvert(lead)}
+                      <td className="py-3 px-4">
+                        <span className="font-medium text-slate-800 dark:text-slate-200">{lead.category}</span>
+                        <div className="text-[10px] text-slate-400">{lead.city || 'Ranchi'}, {lead.state || 'Jharkhand'}</div>
+                      </td>
+
+                      <td className="py-3 px-4">
+                        {hasAuditScore ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`font-bold text-xs ${scoreVal >= 75 ? 'text-emerald-600' : scoreVal >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>
+                                {scoreVal}/100
+                              </span>
+                              <button
+                                onClick={() => handleRunAuditForLead(lead)}
+                                disabled={isAuditing}
+                                title="Re-run Live Presence Audit"
+                                className="p-1 rounded text-slate-400 hover:text-indigo-600 transition-colors"
+                              >
+                                <RotateCw className={`w-3 h-3 ${isAuditing ? 'animate-spin text-indigo-600' : ''}`} />
+                              </button>
+                            </div>
+                            <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${scoreVal >= 75 ? 'bg-emerald-500' : scoreVal >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                style={{ width: `${scoreVal}%` }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleRunAuditForLead(lead)}
+                              disabled={isAuditing}
+                              className="px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-bold text-[10px] flex items-center gap-1 transition-all"
+                            >
+                              <Zap className={`w-3 h-3 text-amber-500 ${isAuditing ? 'animate-pulse' : ''}`} />
+                              <span>{isAuditing ? 'Auditing...' : 'Audit Now'}</span>
+                            </button>
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">
+                        {formatINR(lead.estimatedValue || 999)}
+                      </td>
+
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase ${getStatusBadgeClass(
+                            lead.status
+                          )}`}
                         >
-                          Convert
-                        </Button>
-                      ) : (
-                        <span className="text-[10px] text-emerald-600 font-semibold px-2 py-1 bg-emerald-50 rounded">
-                          Converted
+                          {lead.status}
                         </span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )))
-            }
+                      </td>
+
+                      <td className="py-3 px-4 text-slate-600 dark:text-slate-400 text-[11px]">
+                        {lead.leadSource}
+                      </td>
+
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Pitch */}
+                          <button
+                            onClick={() => handleOpenPitchModal(lead)}
+                            className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 transition-colors font-semibold text-[11px] flex items-center gap-1"
+                            title="Send Audit Pitch & WhatsApp Report"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Pitch</span>
+                          </button>
+
+                          {/* AI */}
+                          <button
+                            onClick={() => handleOpenAiSummary(lead)}
+                            className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border border-amber-500/30 transition-colors"
+                            title="AI Lead Intelligence"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Edit Lead */}
+                          <button
+                            onClick={() => handleOpenEdit(lead)}
+                            className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 border border-slate-200 dark:border-slate-700 transition-colors"
+                            title="Edit Lead Details"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Delete Lead */}
+                          <button
+                            onClick={() => handleOpenDelete(lead)}
+                            className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 transition-colors"
+                            title="Delete Lead"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Convert */}
+                          {lead.status !== 'WON' ? (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => handleOpenConvert(lead)}
+                            >
+                              Convert
+                            </Button>
+                          ) : (
+                            <span className="text-[10px] text-emerald-600 font-semibold px-2 py-1 bg-emerald-50 rounded">
+                              Won
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Edit Lead Modal */}
+      {selectedLeadForEdit && (
+        <Modal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          title={`Edit Lead: ${selectedLeadForEdit.businessName}`}
+          description="Update business name, owner contact details, deal value, or pipeline stage."
+        >
+          <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                label="Business / Clinic Name *"
+                value={editBizName}
+                onChange={(e) => setEditBizName(e.target.value)}
+                required
+              />
+              <Input
+                label="Owner / Contact Person *"
+                value={editContact}
+                onChange={(e) => setEditContact(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                label="Phone Number *"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                required
+              />
+              <Input
+                label="WhatsApp Number"
+                value={editWhatsapp}
+                onChange={(e) => setEditWhatsapp(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                label="Email Address"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+              />
+              <Input
+                label="Category / Industry"
+                value={editCategory}
+                onChange={(e) => setEditCategory(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Input
+                label="City"
+                value={editCity}
+                onChange={(e) => setEditCity(e.target.value)}
+              />
+              <Input
+                label="State"
+                value={editState}
+                onChange={(e) => setEditState(e.target.value)}
+              />
+              <Input
+                label="Deal Value (₹)"
+                type="number"
+                value={editEstimatedValue}
+                onChange={(e) => setEditEstimatedValue(Number(e.target.value))}
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Pipeline Stage:
+              </label>
+              <select
+                value={editStatus}
+                onChange={(e) => setEditStatus(e.target.value as LeadStatus)}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 text-xs text-slate-900 dark:text-white"
+              >
+                {['NEW', 'CONTACTED', 'QUALIFIED', 'AUDIT', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'].map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Internal Sales & Follow-up Notes:
+              </label>
+              <textarea
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                rows={3}
+                placeholder="Log customer discussions, pricing feedback, next steps..."
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 text-xs text-slate-900 dark:text-white"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" size="sm" isLoading={isSavingEdit}>
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Delete Lead Confirmation Modal */}
+      {leadToDelete && (
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          title="Delete Lead Confirmation"
+          description="Are you sure you want to permanently delete this lead from the CRM?"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300">
+              <p className="font-bold">Warning: This action cannot be undone.</p>
+              <p className="mt-1 text-[11px]">
+                Deleting <strong>{leadToDelete.businessName}</strong> ({leadToDelete.contactName}, {leadToDelete.phone}) will remove the record from your Neon PostgreSQL database.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setIsDeleteModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleConfirmDelete}
+                isLoading={isDeleting}
+                className="!bg-rose-600 hover:!bg-rose-700 text-white"
+              >
+                Delete Permanently
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Quick Add Lead Modal */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Add New Lead / Local Inquiry"
+        description="Record a walk-in, phone call, or field sales discovery with zero default score until audited"
+      >
+        <form onSubmit={handleCreateLead} className="space-y-3 text-xs">
+          <Input
+            label="Business / Clinic Name *"
+            placeholder="e.g. Ranchi Optical House"
+            value={newBizName}
+            onChange={(e) => setNewBizName(e.target.value)}
+            required
+          />
+          <Input
+            label="Owner / Contact Person *"
+            placeholder="e.g. Ankit Singhal"
+            value={newContact}
+            onChange={(e) => setNewContact(e.target.value)}
+            required
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Phone Number *"
+              placeholder="+91 98765 43210"
+              value={newPhone}
+              onChange={(e) => setNewPhone(e.target.value)}
+              required
+            />
+            <Input
+              label="WhatsApp Number"
+              placeholder="+91 98765 43210"
+              value={newWhatsapp}
+              onChange={(e) => setNewWhatsapp(e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Input
+              label="Category"
+              placeholder="e.g. Clinic / Coaching / Retail"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+            />
+            <Input
+              label="City"
+              placeholder="Ranchi"
+              value={newCity}
+              onChange={(e) => setNewCity(e.target.value)}
+            />
+            <Input
+              label="Deal Value (₹)"
+              type="number"
+              value={newEstValue}
+              onChange={(e) => setNewEstValue(Number(e.target.value))}
+            />
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 text-[11px]">
+            💡 <strong>Note:</strong> New leads start with <em>Pending Audit</em>. You can click <strong>"Audit Now"</strong> on the leads table anytime to run a live Google presence audit.
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3">
+            <Button variant="outline" size="sm" onClick={() => setIsCreateModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" size="sm" isLoading={isCreating}>
+              Save Lead to Database
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* 1-Click Audit Pitch Dispatcher Modal */}
       {selectedLeadForPitch && (
@@ -377,70 +830,60 @@ export default function LeadsPage() {
             const pitch = aiAssistantEngine.generateDetailedSalesPitch(selectedLeadForPitch);
             return (
               <div className="space-y-4 text-xs">
-                {/* Recommended Package Card */}
-                <div className="p-3.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">
-                      Target Growth Solution
-                    </span>
-                    <span className="text-sm font-extrabold text-slate-900 dark:text-white">
-                      {pitch.recommendedPackage.name} (₹{pitch.recommendedPackage.price.toLocaleString('en-IN')})
-                    </span>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
-                      {pitch.recommendedPackage.reason}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow shrink-0">
-                    {selectedLeadForPitch.leadScore}/100
-                  </div>
-                </div>
-
                 {/* Channel Selector */}
-                <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
                   <button
                     onClick={() => setPitchChannel('WHATSAPP')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
+                    className={`flex-1 py-1.5 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
                       pitchChannel === 'WHATSAPP'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400'
                     }`}
                   >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    WhatsApp Script
+                    <MessageCircle className="w-4 h-4" />
+                    WhatsApp Pitch
                   </button>
                   <button
                     onClick={() => setPitchChannel('EMAIL')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
+                    className={`flex-1 py-1.5 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
                       pitchChannel === 'EMAIL'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400'
                     }`}
                   >
-                    <Mail className="w-3.5 h-3.5" />
-                    Formal Email Proposal
+                    <Mail className="w-4 h-4" />
+                    Email Proposal
                   </button>
                 </div>
 
-                {/* Pitch Content Display */}
                 {pitchChannel === 'WHATSAPP' ? (
                   <div className="space-y-3">
-                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-slate-800 dark:text-slate-200">
-                      {pitch.whatsAppText}
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-emerald-800 dark:text-emerald-300">
+                          Pre-formatted WhatsApp Pitch:
+                        </span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(pitch.whatsAppText);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                          }}
+                          className="px-2 py-1 rounded bg-white dark:bg-slate-900 text-emerald-600 font-semibold text-[10px] border border-emerald-200 shadow-sm flex items-center gap-1"
+                        >
+                          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                          {copied ? 'Copied!' : 'Copy Text'}
+                        </button>
+                      </div>
+                      <pre className="whitespace-pre-wrap font-sans text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-emerald-100 max-h-48 overflow-y-auto">
+                        {pitch.whatsAppText}
+                      </pre>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3 pt-2">
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(pitch.whatsAppText);
-                          setCopied(true);
-                          setTimeout(() => setCopied(false), 2000);
-                        }}
-                        className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center gap-1.5"
-                      >
-                        {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copied ? 'Copied' : 'Copy Text'}</span>
-                      </button>
-
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="outline" size="sm" onClick={() => setIsPitchModalOpen(false)}>
+                        Cancel
+                      </Button>
                       <a
                         href={`https://wa.me/${selectedLeadForPitch.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
                           pitch.whatsAppText
@@ -450,50 +893,26 @@ export default function LeadsPage() {
                         onClick={() => handleMarkContacted(selectedLeadForPitch)}
                         className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/30"
                       >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>Send on WhatsApp</span>
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>Open WhatsApp & Send</span>
                       </a>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-                        Subject Line:
-                      </label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={pitch.emailSubject}
-                        className="w-full p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-900 dark:text-white"
-                      />
+                    <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl space-y-2">
+                      <span className="font-bold text-indigo-800 dark:text-indigo-300 block">
+                        Subject: {pitch.emailSubject}
+                      </span>
+                      <pre className="whitespace-pre-wrap font-sans text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-indigo-100 max-h-48 overflow-y-auto">
+                        {pitch.emailBody}
+                      </pre>
                     </div>
 
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-                        Email Body:
-                      </label>
-                      <textarea
-                        readOnly
-                        rows={10}
-                        value={pitch.emailBody}
-                        className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-[11px] leading-relaxed text-slate-800 dark:text-slate-200"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3 pt-2">
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(pitch.emailBody);
-                          setCopied(true);
-                          setTimeout(() => setCopied(false), 2000);
-                        }}
-                        className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center gap-1.5"
-                      >
-                        {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copied ? 'Copied' : 'Copy Email Body'}</span>
-                      </button>
-
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="outline" size="sm" onClick={() => setIsPitchModalOpen(false)}>
+                        Cancel
+                      </Button>
                       <a
                         href={`mailto:${selectedLeadForPitch.email}?subject=${encodeURIComponent(
                           pitch.emailSubject
@@ -625,51 +1044,6 @@ export default function LeadsPage() {
           </div>
         </Modal>
       )}
-
-      {/* Quick Add Lead Modal */}
-      <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        title="Add New Lead / Local Inquiry"
-        description="Record a walk-in, phone call, or field sales discovery"
-      >
-        <form onSubmit={handleCreateLead} className="space-y-3">
-          <Input
-            label="Business Name *"
-            placeholder="e.g. Ranchi Optical House"
-            value={newBizName}
-            onChange={(e) => setNewBizName(e.target.value)}
-            required
-          />
-          <Input
-            label="Owner / Contact Person"
-            placeholder="e.g. Ankit Singhal"
-            value={newContact}
-            onChange={(e) => setNewContact(e.target.value)}
-          />
-          <Input
-            label="Phone / WhatsApp Number *"
-            placeholder="+91 98765 43210"
-            value={newPhone}
-            onChange={(e) => setNewPhone(e.target.value)}
-            required
-          />
-          <Input
-            label="Category"
-            placeholder="e.g. Retail / Optical / Health"
-            value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
-          />
-          <div className="flex justify-end gap-2 pt-3">
-            <Button variant="outline" size="sm" onClick={() => setIsCreateModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" size="sm">
-              Save Lead
-            </Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }
