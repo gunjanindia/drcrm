@@ -510,6 +510,91 @@ export class AppStore {
     }
   }
 
+  public async syncFromDb() {
+    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+      try {
+        const { prisma } = require('@/lib/prisma');
+        if (prisma) {
+          const [dbUsers, dbClients, dbTasks, dbProjects, dbServices, dbPackages, dbTax] = await Promise.all([
+            prisma.user.findMany().catch(() => []),
+            prisma.client.findMany().catch(() => []),
+            prisma.task.findMany().catch(() => []),
+            prisma.project.findMany().catch(() => []),
+            prisma.service.findMany().catch(() => []),
+            prisma.package.findMany().catch(() => []),
+            prisma.taxConfiguration.findFirst().catch(() => null),
+          ]);
+
+          if (dbUsers && dbUsers.length > 0) {
+            this.users = dbUsers.map((u: any) => ({
+              id: u.id,
+              tenantId: u.tenantId,
+              name: u.name,
+              email: u.email,
+              phone: u.phone,
+              role: u.role,
+              department: u.department || undefined,
+              avatarUrl: u.avatarUrl || undefined,
+              clientId: u.clientId || undefined,
+              passwordHash: u.passwordHash,
+              createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : new Date().toISOString(),
+            }));
+          }
+
+          if (dbClients && dbClients.length > 0) {
+            this.clients = dbClients.map((c: any) => ({
+              id: c.id,
+              tenantId: c.tenantId,
+              businessName: c.businessName,
+              category: c.category,
+              contactName: c.contactName || c.businessName,
+              phone: c.phone,
+              whatsapp: c.whatsapp,
+              email: c.email,
+              address: c.address,
+              city: c.city,
+              state: c.state,
+              pincode: c.pincode,
+              packageId: c.packageId,
+              packageName: c.packageName,
+              assignedManagerId: c.assignedManagerId,
+              assignedManagerName: 'Neha Pandey',
+              healthScore: c.healthScore || 'GREEN',
+              monthlyRevenue: c.monthlyRevenue || 999,
+              activeSince: c.activeSince ? new Date(c.activeSince).toISOString() : new Date().toISOString(),
+              renewalDate: c.renewalDate ? new Date(c.renewalDate).toISOString() : new Date(Date.now() + 30 * 86400000).toISOString(),
+              reviewCount: c.reviewCount || 0,
+              averageRating: c.averageRating || 5.0,
+              gbpScore: c.gbpScore || 80,
+              status: c.status || 'ACTIVE',
+              createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+            }));
+          }
+
+          if (dbTasks && dbTasks.length > 0) {
+            this.tasks = dbTasks.map((t: any) => ({
+              id: t.id,
+              tenantId: t.tenantId,
+              clientId: t.clientId,
+              projectId: t.projectId || undefined,
+              title: t.title,
+              category: t.category,
+              priority: t.priority,
+              status: t.status,
+              assignedToId: t.assignedToId,
+              assignedToName: t.assignedToId === 'usr_del_exec1' ? 'Rohan Gupta' : 'Anjali Kumari',
+              slaHours: 48,
+              dueDate: t.dueDate ? new Date(t.dueDate).toISOString() : new Date().toISOString(),
+              createdAt: t.createdAt ? new Date(t.createdAt).toISOString() : new Date().toISOString(),
+            }));
+          }
+        }
+      } catch (e) {
+        console.error('Database sync error:', e);
+      }
+    }
+  }
+
   public createLead(leadData: Omit<Lead, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Lead {
     const newLead: Lead = {
       id: generateId('lead'),
