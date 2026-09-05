@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -13,14 +15,48 @@ import {
   CreditCard,
   Settings,
   Sparkles,
-  LifeBuoy,
-  ChevronRight,
-  ShieldAlert,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+interface AuthUser {
+  userId?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  department?: string;
+}
+
+const getInitials = (name?: string) => {
+  if (!name) return 'DR';
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
+
+const formatRole = (role?: string) => {
+  if (!role) return 'Staff';
+  return role
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 export const AppSidebar: React.FC = () => {
   const pathname = usePathname();
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated && data.user) {
+          setCurrentUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const navigation = [
     { name: 'Dashboard', href: '/app', icon: LayoutDashboard, exact: true },
@@ -34,6 +70,10 @@ export const AppSidebar: React.FC = () => {
     { name: 'AI Operations Agent', href: '/app/ai', icon: Sparkles, badge: 'Gemini' },
     { name: 'System & Tax Settings', href: '/app/settings', icon: Settings },
   ];
+
+  const displayName = currentUser?.name || 'Staff Member';
+  const displayRole = formatRole(currentUser?.role || 'SUPER_ADMIN');
+  const initials = getInitials(displayName);
 
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen sticky top-0 shrink-0 text-slate-300">
@@ -98,13 +138,13 @@ export const AppSidebar: React.FC = () => {
       <div className="p-4 border-t border-slate-800 bg-slate-950/40 space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-sky-400 flex items-center justify-center text-xs font-bold text-white shrink-0">
-            GK
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-white truncate">Gunjan Kumar</p>
+            <p className="text-xs font-bold text-white truncate">{displayName}</p>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              <span className="text-[10px] text-slate-400 font-medium truncate">Super Admin</span>
+              <span className="text-[10px] text-slate-400 font-medium truncate">{displayRole}</span>
             </div>
           </div>
         </div>
