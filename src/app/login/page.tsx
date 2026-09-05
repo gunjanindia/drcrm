@@ -128,7 +128,38 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="text-center pt-2">
+        {/* Quick Demo Access Credentials */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <p className="text-[11px] font-semibold text-slate-500 text-center">
+            Quick Team Login Demo:
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('gunjan.india@gmail.com');
+                setPassword('Password@123');
+              }}
+              className="p-2 text-left rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 bg-slate-50 dark:bg-slate-950/60 transition-colors"
+            >
+              <div className="font-bold text-[11px] text-slate-900 dark:text-white">Super Admin</div>
+              <div className="text-[10px] text-slate-500 truncate">gunjan.india@gmail.com</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('neha.p@digitalranchi.in');
+                setPassword('Password@123');
+              }}
+              className="p-2 text-left rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 bg-slate-50 dark:bg-slate-950/60 transition-colors"
+            >
+              <div className="font-bold text-[11px] text-slate-900 dark:text-white">Account Manager</div>
+              <div className="text-[10px] text-slate-500 truncate">neha.p@digitalranchi.in</div>
+            </button>
+          </div>
+        </div>
+
+        <div className="text-center pt-1">
           <Link href="/" className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
             ← Back to Public Website
           </Link>

@@ -51,7 +51,7 @@ export class AppStore {
   }
 
   private seedAll() {
-    // 1. Employees / Users (10 users across roles)
+    // 1. Employees / Users across core agency roles
     this.users = [
       {
         id: 'usr_super_admin',
@@ -62,6 +62,66 @@ export class AppStore {
         role: 'SUPER_ADMIN',
         department: 'Executive',
         createdAt: '2026-01-01T10:00:00Z',
+      },
+      {
+        id: 'usr_neha_pandey',
+        tenantId: 'tenant_main',
+        name: 'Neha Pandey',
+        email: 'neha.p@digitalranchi.in',
+        phone: '+91 9835012345',
+        role: 'ACCOUNT_MANAGER',
+        department: 'Client Success',
+        createdAt: '2026-01-05T10:00:00Z',
+      },
+      {
+        id: 'usr_rahul_verma',
+        tenantId: 'tenant_main',
+        name: 'Rahul Verma',
+        email: 'rahul.v@digitalranchi.in',
+        phone: '+91 9835023456',
+        role: 'SALES_MANAGER',
+        department: 'Sales & Growth',
+        createdAt: '2026-01-05T10:00:00Z',
+      },
+      {
+        id: 'usr_priya_sharma',
+        tenantId: 'tenant_main',
+        name: 'Priya Sharma',
+        email: 'priya.s@digitalranchi.in',
+        phone: '+91 9835034567',
+        role: 'OPERATIONS_MANAGER',
+        department: 'Operations',
+        createdAt: '2026-01-10T10:00:00Z',
+      },
+      {
+        id: 'usr_amit_kumar',
+        tenantId: 'tenant_main',
+        name: 'Amit Kumar',
+        email: 'amit.k@digitalranchi.in',
+        phone: '+91 9835045678',
+        role: 'DELIVERY_EXECUTIVE',
+        department: 'GBP & Local SEO',
+        createdAt: '2026-01-10T10:00:00Z',
+      },
+      {
+        id: 'usr_vikas_singh',
+        tenantId: 'tenant_main',
+        name: 'Vikas Singh',
+        email: 'vikas.s@digitalranchi.in',
+        phone: '+91 9835056789',
+        role: 'DELIVERY_EXECUTIVE',
+        department: 'Creative & Social',
+        createdAt: '2026-01-12T10:00:00Z',
+      },
+      {
+        id: 'usr_pooja_roy',
+        tenantId: 'tenant_main',
+        name: 'Pooja Roy',
+        email: 'pooja.r@digitalranchi.in',
+        phone: '+91 9835067890',
+        role: 'FINANCE',
+        department: 'Finance & Billing',
+        createdAt: '2026-01-15T10:00:00Z',
       }
     ];
 
@@ -431,7 +491,7 @@ export class AppStore {
           ]);
 
           if (dbUsers && Array.isArray(dbUsers) && dbUsers.length > 0) {
-            this.users = dbUsers.map((u: any) => ({
+            const mappedDbUsers = dbUsers.map((u: any) => ({
               id: u.id,
               tenantId: u.tenantId,
               name: u.name,
@@ -444,6 +504,9 @@ export class AppStore {
               passwordHash: u.passwordHash,
               createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : new Date().toISOString(),
             }));
+            const dbEmails = new Set(mappedDbUsers.map((u: any) => u.email.toLowerCase()));
+            const fallbackSeeded = this.users.filter((u) => !dbEmails.has(u.email.toLowerCase()));
+            this.users = [...mappedDbUsers, ...fallbackSeeded];
           }
 
           if (dbClients && Array.isArray(dbClients)) {
