@@ -22,6 +22,7 @@ import {
   UserCheck,
   Lock,
   Phone,
+  AlertCircle,
 } from 'lucide-react';
 import { Button, Input, Modal, Badge } from '@/components/ui';
 import { globalStore } from '@/lib/store';
@@ -44,6 +45,8 @@ export default function MasterDataSettingsPage() {
   const [newPwd, setNewPwd] = useState('');
   const [confirmNewPwd, setConfirmNewPwd] = useState('');
   const [isChangingPwd, setIsChangingPwd] = useState(false);
+  const [pwdError, setPwdError] = useState<string | null>(null);
+  const [pwdSuccess, setPwdSuccess] = useState<string | null>(null);
 
   // Local state reflecting globalStore
   const [users, setUsers] = useState<User[]>(globalStore.users);
@@ -98,14 +101,22 @@ export default function MasterDataSettingsPage() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPwd || !newPwd || !confirmNewPwd) return;
+    setPwdError(null);
+    setPwdSuccess(null);
+
+    if (!currentPwd || !newPwd || !confirmNewPwd) {
+      setPwdError('All password fields are required.');
+      return;
+    }
 
     if (newPwd.length < 6) {
+      setPwdError('New password must be at least 6 characters long.');
       showNotification('New password must be at least 6 characters long');
       return;
     }
 
     if (newPwd !== confirmNewPwd) {
+      setPwdError('New passwords do not match. Please re-enter.');
       showNotification('New passwords do not match');
       return;
     }
@@ -123,14 +134,19 @@ export default function MasterDataSettingsPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        showNotification(data.error || 'Failed to update password');
+        const errorMsg = data.error || 'Failed to update password';
+        setPwdError(errorMsg);
+        showNotification(errorMsg);
       } else {
-        showNotification('Password changed successfully!');
+        const successMsg = data.message || 'Password changed successfully!';
+        setPwdSuccess(successMsg);
+        showNotification(successMsg);
         setCurrentPwd('');
         setNewPwd('');
         setConfirmNewPwd('');
       }
     } catch {
+      setPwdError('Network error updating password. Please try again.');
       showNotification('Network error updating password');
     } finally {
       setIsChangingPwd(false);
@@ -605,6 +621,20 @@ export default function MasterDataSettingsPage() {
                 Update your account password. Must be at least 6 characters.
               </p>
             </div>
+
+            {pwdError && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2 font-medium">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{pwdError}</span>
+              </div>
+            )}
+
+            {pwdSuccess && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2 font-medium">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span>{pwdSuccess}</span>
+              </div>
+            )}
 
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

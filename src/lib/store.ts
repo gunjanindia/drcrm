@@ -1036,7 +1036,10 @@ export class AppStore {
   }
 
   public updateUser(userId: string, data: Partial<User>): User {
-    const index = this.users.findIndex((u) => u.id === userId);
+    const cleanId = userId.toLowerCase();
+    const index = this.users.findIndex(
+      (u) => u.id === userId || (u.email && u.email.toLowerCase() === cleanId)
+    );
     if (index === -1) throw new Error('User not found');
     this.users[index] = { ...this.users[index], ...data };
     this.saveToFile();
@@ -1045,7 +1048,10 @@ export class AppStore {
 
   public deleteUser(userId: string): boolean {
     const initialLen = this.users.length;
-    this.users = this.users.filter((u) => u.id !== userId);
+    const cleanId = userId.toLowerCase();
+    this.users = this.users.filter(
+      (u) => u.id !== userId && (!u.email || u.email.toLowerCase() !== cleanId)
+    );
     this.saveToFile();
     return this.users.length < initialLen;
   }

@@ -57,7 +57,7 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      const result = await changeUserPassword(session.userId, currentPassword, newPassword);
+      const result = await changeUserPassword(session.userId || session.email, currentPassword, newPassword);
       if (!result.success) {
         return NextResponse.json({ error: result.message }, { status: 400 });
       }
