@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Users,
   Settings,
@@ -143,8 +143,28 @@ export default function MasterDataSettingsPage() {
   const [staffName, setStaffName] = useState('');
   const [staffEmail, setStaffEmail] = useState('');
   const [staffPhone, setStaffPhone] = useState('');
+  const [staffPassword, setStaffPassword] = useState('');
   const [staffRole, setStaffRole] = useState<UserRole>('DELIVERY_EXECUTIVE');
   const [staffDept, setStaffDept] = useState('Operations');
+  const [isSavingStaff, setIsSavingStaff] = useState(false);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/users');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setUsers(data.data);
+      } else {
+        setUsers([...globalStore.users]);
+      }
+    } catch {
+      setUsers([...globalStore.users]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   // --- SERVICE MODAL STATES ---
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -184,6 +204,7 @@ export default function MasterDataSettingsPage() {
     setStaffName('');
     setStaffEmail('');
     setStaffPhone('');
+    setStaffPassword('');
     setStaffRole('DELIVERY_EXECUTIVE');
     setStaffDept('Operations');
     setIsStaffModalOpen(true);
@@ -194,43 +215,77 @@ export default function MasterDataSettingsPage() {
     setStaffName(u.name);
     setStaffEmail(u.email);
     setStaffPhone(u.phone);
+    setStaffPassword('');
     setStaffRole(u.role);
     setStaffDept(u.department || 'Operations');
     setIsStaffModalOpen(true);
   };
 
-  const handleSaveStaff = (e: React.FormEvent) => {
+  const handleSaveStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!staffName || !staffEmail || !staffPhone) return;
 
-    if (editingUser) {
-      globalStore.updateUser(editingUser.id, {
-        name: staffName,
-        email: staffEmail,
-        phone: staffPhone,
+    setIsSavingStaff(true);
+    try {
+      const payload = {
+        id: editingUser ? editingUser.id : undefined,
+        name: staffName.trim(),
+        email: staffEmail.trim(),
+        phone: staffPhone.trim(),
         role: staffRole,
-        department: staffDept,
-      });
-      showNotification(`Updated staff member ${staffName}`);
-    } else {
-      globalStore.createUser({
-        name: staffName,
-        email: staffEmail,
-        phone: staffPhone,
-        role: staffRole,
-        department: staffDept,
-      });
-      showNotification(`Added new staff member ${staffName}`);
-    }
+        department: staffDept.trim(),
+        password: staffPassword.trim() || undefined,
+      };
 
-    setUsers([...globalStore.users]);
-    setIsStaffModalOpen(false);
+      const res = await fetch('/api/users', {
+        method: editingUser ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showNotification(data.message || (editingUser ? `Updated staff member ${staffName}` : `Added new staff member ${staffName}`));
+        await fetchUsers();
+        setIsStaffModalOpen(false);
+      } else {
+        showNotification(data.error || 'Failed to save staff member');
+      }
+    } catch {
+      // Fallback in memory
+      if (editingUser) {
+        globalStore.updateUser(editingUser.id, {
+          name: staffName,
+          email: staffEmail,
+          phone: staffPhone,
+          role: staffRole,
+          department: staffDept,
+        });
+        showNotification(`Updated staff member ${staffName}`);
+      } else {
+        globalStore.createUser({
+          name: staffName,
+          email: staffEmail,
+          phone: staffPhone,
+          role: staffRole,
+          department: staffDept,
+        });
+        showNotification(`Added new staff member ${staffName} (Default Password: Password@123)`);
+      }
+      setUsers([...globalStore.users]);
+      setIsStaffModalOpen(false);
+    } finally {
+      setIsSavingStaff(false);
+    }
   };
 
-  const handleDeleteStaff = (userId: string, name: string) => {
+  const handleDeleteStaff = async (userId: string, name: string) => {
     if (confirm(`Are you sure you want to remove staff member "${name}"?`)) {
+      try {
+        await fetch(`/api/users?id=${userId}`, { method: 'DELETE' });
+      } catch {}
       globalStore.deleteUser(userId);
-      setUsers([...globalStore.users]);
+      await fetchUsers();
       showNotification(`Removed staff member ${name}`);
     }
   };
@@ -1026,11 +1081,29 @@ export default function MasterDataSettingsPage() {
             </div>
           </div>
 
+          <div>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider text-[10px]">
+              {editingUser ? 'Set New Password (Optional)' : 'Initial Password (Optional)'}
+            </label>
+            <input
+              type="password"
+              value={staffPassword}
+              onChange={(e) => setStaffPassword(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 text-xs text-slate-900 dark:text-white"
+              placeholder={editingUser ? 'Leave blank to keep unchanged' : 'Default: Password@123'}
+            />
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+              {editingUser
+                ? 'Leave empty to retain existing password.'
+                : 'If left blank, default login password will be Password@123'}
+            </p>
+          </div>
+
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
             <Button variant="outline" size="sm" onClick={() => setIsStaffModalOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" size="sm" icon={Save}>
+            <Button type="submit" variant="primary" size="sm" icon={Save} isLoading={isSavingStaff}>
               Save Staff Member
             </Button>
           </div>

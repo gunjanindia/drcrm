@@ -42,4 +42,5 @@ next-env.d.ts
 
 # local persistent runtime data
 /data/
+/scripts/
 
