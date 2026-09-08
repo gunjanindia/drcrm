@@ -1,26 +1,40 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { Sparkles, MapPin, ArrowRight, ShieldCheck, PhoneCall, LayoutDashboard, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 
 export const Navbar: React.FC = () => {
+  const { settings } = useSiteSettings();
+
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/85 dark:bg-slate-950/85 border-b border-slate-200/80 dark:border-slate-800 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-            <MapPin className="w-5 h-5" />
-          </div>
+          {settings.logoUrl ? (
+            <img
+              src={settings.logoUrl}
+              alt={settings.brandName || 'Brand Logo'}
+              className="w-10 h-10 rounded-xl object-contain shadow-md"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white font-black shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform text-sm">
+              {settings.brandInitials || 'DR'}
+            </div>
+          )}
           <div className="flex flex-col">
             <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-800 dark:from-white dark:via-indigo-200 dark:to-slate-300 bg-clip-text text-transparent">
-              DIGITAL RANCHI
+              {settings.brandName || 'DIGITAL RANCHI'}
             </span>
             <span className="text-[10px] uppercase font-semibold tracking-widest text-indigo-600 dark:text-indigo-400">
-              Local Growth OS
+              {settings.brandTagline || 'Local Growth OS'}
             </span>
           </div>
         </Link>
+
 
         {/* Public Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-300">

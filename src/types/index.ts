@@ -404,3 +404,46 @@ export interface TimelineActivity {
   actorName: string;
   timestamp: string;
 }
+
+// Site Settings & Brand Customization (Super Admin Configurable)
+export interface SiteSettings {
+  // Brand Identity
+  brandName: string;
+  brandTagline: string;
+  brandInitials: string;
+  logoUrl?: string;
+  faviconUrl?: string;
+
+  // Contact & Location
+  phone: string;
+  alternatePhone?: string;
+  whatsapp: string;
+  email: string;
+  supportEmail: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  googleMapsUrl?: string;
+
+  // Landing & Hero Content
+  heroBadgeText: string;
+  heroHeadline: string;
+  heroHeadlineHighlight: string;
+  heroSubheadline: string;
+  trustStripText: string;
+  whatsappPitchText: string;
+
+  // SEO & Meta Data
+  metaTitle: string;
+  metaDescription: string;
+  metaKeywords: string;
+  ogImageUrl?: string;
+
+  // Footer & Legal
+  copyrightText: string;
+  footerBio: string;
+  taxModeNotice: string;
+  updatedAt?: string;
+}
+

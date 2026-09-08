@@ -14,10 +14,43 @@ import {
   DeliverableItem,
   TaxConfiguration,
   TimelineActivity,
+  SiteSettings,
 } from '@/types';
 import { initialTaxConfig, globalTaxEngine } from './tax-engine';
 import { generateId } from './utils';
 import { prisma } from './prisma';
+
+export const defaultSiteSettings: SiteSettings = {
+  brandName: 'DIGITAL RANCHI',
+  brandTagline: 'Local Growth OS',
+  brandInitials: 'DR',
+  phone: '+91 94311 09876',
+  alternatePhone: '+91 98765 43210',
+  whatsapp: '+91 94311 09876',
+  email: 'growth@digitalranchi.in',
+  supportEmail: 'support@digitalranchi.in',
+  address: 'Main Road, Lalpur & Circular Road, Ranchi, Jharkhand — 834001',
+  city: 'Ranchi',
+  state: 'Jharkhand',
+  pincode: '834001',
+  googleMapsUrl: 'https://maps.google.com/?cid=123456789',
+
+  heroBadgeText: 'Rank #1 on Google Maps in Ranchi & Jharkhand',
+  heroHeadline: 'Get Your Business Found on',
+  heroHeadlineHighlight: 'Google & WhatsApp',
+  heroSubheadline: 'Get more calls, direct showroom visits, map directions, genuine 5-star reviews, and WhatsApp inquiries from customers searching for businesses like yours.',
+  trustStripText: '4.8/5 Rating Across 250+ Ranchi SMBs',
+  whatsappPitchText: 'Hi Digital Ranchi, I want to talk to an expert about growing my local business on Google',
+
+  metaTitle: 'Digital Ranchi — Google Business Profile & Local SEO Growth Engine',
+  metaDescription: 'Jharkhand\'s #1 local business growth platform. We help clinics, salons, hotels, and SMBs get verified and ranked on Google Maps, generate authentic 5-star reviews, and capture WhatsApp leads.',
+  metaKeywords: 'Google Maps SEO Ranchi, Google Business Profile Jharkhand, local marketing Ranchi, review QR stands, digital ranchi',
+
+  copyrightText: 'Digital Ranchi. All rights reserved.',
+  footerBio: 'Purpose-built local business growth platform. We help Jharkhand SMBs get discovered on Google Maps, generate authentic 5-star reviews, and turn searches into paying customers.',
+  taxModeNotice: 'Tax Mode: Non-GST Bill of Supply (Configurable)',
+  updatedAt: new Date().toISOString(),
+};
 
 export class AppStore {
   public users: User[] = [];
@@ -35,6 +68,7 @@ export class AppStore {
   public payments: PaymentRecord[] = [];
   public taxConfig: TaxConfiguration = { ...initialTaxConfig };
   public activities: TimelineActivity[] = [];
+  public siteSettings: SiteSettings = { ...defaultSiteSettings };
   public leadSources: string[] = [
     'Website Free Audit',
     'Website Direct Checkout',
@@ -45,6 +79,7 @@ export class AppStore {
     'Referral',
     'CRM Direct Ingestion',
   ];
+
 
   constructor() {
     this.seedAll();
@@ -421,6 +456,7 @@ export class AppStore {
           gbpProfiles: this.gbpProfiles,
           activities: this.activities,
           taxConfig: this.taxConfig,
+          siteSettings: this.siteSettings,
           services: this.services,
           packages: this.packages,
           users: this.users,
@@ -435,10 +471,6 @@ export class AppStore {
 
   public async loadFromFile() {
     if (typeof window === 'undefined') {
-      if (process.env.DATABASE_URL) {
-        await this.syncFromDb();
-        return;
-      }
       try {
         const fs = require('fs');
         const path = require('path');
@@ -464,6 +496,7 @@ export class AppStore {
           if (data.gbpProfiles && Array.isArray(data.gbpProfiles)) this.gbpProfiles = data.gbpProfiles;
           if (data.activities && Array.isArray(data.activities)) this.activities = data.activities;
           if (data.taxConfig) this.taxConfig = data.taxConfig;
+          if (data.siteSettings) this.siteSettings = { ...defaultSiteSettings, ...data.siteSettings };
           if (data.services && Array.isArray(data.services)) this.services = data.services;
           if (data.packages && Array.isArray(data.packages)) this.packages = data.packages;
           if (data.users && Array.isArray(data.users)) this.users = data.users;
@@ -471,8 +504,23 @@ export class AppStore {
       } catch (e) {
         console.error('Failed to load CRM store from disk:', e);
       }
+
+      if (process.env.DATABASE_URL) {
+        await this.syncFromDb();
+      }
     }
   }
+
+  public updateSiteSettings(newSettings: Partial<SiteSettings>): SiteSettings {
+    this.siteSettings = {
+      ...this.siteSettings,
+      ...newSettings,
+      updatedAt: new Date().toISOString(),
+    };
+    this.saveToFile();
+    return this.siteSettings;
+  }
+
 
   public async syncFromDb() {
     if (typeof window === 'undefined' && process.env.DATABASE_URL) {

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { DigitalPresenceAuditResult } from '@/types';
 import { Button } from '@/components/ui';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 
 interface AuditPdfReportProps {
   audit: DigitalPresenceAuditResult;
@@ -32,12 +33,16 @@ export const AuditPdfReport: React.FC<AuditPdfReportProps> = ({
   onClose,
   onSelectPackage,
 }) => {
+  const { settings } = useSiteSettings();
+  const brandName = settings.brandName || 'DIGITAL RANCHI';
+  const brandInitials = settings.brandInitials || 'DR';
+
   const handlePrint = () => {
     window.print();
   };
 
-  const reportId = `DR-AUD-${Math.abs(
-    (audit.businessName || 'DR').split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0)
+  const reportId = `${brandInitials.toUpperCase()}-AUD-${Math.abs(
+    (audit.businessName || brandInitials).split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0)
   ).toString(36).toUpperCase().padStart(6, '0')}`;
 
   const scanDate = audit.scannedAt
@@ -71,7 +76,7 @@ export const AuditPdfReport: React.FC<AuditPdfReportProps> = ({
             Executive Digital Presence Audit Report
           </h2>
           <p className="text-xs text-slate-500">
-            Official PDF document prepared by Digital Ranchi Growth Engine.
+            Official PDF document prepared by {brandName} Growth Engine.
           </p>
         </div>
 
@@ -99,27 +104,35 @@ export const AuditPdfReport: React.FC<AuditPdfReportProps> = ({
         {/* 1. OFFICIAL BRAND HEADER */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b-2 border-indigo-600/20">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-sky-500 text-white flex items-center justify-center font-black text-xl shadow-md">
-              DR
-            </div>
+            {settings.logoUrl ? (
+              <img
+                src={settings.logoUrl}
+                alt={brandName}
+                className="w-12 h-12 rounded-2xl object-contain p-1 border border-slate-200 bg-white shadow-md"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-sky-500 text-white flex items-center justify-center font-black text-xl shadow-md">
+                {brandInitials}
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-black tracking-tight text-slate-950">DIGITAL RANCHI</h1>
+                <h1 className="text-2xl font-black tracking-tight text-slate-950 uppercase">{brandName}</h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                   OFFICIAL AUDIT
                 </span>
               </div>
               <p className="text-xs text-slate-600 font-medium">
-                Jharkhand's #1 Local Business Growth & Google Maps Acceleration System
+                {settings.brandTagline || "Jharkhand's #1 Local Business Growth & Google Maps Acceleration System"}
               </p>
             </div>
           </div>
 
           <div className="text-left sm:text-right text-xs text-slate-600 space-y-0.5 font-medium">
-            <p className="font-bold text-slate-900">Digital Ranchi Growth Operations</p>
-            <p>Main Road, Ranchi, Jharkhand 834001</p>
-            <p>support@digitalranchi.in | +91 94311 09876</p>
-            <p className="text-[11px] text-indigo-600 font-semibold">https://digitalranchi.in</p>
+            <p className="font-bold text-slate-900">{brandName} Growth Operations</p>
+            <p>{settings.address || 'Main Road, Ranchi, Jharkhand 834001'}</p>
+            <p>{settings.supportEmail || settings.email || 'support@digitalranchi.in'} | {settings.phone || '+91 94311 09876'}</p>
+            <p className="text-[11px] text-indigo-600 font-semibold">{brandName.toLowerCase().replace(/[^a-z0-9]/g, '')}.in</p>
           </div>
         </div>
 
@@ -362,7 +375,7 @@ export const AuditPdfReport: React.FC<AuditPdfReportProps> = ({
           <div className="space-y-1 text-center sm:text-left">
             <div className="flex items-center gap-1.5 justify-center sm:justify-start font-bold text-slate-900">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Digital Ranchi Certified Local Business Audit</span>
+              <span>{brandName} Certified Local Business Audit</span>
             </div>
             <p className="text-[11px] text-slate-600">
               Scanned on public Google Maps algorithms, directory citations, and mobile speed indexes.
@@ -370,8 +383,8 @@ export const AuditPdfReport: React.FC<AuditPdfReportProps> = ({
           </div>
 
           <div className="text-center sm:text-right font-mono text-[11px] text-slate-600">
-            <p>Verification Link: digitalranchi.in/audit</p>
-            <p>Helpline: +91 94311 09876 | support@digitalranchi.in</p>
+            <p>Verification Link: {brandName.toLowerCase().replace(/[^a-z0-9]/g, '')}.in/audit</p>
+            <p>Helpline: {settings.phone || '+91 94311 09876'} | {settings.supportEmail || settings.email || 'support@digitalranchi.in'}</p>
           </div>
         </div>
       </div>

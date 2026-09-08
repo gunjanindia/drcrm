@@ -29,13 +29,17 @@ import { CheckoutModal } from '@/components/billing/CheckoutModal';
 import { globalStore } from '@/lib/store';
 import { Package } from '@/types';
 import { formatINR } from '@/lib/utils';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 
 export default function HomePage() {
+  const { settings } = useSiteSettings();
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const packages = globalStore.packages;
+  const brandName = settings.brandName || 'Digital Ranchi';
+  const whatsappDigits = (settings.whatsapp || '919431109876').replace(/[^0-9]/g, '');
 
   const handleOpenCheckout = (pkg: Package) => {
     setSelectedPackage(pkg);
@@ -63,7 +67,7 @@ export default function HomePage() {
     },
     {
       q: 'Are taxes applicable to these packages?',
-      a: 'Digital Ranchi currently operates in Non-GST mode (Bill of Supply). There are no additional tax surcharges. The price you see is the final price.',
+      a: `${brandName} operates with fully transparent pricing. ${settings.taxModeNotice || 'All services are billed with clear documentation and no hidden surcharges.'} The price you see is the final price.`,
     },
     {
       q: 'Can I upgrade from Starter to Premium Retainer later?',
@@ -85,20 +89,21 @@ export default function HomePage() {
             {/* Top Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80 shadow-sm">
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Rank #1 on Google Maps in Ranchi & Jharkhand</span>
+              <span>{settings.heroBadgeText || 'Rank #1 on Google Maps in Ranchi & Jharkhand'}</span>
             </div>
 
             {/* Main Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
-              Get Your Business Found on{' '}
+              {settings.heroHeadline || 'Get Your Business Found on'}{' '}
               <span className="bg-gradient-to-r from-indigo-600 via-sky-500 to-indigo-600 bg-clip-text text-transparent">
-                Google & WhatsApp
+                {settings.heroHeadlineHighlight || 'Google & WhatsApp'}
               </span>
             </h1>
 
             {/* Supporting Subheadline */}
             <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto font-normal">
-              Get more calls, direct showroom visits, map directions, genuine 5-star reviews, and WhatsApp inquiries from customers searching for businesses like yours.
+              {settings.heroSubheadline ||
+                'Get more calls, direct showroom visits, map directions, genuine 5-star reviews, and WhatsApp inquiries from customers searching for businesses like yours.'}
             </p>
 
             {/* CTA Group */}
@@ -114,7 +119,7 @@ export default function HomePage() {
                 </Button>
               </a>
               <a
-                href="https://wa.me/919431109876?text=Hi%20Digital%20Ranchi,%20I%20want%20to%20talk%20to%20an%20expert"
+                href={`https://wa.me/${whatsappDigits}?text=Hi%20${encodeURIComponent(brandName)},%20I%20want%20to%20talk%20to%20an%20expert`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto"
@@ -133,7 +138,7 @@ export default function HomePage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                <span>4.8/5 Rating Across 250+ Ranchi SMBs</span>
+                <span>4.8/5 Rating Across 250+ Local SMBs</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Zap className="w-4 h-4 text-indigo-500" />

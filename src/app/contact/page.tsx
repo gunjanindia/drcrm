@@ -6,13 +6,18 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button, Input } from '@/components/ui';
 import { globalStore } from '@/lib/store';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 
 export default function ContactPage() {
+  const { settings } = useSiteSettings();
   const [businessName, setBusinessName] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const brandName = settings.brandName || 'Digital Ranchi';
+  const whatsappDigits = (settings.whatsapp || '919431109876').replace(/[^0-9]/g, '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +28,7 @@ export default function ContactPage() {
       contactName: name || businessName,
       phone,
       whatsapp: phone,
-      email: `${phone}@lead.digitalranchi.in`,
+      email: `${phone}@lead.${brandName.toLowerCase().replace(/[^a-z0-9]/g, '')}.in`,
       category: 'General Inquiry',
       city: 'Ranchi',
       state: 'Jharkhand',
@@ -50,7 +55,7 @@ export default function ContactPage() {
             Let's Grow Your Business Together
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
-            Reach out to our Ranchi office directly or send a message for a 1-on-1 strategy consultation.
+            Reach out to our {brandName} office directly or send a message for a 1-on-1 strategy consultation.
           </p>
         </div>
 
@@ -59,20 +64,20 @@ export default function ContactPage() {
           <div className="p-8 rounded-3xl bg-slate-900 text-white flex flex-col justify-between space-y-6">
             <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-bold">Digital Ranchi Headquarters</h3>
+                <h3 className="text-xl font-bold">{brandName} Headquarters</h3>
                 <p className="text-xs text-slate-400 mt-1">
-                  Main Road, Lalpur & Circular Road, Ranchi, Jharkhand — 834001
+                  {settings.address || 'Main Road, Lalpur & Circular Road, Ranchi, Jharkhand — 834001'}
                 </p>
               </div>
 
               <div className="space-y-3 text-xs">
                 <div className="flex items-center gap-3">
                   <Phone className="w-4 h-4 text-sky-400" />
-                  <span>+91 94311 09876 / +91 98765 43210</span>
+                  <span>{settings.phone || '+91 94311 09876'} {settings.alternatePhone ? `/ ${settings.alternatePhone}` : ''}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Mail className="w-4 h-4 text-amber-400" />
-                  <span>growth@digitalranchi.in</span>
+                  <span>{settings.supportEmail || settings.email || 'growth@digitalranchi.in'}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <MapPin className="w-4 h-4 text-indigo-400" />
@@ -83,7 +88,7 @@ export default function ContactPage() {
 
             <div>
               <a
-                href="https://wa.me/919431109876?text=Hi%20Digital%20Ranchi,%20I%20want%20to%20grow%20my%20business%20on%20Google"
+                href={`https://wa.me/${whatsappDigits}?text=Hi%20${encodeURIComponent(brandName)},%20I%20want%20to%20grow%20my%20business%20on%20Google`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-lg shadow-emerald-600/30"

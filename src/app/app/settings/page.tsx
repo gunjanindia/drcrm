@@ -23,15 +23,24 @@ import {
   Lock,
   Phone,
   AlertCircle,
+  Globe,
+  Sparkles,
+  MapPin,
+  MessageCircle,
+  ExternalLink,
+  Eye,
+  Search,
+  Image as ImageIcon,
+  FileText,
 } from 'lucide-react';
 import { Button, Input, Modal, Badge } from '@/components/ui';
-import { globalStore } from '@/lib/store';
+import { globalStore, defaultSiteSettings } from '@/lib/store';
 import { globalTaxEngine } from '@/lib/tax-engine';
-import { User, UserRole, Service, Package, BillingFrequency } from '@/types';
+import { User, UserRole, Service, Package, BillingFrequency, SiteSettings } from '@/types';
 import { formatINR, formatDate } from '@/lib/utils';
 
 export default function MasterDataSettingsPage() {
-  const [activeTab, setActiveTab] = useState<'profile' | 'staff' | 'services' | 'packages' | 'tax' | 'sources'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'site' | 'staff' | 'services' | 'packages' | 'tax' | 'sources'>('profile');
 
   // --- CURRENT USER PROFILE STATE ---
   const [myProfile, setMyProfile] = useState<any>(null);
@@ -39,6 +48,13 @@ export default function MasterDataSettingsPage() {
   const [profileEmail, setProfileEmail] = useState('');
   const [profilePhone, setProfilePhone] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // --- SITE SETTINGS STATE (SUPER ADMIN) ---
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(globalStore.siteSettings || defaultSiteSettings);
+  const [isSavingSiteSettings, setIsSavingSiteSettings] = useState(false);
+  const [siteSettingsSuccess, setSiteSettingsSuccess] = useState<string | null>(null);
+  const [siteSettingsError, setSiteSettingsError] = useState<string | null>(null);
+
 
   // --- PASSWORD UPDATE STATE ---
   const [currentPwd, setCurrentPwd] = useState('');
@@ -67,11 +83,55 @@ export default function MasterDataSettingsPage() {
         }
       })
       .catch(() => {});
+
+    fetch('/api/settings/site')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && d.settings) {
+          setSiteSettings(d.settings);
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const handleSaveSiteSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingSiteSettings(true);
+    setSiteSettingsSuccess(null);
+    setSiteSettingsError(null);
+
+    try {
+      const res = await fetch('/api/settings/site', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(siteSettings),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        const errMsg = data.error || 'Failed to update site settings';
+        setSiteSettingsError(errMsg);
+        showNotification(errMsg);
+      } else {
+        const successMsg = data.message || 'Site settings and brand customization saved successfully!';
+        setSiteSettingsSuccess(successMsg);
+        showNotification(successMsg);
+        setSiteSettings(data.settings);
+        globalStore.siteSettings = data.settings;
+      }
+    } catch {
+      const errMsg = 'Network error updating site settings';
+      setSiteSettingsError(errMsg);
+      showNotification(errMsg);
+    } finally {
+      setIsSavingSiteSettings(false);
+    }
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profileEmail.trim()) return;
+
 
     setIsSavingProfile(true);
     try {
@@ -499,6 +559,7 @@ export default function MasterDataSettingsPage() {
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 overflow-x-auto">
         {[
           { id: 'profile', label: 'My Account & Email', icon: UserCheck },
+          { id: 'site', label: 'Site & Brand Settings', icon: Globe },
           { id: 'staff', label: `Staff & RBAC (${users.length})`, icon: Users },
           { id: 'services', label: `Services Catalogue (${services.length})`, icon: Layers },
           { id: 'packages', label: `Packages & Pricing (${packages.length})`, icon: PackageIcon },
@@ -519,10 +580,423 @@ export default function MasterDataSettingsPage() {
             >
               <Icon className="w-3.5 h-3.5" />
               <span>{tab.label}</span>
+              {tab.id === 'site' && (
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-amber-400 text-slate-950">
+                  ADMIN
+                </span>
+              )}
             </button>
           );
         })}
       </div>
+
+      {/* ========================================================================= */}
+      {/* TAB: SITE & BRAND CUSTOMIZATION (SUPER ADMIN) */}
+      {/* ========================================================================= */}
+      {activeTab === 'site' && (
+        <div className="space-y-6 animate-in fade-in max-w-5xl">
+          {siteSettingsSuccess && (
+            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2.5 font-medium">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>{siteSettingsSuccess}</span>
+            </div>
+          )}
+
+          {siteSettingsError && (
+            <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2.5 font-medium">
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+              <span>{siteSettingsError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSaveSiteSettings} className="space-y-6">
+            
+            {/* 1. BRAND IDENTITY & LOGO */}
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-indigo-600" />
+                    Brand Identity & Emblem
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Configure your business name, tagline, emblem initials, and logo rendered across the header and portal.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white font-black text-sm shadow-sm">
+                    {siteSettings.brandInitials || 'DR'}
+                  </div>
+                  <div className="text-left">
+                    <span className="font-black text-xs block text-slate-900 dark:text-white">
+                      {siteSettings.brandName || 'DIGITAL RANCHI'}
+                    </span>
+                    <span className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider block">
+                      {siteSettings.brandTagline || 'Local Growth OS'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  label="Brand Name *"
+                  type="text"
+                  placeholder="e.g. DIGITAL RANCHI"
+                  value={siteSettings.brandName}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, brandName: e.target.value })}
+                  required
+                />
+                <Input
+                  label="Brand Tagline / Subtitle"
+                  type="text"
+                  placeholder="e.g. Local Growth OS"
+                  value={siteSettings.brandTagline}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, brandTagline: e.target.value })}
+                />
+                <Input
+                  label="Brand Emblem Initials (1-3 Letters)"
+                  type="text"
+                  placeholder="e.g. DR"
+                  maxLength={4}
+                  value={siteSettings.brandInitials}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, brandInitials: e.target.value.toUpperCase() })}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Custom Logo Image URL (Optional)"
+                  type="url"
+                  placeholder="https://example.com/logo.png"
+                  icon={ImageIcon}
+                  value={siteSettings.logoUrl || ''}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, logoUrl: e.target.value })}
+                />
+                <Input
+                  label="Custom Favicon URL (Optional)"
+                  type="url"
+                  placeholder="https://example.com/favicon.ico"
+                  icon={Globe}
+                  value={siteSettings.faviconUrl || ''}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, faviconUrl: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* 2. CONTACT, PHONE, EMAIL & PHYSICAL LOCATION */}
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <Phone className="w-5 h-5 text-indigo-600" />
+                  Contact Information & Regional Presence
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Update customer helpline numbers, WhatsApp integration link, support email, and office address.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  label="Primary Phone Number *"
+                  type="text"
+                  placeholder="e.g. +91 94311 09876"
+                  icon={Phone}
+                  value={siteSettings.phone}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, phone: e.target.value })}
+                  required
+                />
+                <Input
+                  label="Alternate Phone Number"
+                  type="text"
+                  placeholder="e.g. +91 98765 43210"
+                  icon={Phone}
+                  value={siteSettings.alternatePhone || ''}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, alternatePhone: e.target.value })}
+                />
+                <Input
+                  label="WhatsApp Helpline Number *"
+                  type="text"
+                  placeholder="e.g. +91 94311 09876"
+                  icon={MessageCircle}
+                  value={siteSettings.whatsapp}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, whatsapp: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="General / Sales Email *"
+                  type="email"
+                  placeholder="growth@digitalranchi.in"
+                  icon={Mail}
+                  value={siteSettings.email}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, email: e.target.value })}
+                  required
+                />
+                <Input
+                  label="Official Support Email *"
+                  type="email"
+                  placeholder="support@digitalranchi.in"
+                  icon={Mail}
+                  value={siteSettings.supportEmail}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, supportEmail: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="md:col-span-2">
+                  <Input
+                    label="Office Physical Address *"
+                    type="text"
+                    placeholder="Main Road, Lalpur & Circular Road, Ranchi"
+                    icon={MapPin}
+                    value={siteSettings.address}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, address: e.target.value })}
+                    required
+                  />
+                </div>
+                <Input
+                  label="City"
+                  type="text"
+                  placeholder="Ranchi"
+                  value={siteSettings.city}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, city: e.target.value })}
+                />
+                <Input
+                  label="Pincode"
+                  type="text"
+                  placeholder="834001"
+                  value={siteSettings.pincode}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, pincode: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Input
+                  label="Google Maps Location URL (Optional)"
+                  type="url"
+                  placeholder="https://maps.google.com/?cid=..."
+                  icon={MapPin}
+                  value={siteSettings.googleMapsUrl || ''}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, googleMapsUrl: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* 3. HERO & LANDING PAGE TEXT CONTENT */}
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-indigo-600" />
+                  Hero & Landing Page Copy
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Customize the main value proposition, headline gradient, subheadline, and social proof trust metrics.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <Input
+                  label="Top Badge Text"
+                  type="text"
+                  placeholder="e.g. Rank #1 on Google Maps in Ranchi & Jharkhand"
+                  icon={Sparkles}
+                  value={siteSettings.heroBadgeText}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, heroBadgeText: e.target.value })}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Main Headline Prefix"
+                    type="text"
+                    placeholder="e.g. Get Your Business Found on"
+                    value={siteSettings.heroHeadline}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, heroHeadline: e.target.value })}
+                  />
+                  <Input
+                    label="Headline Highlight Text (Gradient Accent)"
+                    type="text"
+                    placeholder="e.g. Google & WhatsApp"
+                    value={siteSettings.heroHeadlineHighlight}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, heroHeadlineHighlight: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider text-[10px]">
+                    Supporting Subheadline
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={siteSettings.heroSubheadline}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, heroSubheadline: e.target.value })}
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    placeholder="Describe how you help local businesses get more walk-ins and inquiries..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Trust Strip Social Proof"
+                    type="text"
+                    placeholder="e.g. 4.8/5 Rating Across 250+ Ranchi SMBs"
+                    value={siteSettings.trustStripText}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, trustStripText: e.target.value })}
+                  />
+                  <Input
+                    label="Pre-filled WhatsApp Chat Message"
+                    type="text"
+                    placeholder="e.g. Hi Digital Ranchi, I want to talk to an expert"
+                    icon={MessageCircle}
+                    value={siteSettings.whatsappPitchText}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, whatsappPitchText: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 4. SEO & META DATA */}
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <Search className="w-5 h-5 text-indigo-600" />
+                  SEO & Search Meta Tags
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Control how your platform appears in Google Search results and social media shares (OpenGraph).
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <Input
+                  label="Default Browser Tab & Meta Title *"
+                  type="text"
+                  placeholder="e.g. Digital Ranchi — Google Business Profile & Local SEO Growth Engine"
+                  value={siteSettings.metaTitle}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, metaTitle: e.target.value })}
+                  required
+                />
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider text-[10px]">
+                    Meta Description (Appears under title in Google Search) *
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={siteSettings.metaDescription}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, metaDescription: e.target.value })}
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    placeholder="Enter an engaging 150-160 character description of your services..."
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Search Meta Keywords (Comma Separated)"
+                    type="text"
+                    placeholder="Google Maps SEO Ranchi, local marketing, digital ranchi"
+                    value={siteSettings.metaKeywords}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, metaKeywords: e.target.value })}
+                  />
+                  <Input
+                    label="Social Share Preview Image URL (og:image)"
+                    type="url"
+                    placeholder="https://example.com/og-banner.jpg"
+                    icon={ImageIcon}
+                    value={siteSettings.ogImageUrl || ''}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, ogImageUrl: e.target.value })}
+                  />
+                </div>
+
+                {/* Google SERP Live Snippet Preview */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-1 text-left">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                    Google Search Snippet Preview:
+                  </span>
+                  <div className="text-sky-700 dark:text-sky-400 font-medium text-sm hover:underline cursor-pointer">
+                    {siteSettings.metaTitle || 'Digital Ranchi — Google Business Profile & Local SEO Growth Engine'}
+                  </div>
+                  <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-mono">
+                    https://digitalranchi.in
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {siteSettings.metaDescription || 'Jharkhand\'s #1 local business growth platform. We help clinics, salons, hotels, and SMBs get verified and ranked on Google Maps.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. FOOTER & LEGAL NOTICES */}
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-600" />
+                  Footer & Legal Disclosures
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Configure footer company description, copyright disclaimer, and billing compliance notice.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider text-[10px]">
+                    Footer Company Bio
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={siteSettings.footerBio}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, footerBio: e.target.value })}
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Copyright Notice Text"
+                    type="text"
+                    placeholder="Digital Ranchi. All rights reserved."
+                    value={siteSettings.copyrightText}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, copyrightText: e.target.value })}
+                  />
+                  <Input
+                    label="Tax / Bill of Supply Notice"
+                    type="text"
+                    placeholder="Tax Mode: Non-GST Bill of Supply (Configurable)"
+                    value={siteSettings.taxModeNotice}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, taxModeNotice: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Action Bar */}
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between shadow-xl">
+              <div>
+                <h4 className="font-bold text-sm">Save All Brand & Site Customizations</h4>
+                <p className="text-xs text-indigo-200">
+                  Changes take effect immediately across all public pages, portal header, and generated audit PDFs.
+                </p>
+              </div>
+              <Button
+                type="submit"
+                variant="amber"
+                size="lg"
+                icon={Save}
+                isLoading={isSavingSiteSettings}
+                className="shrink-0"
+              >
+                Save Site Settings
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
+
 
       {/* ========================================================================= */}
       {/* TAB 0: MY ACCOUNT & EMAIL UPDATE */}
