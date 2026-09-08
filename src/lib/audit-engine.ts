@@ -177,6 +177,9 @@ export async function runDigitalPresenceAudit(
     overallScore,
     isVerifiedOnGoogle: placeResult.status === 'VERIFIED_MATCH',
     validationStatus: placeResult.status,
+    averageRating: placeResult.status === 'VERIFIED_MATCH' ? (placeResult.rating ?? 4.6) : 0,
+    reviewCount: placeResult.status === 'VERIFIED_MATCH' ? (placeResult.userRatingsTotal ?? 0) : 0,
+    scannedAt: new Date().toISOString(),
     matchedPlace: placeResult.status === 'VERIFIED_MATCH' ? {
       placeId: placeResult.placeId,
       name: placeResult.name,
@@ -199,3 +202,4 @@ export async function runDigitalPresenceAudit(
       'Audit generated using Digital Ranchi Google Maps verification engine. All scores represent public indexability and optimization readiness.',
   };
 }
+

@@ -342,10 +342,15 @@ export interface GbpProfile {
 // Digital Presence Audit Output
 export interface DigitalPresenceAuditResult {
   businessName: string;
+  contactName?: string;
+  phone?: string;
   city?: string;
   overallScore: number;
   isVerifiedOnGoogle: boolean;
   validationStatus: 'VERIFIED_MATCH' | 'UNVERIFIED_OR_NOT_FOUND' | 'INVALID_URL';
+  averageRating?: number;
+  reviewCount?: number;
+  scannedAt?: string;
   matchedPlace?: {
     placeId?: string;
     name?: string;
