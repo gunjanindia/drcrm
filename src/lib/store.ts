@@ -15,6 +15,7 @@ import {
   TaxConfiguration,
   TimelineActivity,
   SiteSettings,
+  AuditRecord,
 } from '@/types';
 import { initialTaxConfig, globalTaxEngine } from './tax-engine';
 import { generateId } from './utils';
@@ -43,7 +44,7 @@ export const defaultSiteSettings: SiteSettings = {
   whatsappPitchText: 'Hi Digital Ranchi, I want to talk to an expert about growing my local business on Google',
 
   metaTitle: 'Digital Ranchi — Google Business Profile & Local SEO Growth Engine',
-  metaDescription: 'Jharkhand\'s #1 local business growth platform. We help clinics, salons, hotels, and SMBs get verified and ranked on Google Maps, generate authentic 5-star reviews, and capture WhatsApp leads.',
+  metaDescription: 'Jharkhand\'s #1 local business growth platform. We help clinics, salons, hotels, and SMBs get verified and ranked on Google Maps, generate authentic 5-star reviews, and turn searches into paying customers.',
   metaKeywords: 'Google Maps SEO Ranchi, Google Business Profile Jharkhand, local marketing Ranchi, review QR stands, digital ranchi',
 
   copyrightText: 'Digital Ranchi. All rights reserved.',
@@ -69,6 +70,7 @@ export class AppStore {
   public taxConfig: TaxConfiguration = { ...initialTaxConfig };
   public activities: TimelineActivity[] = [];
   public siteSettings: SiteSettings = { ...defaultSiteSettings };
+  public auditRecords: AuditRecord[] = [];
   public leadSources: string[] = [
     'Website Free Audit',
     'Website Direct Checkout',
@@ -457,6 +459,7 @@ export class AppStore {
           activities: this.activities,
           taxConfig: this.taxConfig,
           siteSettings: this.siteSettings,
+          auditRecords: this.auditRecords,
           services: this.services,
           packages: this.packages,
           users: this.users,
@@ -497,6 +500,7 @@ export class AppStore {
           if (data.activities && Array.isArray(data.activities)) this.activities = data.activities;
           if (data.taxConfig) this.taxConfig = data.taxConfig;
           if (data.siteSettings) this.siteSettings = { ...defaultSiteSettings, ...data.siteSettings };
+          if (data.auditRecords && Array.isArray(data.auditRecords)) this.auditRecords = data.auditRecords;
           if (data.services && Array.isArray(data.services)) this.services = data.services;
           if (data.packages && Array.isArray(data.packages)) this.packages = data.packages;
           if (data.users && Array.isArray(data.users)) this.users = data.users;
@@ -519,6 +523,28 @@ export class AppStore {
     };
     this.saveToFile();
     return this.siteSettings;
+  }
+
+  public createAuditRecord(recordData: Omit<AuditRecord, 'id' | 'scannedAt'>): AuditRecord {
+    const newRecord: AuditRecord = {
+      id: generateId('aud'),
+      ...recordData,
+      scannedAt: new Date().toISOString(),
+    };
+    this.auditRecords.unshift(newRecord);
+    // Keep maximum 500 audit records in store to prevent memory overflow
+    if (this.auditRecords.length > 500) {
+      this.auditRecords = this.auditRecords.slice(0, 500);
+    }
+    this.saveToFile();
+    return newRecord;
+  }
+
+  public deleteAuditRecord(recordId: string): boolean {
+    const initialLen = this.auditRecords.length;
+    this.auditRecords = this.auditRecords.filter((r) => r.id !== recordId);
+    this.saveToFile();
+    return this.auditRecords.length < initialLen;
   }
 
 

@@ -447,3 +447,62 @@ export interface SiteSettings {
   updatedAt?: string;
 }
 
+// Persistent Audit Record Log (Track all staff and customer audits)
+export interface AuditRecord {
+  id: string;
+  tenantId?: string;
+  businessName: string;
+  contactName?: string;
+  phone?: string;
+  city: string;
+  category: string;
+  googleMapsUrl?: string;
+  websiteUrl?: string;
+  placeId?: string;
+  overallScore: number;
+  averageRating?: number;
+  reviewCount?: number;
+  validationStatus: 'VERIFIED_MATCH' | 'UNVERIFIED_OR_NOT_FOUND' | 'INVALID_URL';
+  suggestedPackageId?: string;
+  suggestedPackageName?: string;
+  suggestedPackagePrice?: number;
+  breakdown: {
+    googleBusinessProfile: number;
+    reviewsAndReputation: number;
+    photosAndMedia: number;
+    websitePresence: number;
+    localSeoScore: number;
+    socialEngagement: number;
+  };
+  strengths: string[];
+  criticalWeaknesses: string[];
+  recommendedImprovements: string[];
+  matchedPlace?: {
+    placeId?: string;
+    name?: string;
+    formattedAddress?: string;
+    rating?: number;
+    userRatingsTotal?: number;
+    photosCount?: number;
+    googleMapsUrl?: string;
+    isOperational?: boolean;
+    hasWebsite?: boolean;
+    matchedCategory?: string;
+  };
+  candidates?: Array<{
+    placeId: string;
+    name: string;
+    formattedAddress: string;
+    rating?: number;
+    userRatingsTotal?: number;
+    photosCount?: number;
+    googleMapsUrl?: string;
+    isOperational?: boolean;
+    matchedCategory?: string;
+  }>;
+  auditedByUserId?: string;
+  auditedByUserName?: string;
+  isStaffAudit?: boolean;
+  scannedAt: string;
+}
+

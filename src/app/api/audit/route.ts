@@ -3,26 +3,93 @@ import { runDigitalPresenceAudit } from '@/lib/audit-engine';
 import { globalStore } from '@/lib/store';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUserSession } from '@/lib/auth';
 
+// GET: Retrieve tracked audit records history (for staff members)
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search')?.toLowerCase() || '';
+
+    let records = globalStore.auditRecords;
+
+    if (search) {
+      records = records.filter(
+        (r) =>
+          r.businessName.toLowerCase().includes(search) ||
+          r.city.toLowerCase().includes(search) ||
+          (r.phone && r.phone.includes(search)) ||
+          (r.auditedByUserName && r.auditedByUserName.toLowerCase().includes(search))
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: records,
+      totalCount: globalStore.auditRecords.length,
+    });
+  } catch (error: any) {
+    console.error('Fetch audit history error:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Failed to fetch audit history' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE: Delete an audit record from history
+export async function DELETE(request: Request) {
+  try {
+    const session = await getCurrentUserSession();
+    if (!session || session.role === 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ error: 'Audit record ID is required' }, { status: 400 });
+    }
+
+    const deleted = globalStore.deleteAuditRecord(id);
+    return NextResponse.json({ success: deleted });
+  } catch (error: any) {
+    console.error('Delete audit record error:', error);
+    return NextResponse.json({ error: 'Failed to delete audit record' }, { status: 500 });
+  }
+}
+
+// POST: Execute Digital Presence Audit (Unrestricted for staff, rate-limited for public)
 export async function POST(request: Request) {
   try {
-    // 1. IP and Client Rate Limiting (Strict 3 audits per IP / 24 hours)
+    // 0. Check authenticated staff session
+    const session = await getCurrentUserSession();
+    const isStaff = !!(session && session.role && session.role !== 'CLIENT');
+
     const forwardedFor = request.headers.get('x-forwarded-for');
     const realIp = request.headers.get('x-real-ip');
     const cfConnectingIp = request.headers.get('cf-connecting-ip');
     const clientIp = (cfConnectingIp || (forwardedFor ? forwardedFor.split(',')[0].trim() : realIp)) || '127.0.0.1';
 
-    const ipLimit = checkRateLimit(`ip_${clientIp}`, 3, 24 * 60 * 60 * 1000);
-    if (!ipLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: ipLimit.resetMessage || 'Daily audit limit reached (3 scans per day). Please try again tomorrow or contact Digital Ranchi sales on WhatsApp.',
-          isRateLimited: true,
-          resetHours: ipLimit.resetHours,
-          resetMinutes: ipLimit.resetMinutes,
-        },
-        { status: 429 }
-      );
+    // 1. IP Rate Limiting (Skipped for staff members)
+    let remainingAudits = 999;
+    let resetMessage = undefined;
+
+    if (!isStaff) {
+      const ipLimit = checkRateLimit(`ip_${clientIp}`, 3, 24 * 60 * 60 * 1000);
+      if (!ipLimit.allowed) {
+        return NextResponse.json(
+          {
+            error: ipLimit.resetMessage || 'Daily audit limit reached (3 scans per day). Please try again tomorrow or contact Digital Ranchi sales on WhatsApp.',
+            isRateLimited: true,
+            resetHours: ipLimit.resetHours,
+            resetMinutes: ipLimit.resetMinutes,
+          },
+          { status: 429 }
+        );
+      }
+      remainingAudits = ipLimit.remaining;
+      resetMessage = ipLimit.resetMessage;
     }
 
     // 2. Parse payload & anti-spam protections
@@ -40,8 +107,8 @@ export async function POST(request: Request) {
       formLoadedAt,    // Timestamp when form was loaded in browser
     } = body;
 
-    // A. Honeypot check: Bots automatically fill hidden fields
-    if (hp_field && hp_field.trim().length > 0) {
+    // A. Honeypot check (Skipped for authenticated staff)
+    if (!isStaff && hp_field && hp_field.trim().length > 0) {
       console.warn(`[Anti-Spam] Honeypot triggered by IP ${clientIp}. Rejecting automated submission.`);
       return NextResponse.json(
         { error: 'Automated submission rejected. Please refresh and try again.' },
@@ -49,8 +116,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // B. Velocity check: Reject submissions faster than 1 second (bot script behavior)
-    if (formLoadedAt) {
+    // B. Velocity check (Skipped for authenticated staff)
+    if (!isStaff && formLoadedAt) {
       const durationMs = Date.now() - Number(formLoadedAt);
       if (durationMs > 0 && durationMs < 1000) {
         console.warn(`[Anti-Spam] Fast submission detected (${durationMs}ms) by IP ${clientIp}. Rejecting.`);
@@ -67,28 +134,30 @@ export async function POST(request: Request) {
 
     const cleanPhone = (phone || '').trim().replace(/[^0-9+]/g, '');
 
-    // C. Phone validation & phone-based rate limiting (Max 3 scans per phone / 24 hours)
+    // C. Phone validation & phone-based rate limiting (Skipped for staff)
     if (cleanPhone) {
       const digitsOnly = cleanPhone.replace(/[^0-9]/g, '');
-      if (digitsOnly.length < 10) {
+      if (digitsOnly.length < 10 && !isStaff) {
         return NextResponse.json(
           { error: 'Please provide a valid 10-digit mobile number for report delivery.' },
           { status: 400 }
         );
       }
 
-      // Rate limit by normalized phone number
-      const phoneLimit = checkRateLimit(`phone_${digitsOnly.slice(-10)}`, 3, 24 * 60 * 60 * 1000);
-      if (!phoneLimit.allowed) {
-        return NextResponse.json(
-          {
-            error: `Daily limit reached for phone ${cleanPhone} (${phoneLimit.resetMessage})`,
-            isRateLimited: true,
-            resetHours: phoneLimit.resetHours,
-            resetMinutes: phoneLimit.resetMinutes,
-          },
-          { status: 429 }
-        );
+      if (!isStaff) {
+        // Rate limit by normalized phone number
+        const phoneLimit = checkRateLimit(`phone_${digitsOnly.slice(-10)}`, 3, 24 * 60 * 60 * 1000);
+        if (!phoneLimit.allowed) {
+          return NextResponse.json(
+            {
+              error: `Daily limit reached for phone ${cleanPhone} (${phoneLimit.resetMessage})`,
+              isRateLimited: true,
+              resetHours: phoneLimit.resetHours,
+              resetMinutes: phoneLimit.resetMinutes,
+            },
+            { status: 429 }
+          );
+        }
       }
     }
 
@@ -106,18 +175,49 @@ export async function POST(request: Request) {
     audit.contactName = contactName?.trim() || undefined;
     audit.phone = cleanPhone || undefined;
 
-    // 4. Auto-register / Upsert Lead in PostgreSQL CRM Database
+    // 4. Track and persist in Audit Log
+    try {
+      globalStore.createAuditRecord({
+        businessName: audit.businessName,
+        contactName: audit.contactName,
+        phone: audit.phone,
+        city: audit.city || city || 'Ranchi',
+        category: category?.trim() || 'Local Business',
+        googleMapsUrl: audit.matchedPlace?.googleMapsUrl || googleMapsUrl,
+        websiteUrl: websiteUrl,
+        placeId: audit.matchedPlace?.placeId || selectedPlaceId,
+        overallScore: audit.overallScore,
+        averageRating: audit.averageRating,
+        reviewCount: audit.reviewCount,
+        validationStatus: audit.validationStatus,
+        suggestedPackageId: audit.suggestedPackage?.id,
+        suggestedPackageName: audit.suggestedPackage?.name,
+        suggestedPackagePrice: audit.suggestedPackage?.price,
+        breakdown: audit.breakdown,
+        strengths: audit.strengths,
+        criticalWeaknesses: audit.criticalWeaknesses,
+        recommendedImprovements: audit.recommendedImprovements,
+        matchedPlace: audit.matchedPlace,
+        candidates: audit.candidates,
+        auditedByUserId: session?.userId,
+        auditedByUserName: session?.name || (isStaff ? 'Staff Member' : 'Website Visitor'),
+        isStaffAudit: isStaff,
+      });
+    } catch (logErr) {
+      console.error('Failed to log audit record:', logErr);
+    }
+
+    // 5. Auto-register / Upsert Lead in PostgreSQL CRM Database
     if (cleanPhone) {
       const normalizedDigits = cleanPhone.replace(/[^0-9]/g, '').slice(-10);
       const formattedPhone = cleanPhone.startsWith('+91') ? cleanPhone : `+91 ${normalizedDigits}`;
       const contactPerson = contactName?.trim() || audit.businessName;
       const cleanEmail = `${businessName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'lead'}@lead.digitalranchi.in`;
-      const noteContent = `Captured via Free Presence Audit. Score: ${audit.overallScore}/100. Google Rating: ${audit.averageRating || 'N/A'}★ (${audit.reviewCount || 0} reviews). Status: ${audit.validationStatus}. Recommended: ${audit.suggestedPackage.name}.`;
+      const noteContent = `Presence Audit. Score: ${audit.overallScore}/100. Google Rating: ${audit.averageRating || 'N/A'}★ (${audit.reviewCount || 0} reviews). Status: ${audit.validationStatus}. Scanned by: ${session?.name || (isStaff ? 'Staff' : 'Public')}.`;
 
       // A. Neon PostgreSQL Prisma persistence
       if (process.env.DATABASE_URL) {
         try {
-          // Ensure default tenant exists
           const tenant = await prisma.tenant.upsert({
             where: { domain: 'digitalranchi.in' },
             update: {},
@@ -129,7 +229,6 @@ export async function POST(request: Request) {
             },
           });
 
-          // Check if lead already exists with this phone
           const existingDbLead = await prisma.lead.findFirst({
             where: {
               OR: [
@@ -147,8 +246,8 @@ export async function POST(request: Request) {
                 contactName: contactPerson,
                 auditScore: audit.overallScore,
                 leadScore: audit.overallScore,
-                interestedPackageId: audit.suggestedPackage.id,
-                estimatedValue: audit.suggestedPackage.price,
+                interestedPackageId: audit.suggestedPackage?.id,
+                estimatedValue: audit.suggestedPackage?.price || 999,
                 googleMapsUrl: audit.matchedPlace?.googleMapsUrl || googleMapsUrl || existingDbLead.googleMapsUrl,
                 websiteUrl: websiteUrl || existingDbLead.websiteUrl,
                 notes: `${existingDbLead.notes || ''}\n[Re-Audited ${new Date().toLocaleDateString()}]: ${noteContent}`,
@@ -168,11 +267,11 @@ export async function POST(request: Request) {
                 state: 'Jharkhand',
                 googleMapsUrl: audit.matchedPlace?.googleMapsUrl || googleMapsUrl || null,
                 websiteUrl: websiteUrl || null,
-                leadSource: 'Website Free Audit',
+                leadSource: isStaff ? 'Staff GBP Audit Scanner' : 'Website Free Audit',
                 leadScore: audit.overallScore,
                 auditScore: audit.overallScore,
-                interestedPackageId: audit.suggestedPackage.id,
-                estimatedValue: audit.suggestedPackage.price,
+                interestedPackageId: audit.suggestedPackage?.id,
+                estimatedValue: audit.suggestedPackage?.price || 999,
                 status: 'AUDIT',
                 notes: noteContent,
               },
@@ -194,7 +293,7 @@ export async function POST(request: Request) {
           existingStoreLead.contactName = contactPerson;
           existingStoreLead.auditScore = audit.overallScore;
           existingStoreLead.leadScore = audit.overallScore;
-          existingStoreLead.interestedPackageId = audit.suggestedPackage.id;
+          existingStoreLead.interestedPackageId = audit.suggestedPackage?.id;
           existingStoreLead.notes = `${existingStoreLead.notes || ''} | ${noteContent}`;
           globalStore.saveToFile();
         } else {
@@ -209,11 +308,11 @@ export async function POST(request: Request) {
             state: 'Jharkhand',
             googleMapsUrl: audit.matchedPlace?.googleMapsUrl || googleMapsUrl,
             websiteUrl,
-            leadSource: 'Website Free Audit',
+            leadSource: isStaff ? 'Staff GBP Audit Scanner' : 'Website Free Audit',
             leadScore: audit.overallScore,
             auditScore: audit.overallScore,
-            interestedPackageId: audit.suggestedPackage.id,
-            estimatedValue: audit.suggestedPackage.price,
+            interestedPackageId: audit.suggestedPackage?.id,
+            estimatedValue: audit.suggestedPackage?.price || 999,
             status: 'AUDIT',
             notes: noteContent,
           });
@@ -226,8 +325,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       data: audit,
-      remainingAudits: ipLimit.remaining,
-      resetMessage: ipLimit.resetMessage,
+      isStaff,
+      remainingAudits: isStaff ? 999 : remainingAudits,
+      resetMessage: isStaff ? 'Unrestricted Staff Mode (No daily limits)' : resetMessage,
     });
   } catch (error: any) {
     console.error('Audit generation error:', error);
