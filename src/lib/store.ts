@@ -540,6 +540,14 @@ export class AppStore {
     return newRecord;
   }
 
+  public updateAuditRecord(recordId: string, data: Partial<AuditRecord>): AuditRecord | null {
+    const index = this.auditRecords.findIndex((r) => r.id === recordId);
+    if (index === -1) return null;
+    this.auditRecords[index] = { ...this.auditRecords[index], ...data };
+    this.saveToFile();
+    return this.auditRecords[index];
+  }
+
   public deleteAuditRecord(recordId: string): boolean {
     const initialLen = this.auditRecords.length;
     this.auditRecords = this.auditRecords.filter((r) => r.id !== recordId);

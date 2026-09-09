@@ -59,6 +59,28 @@ export async function DELETE(request: Request) {
   }
 }
 
+// PATCH: Update an audit record (e.g. mark as converted to lead)
+export async function PATCH(request: Request) {
+  try {
+    const session = await getCurrentUserSession();
+    if (!session || session.role === 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, ...updates } = body;
+    if (!id) {
+      return NextResponse.json({ error: 'Audit record ID is required' }, { status: 400 });
+    }
+
+    const updated = globalStore.updateAuditRecord(id, updates);
+    return NextResponse.json({ success: !!updated, data: updated });
+  } catch (error: any) {
+    console.error('PATCH audit record error:', error);
+    return NextResponse.json({ error: 'Failed to update audit record' }, { status: 500 });
+  }
+}
+
 // POST: Execute Digital Presence Audit (Unrestricted for staff, rate-limited for public)
 export async function POST(request: Request) {
   try {

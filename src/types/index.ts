@@ -503,6 +503,8 @@ export interface AuditRecord {
   auditedByUserId?: string;
   auditedByUserName?: string;
   isStaffAudit?: boolean;
+  leadId?: string;
+  isConvertedToLead?: boolean;
   scannedAt: string;
 }
 
