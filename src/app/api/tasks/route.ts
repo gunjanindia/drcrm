@@ -9,7 +9,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const task = globalStore.createTask(body);
+    const task = await globalStore.createTask(body);
     return NextResponse.json({ success: true, data: task });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'Failed to create task' }, { status: 500 });
@@ -23,7 +23,7 @@ export async function PATCH(request: Request) {
     if (!id) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
     }
-    const updated = globalStore.updateTask(id, updates);
+    const updated = await globalStore.updateTask(id, updates);
     return NextResponse.json({ success: true, data: updated });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'Failed to update task' }, { status: 500 });

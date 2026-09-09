@@ -728,12 +728,12 @@ export class AppStore {
             }));
           }
 
-          if (dbTasks && Array.isArray(dbTasks)) {
-            this.tasks = dbTasks.map((t: any) => ({
+          if (dbTasks && Array.isArray(dbTasks) && dbTasks.length > 0) {
+            const mappedDbTasks = dbTasks.map((t: any) => ({
               id: t.id,
               tenantId: t.tenantId,
               clientId: t.clientId,
-              clientName: t.clientName || 'Client',
+              clientName: t.client?.businessName || this.clients.find((c) => c.id === t.clientId)?.businessName || 'Client',
               projectId: t.projectId || undefined,
               title: t.title,
               description: t.description || t.title,
@@ -741,13 +741,16 @@ export class AppStore {
               priority: t.priority,
               status: t.status,
               assignedToId: t.assignedToId,
-              assignedToName: t.assignedToId === 'usr_del_exec1' ? 'Rohan Gupta' : 'Anjali Kumari',
+              assignedToName: t.assignedTo?.name || this.users.find((u) => u.id === t.assignedToId)?.name || (t.assignedToId === 'usr_del_exec1' ? 'Rohan Gupta' : 'Amit Kumar'),
               slaHours: 48,
               slaDeadline: t.slaDeadline ? new Date(t.slaDeadline).toISOString() : new Date().toISOString(),
               dueDate: t.dueDate ? new Date(t.dueDate).toISOString() : new Date().toISOString(),
               isRecurring: t.isRecurring || false,
               createdAt: t.createdAt ? new Date(t.createdAt).toISOString() : new Date().toISOString(),
             }));
+            const dbTaskIds = new Set(mappedDbTasks.map((t: any) => t.id));
+            const localOnly = this.tasks.filter((t) => !dbTaskIds.has(t.id));
+            this.tasks = [...mappedDbTasks, ...localOnly];
           }
         }
       } catch (e) {
@@ -1056,14 +1059,64 @@ export class AppStore {
       try {
         const { prisma } = require('@/lib/prisma');
         if (prisma) {
+          // 1. Ensure Tenant exists
+          await prisma.tenant.upsert({
+            where: { domain: 'digitalranchi.in' },
+            update: {},
+            create: {
+              id: 'tenant_main',
+              name: 'Digital Ranchi',
+              domain: 'digitalranchi.in',
+              isActive: true,
+            },
+          }).catch(() => null);
+
+          // 2. Ensure Manager and Assignee exist in User table
+          if (manager) {
+            await prisma.user.upsert({
+              where: { id: manager.id },
+              update: { role: (manager.role as any) || 'ACCOUNT_MANAGER' },
+              create: {
+                id: manager.id,
+                tenantId: 'tenant_main',
+                name: manager.name,
+                email: manager.email,
+                phone: manager.phone,
+                role: (manager.role as any) || 'ACCOUNT_MANAGER',
+                department: manager.department || 'Client Success',
+              },
+            }).catch(() => null);
+          }
+
+          if (assignee) {
+            await prisma.user.upsert({
+              where: { id: assignee.id },
+              update: { role: (assignee.role as any) || 'DELIVERY_EXECUTIVE' },
+              create: {
+                id: assignee.id,
+                tenantId: 'tenant_main',
+                name: assignee.name,
+                email: assignee.email,
+                phone: assignee.phone,
+                role: (assignee.role as any) || 'DELIVERY_EXECUTIVE',
+                department: assignee.department || 'GBP & Local SEO',
+              },
+            }).catch(() => null);
+          }
+
+          // 3. Mark Lead as WON in DB
           await prisma.lead.update({
             where: { id: lead.id },
             data: { status: 'WON' },
           }).catch(() => null);
 
+          // 4. Create/Upsert Client in DB
           await prisma.client.upsert({
             where: { id: newClient.id },
-            update: {},
+            update: {
+              status: newClient.status,
+              healthScore: newClient.healthScore,
+            },
             create: {
               id: newClient.id,
               tenantId: newClient.tenantId,
@@ -1077,7 +1130,7 @@ export class AppStore {
               city: newClient.city,
               state: newClient.state,
               pincode: newClient.pincode,
-              assignedManagerId: newClient.assignedManagerId,
+              assignedManagerId: manager.id,
               packageId: newClient.packageId,
               packageName: newClient.packageName,
               healthScore: newClient.healthScore,
@@ -1089,7 +1142,84 @@ export class AppStore {
               gbpScore: newClient.gbpScore,
               status: newClient.status,
             },
-          }).catch((err: any) => console.error('Prisma client.upsert error:', err));
+          });
+
+          // 5. Create Project in DB
+          await prisma.project.upsert({
+            where: { id: newProject.id },
+            update: {},
+            create: {
+              id: newProject.id,
+              tenantId: 'tenant_main',
+              clientId: newClient.id,
+              name: newProject.name,
+              projectType: newProject.projectType || 'ONBOARDING',
+              status: newProject.status || 'IN_PROGRESS',
+              progressPercent: newProject.progressPercent || 10,
+              startDate: new Date(newProject.startDate),
+              dueDate: new Date(newProject.dueDate),
+            },
+          }).catch((err: any) => console.error('Prisma project.upsert error:', err));
+
+          // 6. Create all 7 Tasks in DB
+          for (const task of createdTasks) {
+            await prisma.task.upsert({
+              where: { id: task.id },
+              update: {
+                status: task.status as any,
+                priority: task.priority as any,
+              },
+              create: {
+                id: task.id,
+                tenantId: 'tenant_main',
+                projectId: newProject.id,
+                clientId: newClient.id,
+                title: task.title,
+                description: task.description || task.title,
+                status: (task.status as any) || 'BACKLOG',
+                priority: (task.priority as any) || 'MEDIUM',
+                assignedToId: assignee.id,
+                slaDeadline: new Date(task.slaDeadline),
+                dueDate: new Date(task.dueDate),
+                isRecurring: false,
+              },
+            }).catch((err: any) => console.error('Prisma task.upsert error for task:', task.title, err));
+          }
+
+          // 7. Create Invoice in DB
+          await prisma.invoice.upsert({
+            where: { id: newInvoice.id },
+            update: {},
+            create: {
+              id: newInvoice.id,
+              tenantId: 'tenant_main',
+              clientId: newClient.id,
+              invoiceNumber: newInvoice.invoiceNumber,
+              invoiceType: newInvoice.invoiceType || 'BILL_OF_SUPPLY',
+              taxMode: (newInvoice.taxMode as any) || 'NON_GST',
+              subtotal: newInvoice.subtotal,
+              cgstAmount: newInvoice.cgstAmount || 0,
+              sgstAmount: newInvoice.sgstAmount || 0,
+              igstAmount: newInvoice.igstAmount || 0,
+              totalTax: newInvoice.totalTax || 0,
+              totalAmount: newInvoice.totalAmount,
+              paidAmount: 0,
+              dueAmount: newInvoice.dueAmount,
+              status: 'ISSUED',
+              dueDate: new Date(newInvoice.dueDate),
+              items: {
+                create: (newInvoice.items || []).map((item) => ({
+                  description: item.description,
+                  sacCode: item.sacCode || '998313',
+                  quantity: item.quantity || 1,
+                  unitPrice: item.unitPrice,
+                  taxRatePercent: item.taxRatePercent || 0,
+                  taxAmount: item.taxAmount || 0,
+                  totalAmount: item.totalAmount,
+                })),
+              },
+            },
+          }).catch((err: any) => console.error('Prisma invoice.upsert error:', err));
         }
       } catch (e) {
         console.error('Failed to persist convertLeadToClient in Neon:', e);
@@ -1141,7 +1271,7 @@ export class AppStore {
   }
 
   // --- Tasks CRUD ---
-  public createTask(taskData: Omit<Task, 'id' | 'tenantId' | 'createdAt'>): Task {
+  public async createTask(taskData: Omit<Task, 'id' | 'tenantId' | 'createdAt'>): Promise<Task> {
     const newTask: Task = {
       id: generateId('tsk'),
       tenantId: 'tenant_main',
@@ -1150,14 +1280,69 @@ export class AppStore {
     };
     this.tasks.unshift(newTask);
     this.saveToFile();
+
+    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+      try {
+        const { prisma } = require('@/lib/prisma');
+        if (prisma) {
+          await prisma.task.create({
+            data: {
+              id: newTask.id,
+              tenantId: newTask.tenantId,
+              projectId: newTask.projectId || null,
+              clientId: newTask.clientId,
+              title: newTask.title,
+              description: newTask.description || newTask.title,
+              status: (newTask.status as any) || 'BACKLOG',
+              priority: (newTask.priority as any) || 'MEDIUM',
+              assignedToId: newTask.assignedToId || 'usr_super_admin',
+              slaDeadline: new Date(newTask.slaDeadline || Date.now() + 86400000),
+              dueDate: new Date(newTask.dueDate || Date.now() + 86400000),
+              isRecurring: newTask.isRecurring || false,
+            },
+          }).catch((err: any) => console.error('Prisma task.create error:', err));
+        }
+      } catch (e) {
+        console.error('Failed to persist createTask to Neon:', e);
+      }
+    }
+
     return newTask;
   }
 
-  public updateTask(taskId: string, data: Partial<Task>): Task {
+  public async updateTask(taskId: string, data: Partial<Task>): Promise<Task> {
     const index = this.tasks.findIndex((t) => t.id === taskId);
     if (index === -1) throw new Error('Task not found');
     this.tasks[index] = { ...this.tasks[index], ...data };
     this.saveToFile();
+
+    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+      try {
+        const { prisma } = require('@/lib/prisma');
+        if (prisma) {
+          const updatePayload: any = {};
+          if (data.title !== undefined) updatePayload.title = data.title;
+          if (data.description !== undefined) updatePayload.description = data.description;
+          if (data.status !== undefined) updatePayload.status = data.status;
+          if (data.priority !== undefined) updatePayload.priority = data.priority;
+          if (data.assignedToId !== undefined) updatePayload.assignedToId = data.assignedToId;
+          if (data.dueDate !== undefined) updatePayload.dueDate = new Date(data.dueDate);
+          if (data.slaDeadline !== undefined) updatePayload.slaDeadline = new Date(data.slaDeadline);
+          if (data.deliverableUrl !== undefined) updatePayload.deliverableUrl = data.deliverableUrl;
+          if (data.approvalStatus !== undefined) updatePayload.approvalStatus = data.approvalStatus;
+          if (data.approvalComment !== undefined) updatePayload.approvalComment = data.approvalComment;
+          if (data.completedAt !== undefined) updatePayload.completedAt = data.completedAt ? new Date(data.completedAt) : null;
+
+          await prisma.task.update({
+            where: { id: taskId },
+            data: updatePayload,
+          }).catch((err: any) => console.error('Prisma task.update error:', err));
+        }
+      } catch (e) {
+        console.error('Failed to update task in Neon:', e);
+      }
+    }
+
     return this.tasks[index];
   }
 
