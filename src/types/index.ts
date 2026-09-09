@@ -344,6 +344,8 @@ export interface DigitalPresenceAuditResult {
   businessName: string;
   contactName?: string;
   phone?: string;
+  email?: string;
+  category?: string;
   city?: string;
   overallScore: number;
   isVerifiedOnGoogle: boolean;
@@ -424,6 +426,7 @@ export interface SiteSettings {
   city: string;
   state: string;
   pincode: string;
+  websiteUrl?: string;
   googleMapsUrl?: string;
 
   // Landing & Hero Content
@@ -454,6 +457,7 @@ export interface AuditRecord {
   businessName: string;
   contactName?: string;
   phone?: string;
+  email?: string;
   city: string;
   category: string;
   googleMapsUrl?: string;

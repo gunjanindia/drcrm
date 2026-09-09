@@ -152,9 +152,11 @@ export default function LeadsPage() {
     if (matchedAudit) {
       const auditRes: DigitalPresenceAuditResult = {
         businessName: matchedAudit.businessName,
-        contactName: matchedAudit.contactName || lead.contactName,
-        phone: matchedAudit.phone || lead.phone,
-        city: matchedAudit.city || lead.city || 'Ranchi',
+        contactName: matchedAudit.contactName || lead.contactName || lead.businessName,
+        phone: matchedAudit.phone || lead.phone || lead.whatsapp,
+        email: matchedAudit.email || lead.email,
+        category: matchedAudit.category || lead.category,
+        city: matchedAudit.city || lead.city || 'Ranchi, Jharkhand',
         overallScore: matchedAudit.overallScore,
         isVerifiedOnGoogle: matchedAudit.validationStatus === 'VERIFIED_MATCH',
         validationStatus: matchedAudit.validationStatus,
@@ -186,8 +188,10 @@ export default function LeadsPage() {
     const syntheticAudit: DigitalPresenceAuditResult = {
       businessName: lead.businessName,
       contactName: lead.contactName || lead.businessName,
-      phone: lead.phone,
-      city: lead.city || 'Ranchi',
+      phone: lead.phone || lead.whatsapp,
+      email: lead.email,
+      category: lead.category || 'Local Business',
+      city: lead.city || 'Ranchi, Jharkhand',
       overallScore: score,
       isVerifiedOnGoogle: true,
       validationStatus: 'VERIFIED_MATCH',
@@ -1191,8 +1195,8 @@ export default function LeadsPage() {
 
       {/* Printable A4 PDF Report Full Screen Modal */}
       {isPdfModalOpen && selectedAuditForPdf && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm p-4 flex items-center justify-center">
-          <div className="relative w-full max-w-5xl my-8">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm p-2 sm:p-4 flex items-start justify-center print:p-0 print:bg-white print:static">
+          <div className="relative w-full max-w-5xl my-4 sm:my-8 print:my-0 print:max-w-full">
             <button
               onClick={() => setIsPdfModalOpen(false)}
               className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 shadow-md print:hidden"

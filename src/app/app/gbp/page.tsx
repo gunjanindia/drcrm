@@ -186,9 +186,11 @@ export default function GbpManagementPage() {
   const handleOpenPdfFromRecord = (record: AuditRecord) => {
     const auditRes: DigitalPresenceAuditResult = {
       businessName: record.businessName,
-      contactName: record.contactName,
+      contactName: record.contactName || record.businessName,
       phone: record.phone,
-      city: record.city,
+      email: record.email,
+      category: record.category,
+      city: record.city || 'Ranchi, Jharkhand',
       overallScore: record.overallScore,
       isVerifiedOnGoogle: record.validationStatus === 'VERIFIED_MATCH',
       validationStatus: record.validationStatus,
@@ -1103,8 +1105,8 @@ export default function GbpManagementPage() {
 
       {/* PDF View / Print Full Modal */}
       {isPdfModalOpen && selectedAuditForPdf && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm p-4 flex items-center justify-center">
-          <div className="relative w-full max-w-5xl my-8">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm p-2 sm:p-4 flex items-start justify-center print:p-0 print:bg-white print:static">
+          <div className="relative w-full max-w-5xl my-4 sm:my-8 print:my-0 print:max-w-full">
             <button
               onClick={() => setIsPdfModalOpen(false)}
               className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 shadow-md print:hidden"
