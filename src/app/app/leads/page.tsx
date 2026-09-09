@@ -151,13 +151,13 @@ export default function LeadsPage() {
 
     if (matchedAudit) {
       const auditRes: DigitalPresenceAuditResult = {
-        businessName: matchedAudit.businessName,
-        contactName: matchedAudit.contactName || lead.contactName || lead.businessName,
-        phone: matchedAudit.phone || lead.phone || lead.whatsapp,
-        email: matchedAudit.email || lead.email,
-        category: matchedAudit.category || lead.category,
-        city: matchedAudit.city || lead.city || 'Ranchi, Jharkhand',
-        overallScore: matchedAudit.overallScore,
+        businessName: lead.businessName || matchedAudit.businessName,
+        contactName: lead.contactName || matchedAudit.contactName || lead.businessName,
+        phone: lead.phone || lead.whatsapp || matchedAudit.phone,
+        email: lead.email || matchedAudit.email,
+        category: lead.category || matchedAudit.category,
+        city: lead.city || matchedAudit.city || 'Ranchi, Jharkhand',
+        overallScore: matchedAudit.overallScore || lead.auditScore || 65,
         isVerifiedOnGoogle: matchedAudit.validationStatus === 'VERIFIED_MATCH',
         validationStatus: matchedAudit.validationStatus,
         averageRating: matchedAudit.averageRating,

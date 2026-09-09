@@ -33,9 +33,16 @@ export const AuditPdfReport: React.FC<AuditPdfReportProps> = ({
   onClose,
   onSelectPackage,
 }) => {
-  const { settings } = useSiteSettings();
+  const { settings, refreshSettings } = useSiteSettings();
   const brandName = settings.brandName || 'DIGITAL RANCHI';
   const brandInitials = settings.brandInitials || 'DR';
+
+  // Automatically refresh settings on mount so any newly saved phone/email/address in Admin are live
+  React.useEffect(() => {
+    if (typeof refreshSettings === 'function') {
+      refreshSettings();
+    }
+  }, [refreshSettings]);
 
   const handlePrint = () => {
     window.print();
@@ -81,45 +88,54 @@ export const AuditPdfReport: React.FC<AuditPdfReportProps> = ({
   const businessCity = audit.city || audit.matchedPlace?.formattedAddress || 'Ranchi, Jharkhand';
 
   return (
-    <div className="bg-slate-100 dark:bg-slate-950 min-h-screen py-6 px-3 sm:px-6 print:p-0 print:m-0 print:bg-white print:text-black">
+    <div className="bg-slate-100 dark:bg-slate-950 min-h-screen py-4 sm:py-6 px-2 sm:px-4 print:p-0 print:m-0 print:bg-white print:text-black print:min-h-0">
       {/* Scoped Print Stylesheet */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
             size: A4 portrait;
-            margin: 6mm 8mm;
+            margin: 6mm 8mm 6mm 8mm;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           html, body {
             margin: 0 !important;
             padding: 0 !important;
             background: #ffffff !important;
+            color: #0f172a !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
           }
-          body * {
-            visibility: hidden !important;
-          }
-          #audit-report-printable,
-          #audit-report-printable * {
-            visibility: visible !important;
+          /* Hide non-printable elements */
+          .print-hidden,
+          button,
+          [role="dialog"] > button {
+            display: none !important;
           }
           #audit-report-printable {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            display: block !important;
+            position: relative !important;
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 !important;
-            padding: 12px !important;
+            padding: 0 !important;
             box-shadow: none !important;
             border: none !important;
             background: #ffffff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+            color: #0f172a !important;
+          }
+          .avoid-page-break {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       `}} />
 
       {/* Top Action Bar (Hidden in Print) */}
-      <div className="max-w-4xl mx-auto mb-5 flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm print:hidden">
+      <div className="max-w-4xl mx-auto mb-4 flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm print:hidden">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-indigo-600" />
@@ -151,7 +167,7 @@ export const AuditPdfReport: React.FC<AuditPdfReportProps> = ({
       {/* Printable A4 Container */}
       <div
         id="audit-report-printable"
-        className="max-w-4xl mx-auto bg-white text-slate-900 shadow-2xl border border-slate-200 rounded-3xl p-6 sm:p-10 print:shadow-none print:border-none print:p-4 print:rounded-none print:max-w-full"
+        className="max-w-4xl mx-auto bg-white text-slate-900 shadow-2xl border border-slate-200 rounded-3xl p-5 sm:p-8 print:shadow-none print:border-none print:p-0 print:rounded-none print:max-w-full"
       >
         
         {/* 1. OFFICIAL BRAND HEADER */}

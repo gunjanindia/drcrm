@@ -38,8 +38,10 @@ import { globalStore, defaultSiteSettings } from '@/lib/store';
 import { globalTaxEngine } from '@/lib/tax-engine';
 import { User, UserRole, Service, Package, BillingFrequency, SiteSettings } from '@/types';
 import { formatINR, formatDate } from '@/lib/utils';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 
 export default function MasterDataSettingsPage() {
+  const { updateSettings: updateContextSettings, refreshSettings: refreshContextSettings } = useSiteSettings();
   const [activeTab, setActiveTab] = useState<'profile' | 'site' | 'staff' | 'services' | 'packages' | 'tax' | 'sources'>('profile');
 
   // --- CURRENT USER PROFILE STATE ---
@@ -118,6 +120,12 @@ export default function MasterDataSettingsPage() {
         showNotification(successMsg);
         setSiteSettings(data.settings);
         globalStore.siteSettings = data.settings;
+        if (typeof updateContextSettings === 'function') {
+          await updateContextSettings(data.settings);
+        }
+        if (typeof refreshContextSettings === 'function') {
+          await refreshContextSettings();
+        }
       }
     } catch {
       const errMsg = 'Network error updating site settings';
