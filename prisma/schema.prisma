@@ -44,6 +44,8 @@ model Tenant {
   tickets     Ticket[]
   taxConfigs  TaxConfiguration[]
   auditLogs   AuditLog[]
+  siteSetting SiteSetting?
+  auditRecords AuditRecord[]
 }
 
 model User {
@@ -590,4 +592,91 @@ model AuditLog {
 
   @@index([tenantId])
   @@index([entityType, entityId])
+}
+
+// ---------------------------------------------------------
+// 10. SITE SETTINGS & BRAND IDENTITY
+// ---------------------------------------------------------
+
+model SiteSetting {
+  id                    String   @id @default("site_settings_main")
+  tenantId              String   @unique @default("tenant_main")
+  brandName             String   @default("DIGITAL RANCHI")
+  brandTagline          String   @default("Local Growth OS")
+  brandInitials         String   @default("DR")
+  logoUrl               String?
+  faviconUrl            String?
+  phone                 String   @default("+91 94311 09876")
+  alternatePhone        String?
+  whatsapp              String   @default("+91 94311 09876")
+  email                 String   @default("growth@digitalranchi.in")
+  supportEmail          String   @default("support@digitalranchi.in")
+  address               String   @default("Main Road, Lalpur & Circular Road, Ranchi, Jharkhand — 834001")
+  city                  String   @default("Ranchi")
+  state                 String   @default("Jharkhand")
+  pincode               String   @default("834001")
+  googleMapsUrl         String?
+  websiteUrl            String?
+  heroBadgeText         String   @default("Rank #1 on Google Maps in Ranchi & Jharkhand")
+  heroHeadline          String   @default("Get Your Business Found on")
+  heroHeadlineHighlight String   @default("Google & WhatsApp")
+  heroSubheadline       String   @default("Get more calls, direct showroom visits, map directions, genuine 5-star reviews, and WhatsApp inquiries from customers searching for businesses like yours.")
+  trustStripText        String   @default("4.8/5 Rating Across 250+ Ranchi SMBs")
+  whatsappPitchText     String   @default("Hi Digital Ranchi, I want to talk to an expert about growing my local business on Google")
+  metaTitle             String   @default("Digital Ranchi — Google Business Profile & Local SEO Growth Engine")
+  metaDescription       String   @default("Jharkhand's #1 local business growth platform. We help clinics, salons, hotels, and SMBs get verified and ranked on Google Maps, generate authentic 5-star reviews, and turn searches into paying customers.")
+  metaKeywords          String   @default("Google Maps SEO Ranchi, Google Business Profile Jharkhand, local marketing Ranchi, review QR stands, digital ranchi")
+  ogImageUrl            String?
+  copyrightText         String   @default("Digital Ranchi. All rights reserved.")
+  footerBio             String   @default("Purpose-built local business growth platform. We help Jharkhand SMBs get discovered on Google Maps, generate authentic 5-star reviews, and turn searches into paying customers.")
+  taxModeNotice         String   @default("Tax Mode: Non-GST Bill of Supply (Configurable)")
+  updatedAt             DateTime @updatedAt
+  createdAt             DateTime @default(now())
+
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ---------------------------------------------------------
+// 11. AUDIT RECORDS & DIAGNOSTIC HISTORY
+// ---------------------------------------------------------
+
+model AuditRecord {
+  id                    String   @id @default(cuid())
+  tenantId              String   @default("tenant_main")
+  businessName          String
+  contactName           String?
+  phone                 String?
+  email                 String?
+  city                  String   @default("Ranchi")
+  category              String   @default("Local Business")
+  googleMapsUrl         String?
+  websiteUrl            String?
+  placeId               String?
+  overallScore          Int      @default(60)
+  averageRating         Float?
+  reviewCount           Int?
+  validationStatus      String   @default("VERIFIED_MATCH")
+  suggestedPackageId    String?  @default("pkg_growth_999")
+  suggestedPackageName  String?  @default("Growth Kickstart")
+  suggestedPackagePrice Float?   @default(999.0)
+  breakdown             Json
+  strengths             String[]
+  criticalWeaknesses    String[]
+  recommendedImprovements String[]
+  matchedPlace          Json?
+  candidates            Json?
+  auditedByUserId       String?
+  auditedByUserName     String?
+  isStaffAudit          Boolean  @default(false)
+  leadId                String?
+  isConvertedToLead     Boolean  @default(false)
+  scannedAt             DateTime @default(now())
+
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([phone])
+  @@index([businessName])
 }

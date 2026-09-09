@@ -561,7 +561,7 @@ export class AppStore {
       try {
         const { prisma } = require('@/lib/prisma');
         if (prisma) {
-          const [dbUsers, dbClients, dbLeads, dbTasks, dbProjects, dbServices, dbPackages, dbTax] = await Promise.all([
+          const [dbUsers, dbClients, dbLeads, dbTasks, dbProjects, dbServices, dbPackages, dbTax, dbSiteSettings, dbAuditRecords] = await Promise.all([
             prisma.user.findMany().catch(() => []),
             prisma.client.findMany().catch(() => []),
             prisma.lead.findMany({ orderBy: { createdAt: 'desc' } }).catch(() => []),
@@ -570,7 +570,87 @@ export class AppStore {
             prisma.service.findMany().catch(() => []),
             prisma.package.findMany().catch(() => []),
             prisma.taxConfiguration.findFirst().catch(() => null),
+            prisma.siteSetting.findFirst({ where: { tenantId: 'tenant_main' } }).catch(() => null),
+            prisma.auditRecord.findMany({ orderBy: { scannedAt: 'desc' }, take: 200 }).catch(() => []),
           ]);
+
+          if (dbSiteSettings) {
+            this.siteSettings = {
+              ...this.siteSettings,
+              brandName: dbSiteSettings.brandName || this.siteSettings.brandName,
+              brandTagline: dbSiteSettings.brandTagline || this.siteSettings.brandTagline,
+              brandInitials: dbSiteSettings.brandInitials || this.siteSettings.brandInitials,
+              logoUrl: dbSiteSettings.logoUrl || undefined,
+              faviconUrl: dbSiteSettings.faviconUrl || undefined,
+              phone: dbSiteSettings.phone || this.siteSettings.phone,
+              alternatePhone: dbSiteSettings.alternatePhone || undefined,
+              whatsapp: dbSiteSettings.whatsapp || this.siteSettings.whatsapp,
+              email: dbSiteSettings.email || this.siteSettings.email,
+              supportEmail: dbSiteSettings.supportEmail || this.siteSettings.supportEmail,
+              address: dbSiteSettings.address || this.siteSettings.address,
+              city: dbSiteSettings.city || this.siteSettings.city,
+              state: dbSiteSettings.state || this.siteSettings.state,
+              pincode: dbSiteSettings.pincode || this.siteSettings.pincode,
+              googleMapsUrl: dbSiteSettings.googleMapsUrl || undefined,
+              websiteUrl: dbSiteSettings.websiteUrl || undefined,
+              heroBadgeText: dbSiteSettings.heroBadgeText || this.siteSettings.heroBadgeText,
+              heroHeadline: dbSiteSettings.heroHeadline || this.siteSettings.heroHeadline,
+              heroHeadlineHighlight: dbSiteSettings.heroHeadlineHighlight || this.siteSettings.heroHeadlineHighlight,
+              heroSubheadline: dbSiteSettings.heroSubheadline || this.siteSettings.heroSubheadline,
+              trustStripText: dbSiteSettings.trustStripText || this.siteSettings.trustStripText,
+              whatsappPitchText: dbSiteSettings.whatsappPitchText || this.siteSettings.whatsappPitchText,
+              metaTitle: dbSiteSettings.metaTitle || this.siteSettings.metaTitle,
+              metaDescription: dbSiteSettings.metaDescription || this.siteSettings.metaDescription,
+              metaKeywords: dbSiteSettings.metaKeywords || this.siteSettings.metaKeywords,
+              ogImageUrl: dbSiteSettings.ogImageUrl || undefined,
+              copyrightText: dbSiteSettings.copyrightText || this.siteSettings.copyrightText,
+              footerBio: dbSiteSettings.footerBio || this.siteSettings.footerBio,
+              taxModeNotice: dbSiteSettings.taxModeNotice || this.siteSettings.taxModeNotice,
+              updatedAt: dbSiteSettings.updatedAt ? dbSiteSettings.updatedAt.toISOString() : new Date().toISOString(),
+            };
+          }
+
+          if (dbAuditRecords && Array.isArray(dbAuditRecords) && dbAuditRecords.length > 0) {
+            this.auditRecords = dbAuditRecords.map((r: any) => ({
+              id: r.id,
+              tenantId: r.tenantId,
+              businessName: r.businessName,
+              contactName: r.contactName || undefined,
+              phone: r.phone || undefined,
+              email: r.email || undefined,
+              city: r.city,
+              category: r.category,
+              googleMapsUrl: r.googleMapsUrl || undefined,
+              websiteUrl: r.websiteUrl || undefined,
+              placeId: r.placeId || undefined,
+              overallScore: r.overallScore,
+              averageRating: r.averageRating || undefined,
+              reviewCount: r.reviewCount || undefined,
+              validationStatus: r.validationStatus as any,
+              suggestedPackageId: r.suggestedPackageId || undefined,
+              suggestedPackageName: r.suggestedPackageName || undefined,
+              suggestedPackagePrice: r.suggestedPackagePrice || undefined,
+              breakdown: r.breakdown || {
+                googleBusinessProfile: 60,
+                reviewsAndReputation: 60,
+                photosAndMedia: 60,
+                websitePresence: 60,
+                localSeoScore: 60,
+                socialEngagement: 60,
+              },
+              strengths: r.strengths || [],
+              criticalWeaknesses: r.criticalWeaknesses || [],
+              recommendedImprovements: r.recommendedImprovements || [],
+              matchedPlace: r.matchedPlace || undefined,
+              candidates: r.candidates || undefined,
+              auditedByUserId: r.auditedByUserId || undefined,
+              auditedByUserName: r.auditedByUserName || undefined,
+              isStaffAudit: r.isStaffAudit || false,
+              leadId: r.leadId || undefined,
+              isConvertedToLead: r.isConvertedToLead || false,
+              scannedAt: r.scannedAt ? new Date(r.scannedAt).toISOString() : new Date().toISOString(),
+            }));
+          }
 
           if (dbUsers && Array.isArray(dbUsers) && dbUsers.length > 0) {
             const mappedDbUsers = dbUsers.map((u: any) => ({

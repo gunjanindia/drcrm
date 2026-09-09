@@ -81,3 +81,80 @@ body {
     background: #334155;
   }
 }
+
+/* ========================================================
+   GLOBAL PRINT ENGINE (ISOLATES AUDIT PDF & REPORTS)
+   ======================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 6mm 8mm;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* When an audit report is active, isolate only the report container */
+  body:has(#audit-report-printable) > *:not(:has(#audit-report-printable)),
+  body:has(#audit-report-printable) main > div > *:not(:has(#audit-report-printable)),
+  body:has(#audit-report-printable) [data-hide-on-audit-print="true"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Specifically hide AppSidebar, Topbar, AI drawer, and non-printable elements */
+  aside,
+  header,
+  nav,
+  .print-hidden,
+  [data-print-hidden="true"],
+  button,
+  [role="dialog"] > button {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Clean up modal overlays for printing */
+  .fixed,
+  .absolute {
+    position: static !important;
+  }
+
+  /* The printable container alone is made visible, clean, and full width */
+  #audit-report-printable,
+  #audit-report-printable * {
+    visibility: visible !important;
+  }
+
+  #audit-report-printable {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    z-index: 999999 !important;
+  }
+
+  /* Prevent awkward page breaks inside cards */
+  .avoid-page-break,
+  .no-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+

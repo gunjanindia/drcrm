@@ -491,8 +491,9 @@ export default function LeadsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <>
+      <div className={`space-y-6 ${isPdfModalOpen ? 'print:hidden' : ''}`} data-hide-on-audit-print={isPdfModalOpen ? 'true' : 'false'}>
+        {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
@@ -1192,11 +1193,12 @@ export default function LeadsPage() {
           </div>
         </Modal>
       )}
+      </div>
 
       {/* Printable A4 PDF Report Full Screen Modal */}
       {isPdfModalOpen && selectedAuditForPdf && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm p-2 sm:p-4 flex items-start justify-center print:p-0 print:bg-white print:static">
-          <div className="relative w-full max-w-5xl my-4 sm:my-8 print:my-0 print:max-w-full">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm p-2 sm:p-4 flex items-start justify-center print:p-0 print:bg-white print:static print:overflow-visible print:block">
+          <div className="relative w-full max-w-5xl my-4 sm:my-8 print:my-0 print:max-w-full print:static">
             <button
               onClick={() => setIsPdfModalOpen(false)}
               className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 shadow-md print:hidden"
@@ -1210,6 +1212,6 @@ export default function LeadsPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
