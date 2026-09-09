@@ -606,30 +606,30 @@ model SiteSetting {
   brandInitials         String   @default("DR")
   logoUrl               String?
   faviconUrl            String?
-  phone                 String   @default("+91 94311 09876")
+  phone                 String   @default("+91 70047 00318")
   alternatePhone        String?
-  whatsapp              String   @default("+91 94311 09876")
-  email                 String   @default("growth@digitalranchi.in")
-  supportEmail          String   @default("support@digitalranchi.in")
-  address               String   @default("Main Road, Lalpur & Circular Road, Ranchi, Jharkhand — 834001")
+  whatsapp              String   @default("+91 70047 00318")
+  email                 String   @default("digitalranchigrowth@gmail.com")
+  supportEmail          String   @default("hellodigitalranchi@gmail.com")
+  address               String   @default("Oak Forest, Argora, Ranchi, Jharkhand — 834002")
   city                  String   @default("Ranchi")
   state                 String   @default("Jharkhand")
-  pincode               String   @default("834001")
+  pincode               String   @default("834002")
   googleMapsUrl         String?
   websiteUrl            String?
-  heroBadgeText         String   @default("Rank #1 on Google Maps in Ranchi & Jharkhand")
+  heroBadgeText         String   @default("Rank #1 on Google Maps in Ranchi,Dhanbad, Deoghar, Jamshedpur, Bokaro, Hazaribagh & entire Jharkhand")
   heroHeadline          String   @default("Get Your Business Found on")
   heroHeadlineHighlight String   @default("Google & WhatsApp")
   heroSubheadline       String   @default("Get more calls, direct showroom visits, map directions, genuine 5-star reviews, and WhatsApp inquiries from customers searching for businesses like yours.")
   trustStripText        String   @default("4.8/5 Rating Across 250+ Ranchi SMBs")
   whatsappPitchText     String   @default("Hi Digital Ranchi, I want to talk to an expert about growing my local business on Google")
   metaTitle             String   @default("Digital Ranchi — Google Business Profile & Local SEO Growth Engine")
-  metaDescription       String   @default("Jharkhand's #1 local business growth platform. We help clinics, salons, hotels, and SMBs get verified and ranked on Google Maps, generate authentic 5-star reviews, and turn searches into paying customers.")
+  metaDescription       String   @default("Jharkhand's #1 local business growth platform. We help clinics,gyms, beauty parlours,salons, hotels, and SMBs get verified and ranked on Google Maps, generate authentic 5-star reviews, and turn searches into paying customers.")
   metaKeywords          String   @default("Google Maps SEO Ranchi, Google Business Profile Jharkhand, local marketing Ranchi, review QR stands, digital ranchi")
   ogImageUrl            String?
   copyrightText         String   @default("Digital Ranchi. All rights reserved.")
   footerBio             String   @default("Purpose-built local business growth platform. We help Jharkhand SMBs get discovered on Google Maps, generate authentic 5-star reviews, and turn searches into paying customers.")
-  taxModeNotice         String   @default("Tax Mode: Non-GST Bill of Supply (Configurable)")
+  taxModeNotice         String   @default("Bill of Supply")
   updatedAt             DateTime @updatedAt
   createdAt             DateTime @default(now())
 
