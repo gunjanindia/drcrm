@@ -565,7 +565,7 @@ export class AppStore {
             prisma.user.findMany().catch(() => []),
             prisma.client.findMany().catch(() => []),
             prisma.lead.findMany({ orderBy: { createdAt: 'desc' } }).catch(() => []),
-            prisma.task.findMany({ orderBy: { createdAt: 'desc' } }).catch(() => []),
+            prisma.task.findMany({ include: { client: true, assignedTo: true }, orderBy: { createdAt: 'desc' } }).catch(() => []),
             prisma.project.findMany().catch(() => []),
             prisma.service.findMany().catch(() => []),
             prisma.package.findMany().catch(() => []),
@@ -733,7 +733,7 @@ export class AppStore {
               id: t.id,
               tenantId: t.tenantId,
               clientId: t.clientId,
-              clientName: t.client?.businessName || this.clients.find((c) => c.id === t.clientId)?.businessName || 'Client',
+              clientName: t.client?.businessName || this.clients.find((c) => c.id === t.clientId)?.businessName || 'Client Account',
               projectId: t.projectId || undefined,
               title: t.title,
               description: t.description || t.title,
@@ -745,6 +745,11 @@ export class AppStore {
               slaHours: 48,
               slaDeadline: t.slaDeadline ? new Date(t.slaDeadline).toISOString() : new Date().toISOString(),
               dueDate: t.dueDate ? new Date(t.dueDate).toISOString() : new Date().toISOString(),
+              deliverableUrl: t.deliverableUrl || undefined,
+              deliverableType: t.deliverableType || undefined,
+              approvalStatus: t.approvalStatus || undefined,
+              approvalComment: t.approvalComment || undefined,
+              completedAt: t.completedAt ? new Date(t.completedAt).toISOString() : undefined,
               isRecurring: t.isRecurring || false,
               createdAt: t.createdAt ? new Date(t.createdAt).toISOString() : new Date().toISOString(),
             }));
@@ -1285,17 +1290,37 @@ export class AppStore {
       try {
         const { prisma } = require('@/lib/prisma');
         if (prisma) {
+          // Check if clientId exists in database, fallback to first available client
+          let targetClientId = newTask.clientId;
+          const clientExists = targetClientId
+            ? await prisma.client.findUnique({ where: { id: targetClientId } }).catch(() => null)
+            : null;
+          if (!clientExists) {
+            const firstClient = await prisma.client.findFirst().catch(() => null);
+            if (firstClient) targetClientId = firstClient.id;
+          }
+
+          // Check if assignedToId exists in database, fallback to super admin or first user
+          let targetAssigneeId = newTask.assignedToId || 'usr_super_admin';
+          const userExists = targetAssigneeId
+            ? await prisma.user.findUnique({ where: { id: targetAssigneeId } }).catch(() => null)
+            : null;
+          if (!userExists) {
+            const firstUser = await prisma.user.findFirst({ where: { role: { not: 'CLIENT' } } }).catch(() => null);
+            if (firstUser) targetAssigneeId = firstUser.id;
+          }
+
           await prisma.task.create({
             data: {
               id: newTask.id,
               tenantId: newTask.tenantId,
               projectId: newTask.projectId || null,
-              clientId: newTask.clientId,
+              clientId: targetClientId,
               title: newTask.title,
               description: newTask.description || newTask.title,
               status: (newTask.status as any) || 'BACKLOG',
               priority: (newTask.priority as any) || 'MEDIUM',
-              assignedToId: newTask.assignedToId || 'usr_super_admin',
+              assignedToId: targetAssigneeId,
               slaDeadline: new Date(newTask.slaDeadline || Date.now() + 86400000),
               dueDate: new Date(newTask.dueDate || Date.now() + 86400000),
               isRecurring: newTask.isRecurring || false,
@@ -1311,11 +1336,6 @@ export class AppStore {
   }
 
   public async updateTask(taskId: string, data: Partial<Task>): Promise<Task> {
-    const index = this.tasks.findIndex((t) => t.id === taskId);
-    if (index === -1) throw new Error('Task not found');
-    this.tasks[index] = { ...this.tasks[index], ...data };
-    this.saveToFile();
-
     if (typeof window === 'undefined' && process.env.DATABASE_URL) {
       try {
         const { prisma } = require('@/lib/prisma');
@@ -1323,26 +1343,81 @@ export class AppStore {
           const updatePayload: any = {};
           if (data.title !== undefined) updatePayload.title = data.title;
           if (data.description !== undefined) updatePayload.description = data.description;
-          if (data.status !== undefined) updatePayload.status = data.status;
+          if (data.status !== undefined) {
+            updatePayload.status = data.status;
+            if (data.status === 'COMPLETED') {
+              updatePayload.completedAt = new Date();
+            } else if (data.completedAt !== undefined) {
+              updatePayload.completedAt = data.completedAt ? new Date(data.completedAt) : null;
+            }
+          }
           if (data.priority !== undefined) updatePayload.priority = data.priority;
-          if (data.assignedToId !== undefined) updatePayload.assignedToId = data.assignedToId;
+          if (data.assignedToId !== undefined) {
+            const userExists = await prisma.user.findUnique({ where: { id: data.assignedToId } }).catch(() => null);
+            if (userExists) {
+              updatePayload.assignedToId = data.assignedToId;
+            }
+          }
           if (data.dueDate !== undefined) updatePayload.dueDate = new Date(data.dueDate);
           if (data.slaDeadline !== undefined) updatePayload.slaDeadline = new Date(data.slaDeadline);
           if (data.deliverableUrl !== undefined) updatePayload.deliverableUrl = data.deliverableUrl;
+          if (data.deliverableType !== undefined) updatePayload.deliverableType = data.deliverableType;
           if (data.approvalStatus !== undefined) updatePayload.approvalStatus = data.approvalStatus;
           if (data.approvalComment !== undefined) updatePayload.approvalComment = data.approvalComment;
-          if (data.completedAt !== undefined) updatePayload.completedAt = data.completedAt ? new Date(data.completedAt) : null;
 
-          await prisma.task.update({
+          const updatedDb = await prisma.task.update({
             where: { id: taskId },
             data: updatePayload,
-          }).catch((err: any) => console.error('Prisma task.update error:', err));
+            include: { client: true, assignedTo: true },
+          }).catch((err: any) => {
+            console.error('Prisma task.update error:', err);
+            return null;
+          });
+
+          if (updatedDb) {
+            const index = this.tasks.findIndex((t) => t.id === taskId);
+            if (index !== -1) {
+              this.tasks[index] = {
+                ...this.tasks[index],
+                ...data,
+                status: updatedDb.status,
+                completedAt: updatedDb.completedAt?.toISOString(),
+              };
+            }
+            this.saveToFile();
+            return {
+              id: updatedDb.id,
+              tenantId: updatedDb.tenantId,
+              clientId: updatedDb.clientId,
+              clientName: updatedDb.client?.businessName || 'Client Account',
+              projectId: updatedDb.projectId || undefined,
+              title: updatedDb.title,
+              description: updatedDb.description,
+              status: updatedDb.status,
+              priority: updatedDb.priority,
+              assignedToId: updatedDb.assignedToId,
+              assignedToName: updatedDb.assignedTo?.name || 'Assigned User',
+              slaDeadline: updatedDb.slaDeadline.toISOString(),
+              dueDate: updatedDb.dueDate.toISOString(),
+              completedAt: updatedDb.completedAt?.toISOString(),
+              isRecurring: updatedDb.isRecurring || false,
+              createdAt: updatedDb.createdAt.toISOString(),
+            };
+          }
         }
       } catch (e) {
         console.error('Failed to update task in Neon:', e);
       }
     }
 
+    let index = this.tasks.findIndex((t) => t.id === taskId);
+    if (index === -1) {
+      await this.syncFromDb();
+      index = this.tasks.findIndex((t) => t.id === taskId);
+    }
+    if (index === -1) throw new Error('Task not found');
+    this.tasks[index] = { ...this.tasks[index], ...data };
+    this.saveToFile();
     return this.tasks[index];
   }
 

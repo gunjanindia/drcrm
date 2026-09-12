@@ -99,13 +99,19 @@ export default function TasksPage() {
     );
 
     try {
-      await fetch('/api/tasks', {
+      const res = await fetch('/api/tasks', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: taskId, status: newStatus }),
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.error('Failed to persist task status:', data?.error);
+        fetchAllTasks();
+      }
     } catch (err) {
       console.error('Failed to update task status:', err);
+      fetchAllTasks();
     }
   };
 
@@ -122,7 +128,7 @@ export default function TasksPage() {
     );
 
     try {
-      await fetch('/api/tasks', {
+      const res = await fetch('/api/tasks', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -131,8 +137,14 @@ export default function TasksPage() {
           assignedToName: user.name,
         }),
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.error('Failed to persist task reassignment:', data?.error);
+        fetchAllTasks();
+      }
     } catch (err) {
       console.error('Failed to reassign task:', err);
+      fetchAllTasks();
     }
   };
 
