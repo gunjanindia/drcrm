@@ -54,10 +54,48 @@ export async function POST(request: Request) {
     const category = clientRecord?.category || 'Local Business';
     const rating = clientRecord?.averageRating || 4.8;
 
-    // 3. Load or generate existing reviews
-    let reviews: ClientReviewItem[] =
-      (clientRecord && (clientRecord as any).reviews) ||
-      generateDynamicReviewsForBusiness(businessName, category, city, rating);
+    // 3. Load existing reviews from PostgreSQL TimelineActivity or client body or globalStore
+    let reviews: ClientReviewItem[] = [];
+
+    if (process.env.DATABASE_URL && prisma && clientRecord) {
+      try {
+        const storedReviewsActivity = await prisma.timelineActivity.findFirst({
+          where: {
+            clientId: clientRecord.id,
+            type: 'GBP_REVIEWS_DATA',
+          },
+          orderBy: { timestamp: 'desc' },
+        });
+
+        if (storedReviewsActivity && storedReviewsActivity.description) {
+          const parsed = JSON.parse(storedReviewsActivity.description);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            reviews = parsed;
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching GBP_REVIEWS_DATA from DB for reply:', e);
+      }
+    }
+
+    if (reviews.length === 0 && Array.isArray(body.currentReviews) && body.currentReviews.length > 0) {
+      reviews = body.currentReviews;
+    }
+
+    if (reviews.length === 0 && clientRecord && (clientRecord as any).reviews?.length > 0) {
+      reviews = (clientRecord as any).reviews;
+    }
+
+    if (reviews.length === 0) {
+      const storeClient = globalStore.clients.find((c) => c.id === clientRecord?.id);
+      if (storeClient && (storeClient as any).reviews?.length > 0) {
+        reviews = (storeClient as any).reviews;
+      }
+    }
+
+    if (reviews.length === 0) {
+      reviews = generateDynamicReviewsForBusiness(businessName, category, city, rating);
+    }
 
     // 4. Update the targeted review with official reply
     const nowStr = new Date().toLocaleDateString('en-US', {
@@ -99,9 +137,21 @@ export async function POST(request: Request) {
       });
     }
 
-    // 5. Persist to Neon PostgreSQL
+    // 5. Persist updated reviews list & activity to Neon PostgreSQL
     if (process.env.DATABASE_URL && prisma && clientRecord) {
       try {
+        // Save the updated reviews array into TimelineActivity so subsequent reloads retain the reply
+        await prisma.timelineActivity.create({
+          data: {
+            clientId: clientRecord.id,
+            type: 'GBP_REVIEWS_DATA',
+            title: `Google Maps Reviews Snapshot (${reviews.length} reviews)`,
+            description: JSON.stringify(reviews),
+            actorName: googleEmail || session?.email || `${businessName} Owner`,
+            timestamp: new Date(),
+          },
+        }).catch((e) => console.error('Failed to update GBP_REVIEWS_DATA in DB:', e));
+
         // Record timeline activity in CRM
         await prisma.timelineActivity.create({
           data: {

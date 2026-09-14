@@ -62,6 +62,7 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
 
   // Step 3: Verified Final Profile
   const [finalProfile, setFinalProfile] = useState<SyncedBusinessProfile | null>(null);
+  const [isSavingSync, setIsSavingSync] = useState(false);
 
   // Listen for Google OAuth callback postMessage
   useEffect(() => {
@@ -253,9 +254,47 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
     setStep(3);
   };
 
-  const handleApplyLiveSync = () => {
+  const handleApplyLiveSync = async () => {
     if (!finalProfile) return;
 
+    setIsSavingSync(true);
+
+    try {
+      // 1. Persist to PostgreSQL database & globalStore
+      const res = await fetch('/api/portal/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: finalProfile.clientId,
+          businessName: finalProfile.businessName,
+          category: finalProfile.category,
+          city: finalProfile.city,
+          address: finalProfile.address,
+          phone: finalProfile.phone,
+          whatsapp: finalProfile.whatsapp,
+          googleMapsUrl: finalProfile.googleMapsUrl,
+          placeId: finalProfile.placeId,
+          averageRating: finalProfile.averageRating,
+          rating: finalProfile.averageRating,
+          reviewCount: finalProfile.reviewCount,
+          photosCount: finalProfile.photosCount,
+          gbpScore: finalProfile.gbpScore,
+          googleOwnerEmail: finalProfile.googleOwnerEmail,
+          googleAccountName: finalProfile.googleAccountName,
+          reviews: finalProfile.reviews,
+        }),
+      });
+
+      if (!res.ok) {
+        console.warn('Server sync returned non-OK status, proceeding with local save.');
+      }
+    } catch (err) {
+      console.error('Failed to sync with server, saving locally:', err);
+    } finally {
+      setIsSavingSync(false);
+    }
+
+    // 2. Persist to client localStorage & trigger reactive event
     saveSyncedBusinessProfile(finalProfile);
 
     try {
@@ -569,9 +608,11 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
                 variant="success"
                 size="md"
                 icon={Sparkles}
+                isLoading={isSavingSync}
+                disabled={isSavingSync}
                 onClick={handleApplyLiveSync}
               >
-                Apply Live Data & Activate Portal
+                {isSavingSync ? 'Saving to Database...' : 'Apply Live Data & Activate Portal'}
               </Button>
             </div>
           </div>

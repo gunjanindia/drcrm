@@ -32,19 +32,42 @@ export const PortalProfileProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const refreshProfile = useCallback(async (): Promise<SyncedBusinessProfile> => {
     setIsLoading(true);
+    const localProfile = getSyncedBusinessProfile();
+
     try {
       const serverProfile = await fetchPortalProfileFromServer();
-      if (serverProfile && serverProfile.businessName) {
-        setProfile(serverProfile);
-        saveSyncedBusinessProfile(serverProfile);
+      if (serverProfile && serverProfile.businessName && serverProfile.businessName !== 'Your Business Name') {
+        // If server profile has real reviews or local is empty, accept server profile
+        let finalMerged = serverProfile;
+        if (
+          (!serverProfile.reviews || serverProfile.reviews.length === 0) &&
+          localProfile.isLiveSynced &&
+          localProfile.reviews &&
+          localProfile.reviews.length > 0 &&
+          localProfile.businessName.toLowerCase() === serverProfile.businessName.toLowerCase()
+        ) {
+          finalMerged = {
+            ...serverProfile,
+            reviews: localProfile.reviews,
+            isLiveSynced: true,
+          };
+          // Sync merged back to server in background
+          fetch('/api/portal/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(finalMerged),
+          }).catch(() => null);
+        }
+
+        setProfile(finalMerged);
+        saveSyncedBusinessProfile(finalMerged);
         setIsLoading(false);
-        return serverProfile;
+        return finalMerged;
       }
     } catch (e) {
       console.error('Failed to load portal profile from server:', e);
     }
 
-    const localProfile = getSyncedBusinessProfile();
     setProfile(localProfile);
     setIsLoading(false);
     return localProfile;
@@ -83,6 +106,7 @@ export const PortalProfileProvider: React.FC<{ children: React.ReactNode }> = ({
           replyText,
           authorName,
           googleEmail: profile.googleOwnerEmail,
+          currentReviews: profile.reviews,
         }),
       });
 

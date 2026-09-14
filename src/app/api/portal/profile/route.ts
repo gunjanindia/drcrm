@@ -97,7 +97,74 @@ export async function GET(request: Request) {
     const reviewCount = typeof clientRecord.reviewCount === 'number' ? clientRecord.reviewCount : 0;
     const gbpScore = typeof clientRecord.gbpScore === 'number' ? clientRecord.gbpScore : 80;
     const photosCount = 12;
-    const isPaused = clientRecord.status === 'PAUSED' || clientRecord.status === 'CHURNED';
+
+    // Resolve reviews: Check persistent TimelineActivity in Neon PostgreSQL first
+    let reviewsToUse: any[] = [];
+
+    if (process.env.DATABASE_URL && prisma) {
+      try {
+        const storedReviewsActivity = await prisma.timelineActivity.findFirst({
+          where: {
+            clientId: clientRecord.id,
+            type: 'GBP_REVIEWS_DATA',
+          },
+          orderBy: { timestamp: 'desc' },
+        });
+
+        if (storedReviewsActivity && storedReviewsActivity.description) {
+          const parsed = JSON.parse(storedReviewsActivity.description);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            reviewsToUse = parsed;
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching GBP_REVIEWS_DATA for profile:', e);
+      }
+    }
+
+    // Check clientRecord.reviews in memory / globalStore
+    if (reviewsToUse.length === 0) {
+      if (Array.isArray((clientRecord as any).reviews) && (clientRecord as any).reviews.length > 0) {
+        reviewsToUse = (clientRecord as any).reviews;
+      } else {
+        const storeClient = globalStore.clients.find((c) => c.id === clientRecord.id);
+        if (storeClient && Array.isArray((storeClient as any).reviews) && (storeClient as any).reviews.length > 0) {
+          reviewsToUse = (storeClient as any).reviews;
+        }
+      }
+    }
+
+    // Check AuditRecord in DB if synced previously via audit engine
+    if (reviewsToUse.length === 0 && process.env.DATABASE_URL && prisma) {
+      try {
+        const auditRec = await prisma.auditRecord.findFirst({
+          where: {
+            OR: [
+              { businessName: { contains: clientRecord.businessName, mode: 'insensitive' } },
+              ...(clientRecord.googleMapsUrl ? [{ googleMapsUrl: clientRecord.googleMapsUrl }] : []),
+              ...(clientRecord.phone ? [{ phone: { contains: clientRecord.phone.slice(-10) } }] : []),
+            ],
+          },
+          orderBy: { scannedAt: 'desc' },
+        });
+
+        if (auditRec && auditRec.matchedPlace) {
+          const mp = auditRec.matchedPlace as any;
+          if (Array.isArray(mp.reviews) && mp.reviews.length > 0) {
+            const { convertGoogleReviewsToClientReviews } = await import('@/lib/client-portal-sync');
+            reviewsToUse = convertGoogleReviewsToClientReviews(mp.reviews, clientRecord.businessName);
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching reviews from AuditRecord in DB:', e);
+      }
+    }
+
+    if (!reviewsToUse || reviewsToUse.length === 0) {
+      reviewsToUse = generateDynamicReviewsForBusiness(clientRecord.businessName, clientRecord.category, clientRecord.city, rating);
+    }
+
+    const isPaused = clientRecord.status === 'PAUSED';
 
     const profile: SyncedBusinessProfile = {
       clientId: clientRecord.id,
@@ -125,7 +192,7 @@ export async function GET(request: Request) {
       syncedAt: 'Stored in CRM Database',
       status: clientRecord.status || 'ACTIVE',
       isOperational: !isPaused,
-      reviews: generateDynamicReviewsForBusiness(clientRecord.businessName, clientRecord.category, clientRecord.city, rating),
+      reviews: reviewsToUse,
       growthMetrics: generateDynamicGrowthForBusiness(reviewCount, rating),
       auditFactors: generateDynamicAuditFactorsForBusiness(
         clientRecord.businessName,
