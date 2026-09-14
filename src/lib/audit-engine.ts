@@ -191,6 +191,8 @@ export async function runDigitalPresenceAudit(
       isOperational: placeResult.isOperational,
       hasWebsite: placeResult.hasWebsite,
       matchedCategory: placeResult.matchedCategory,
+      phone: placeResult.phone,
+      reviews: placeResult.reviews,
     } : undefined,
     candidates: placeResult.candidates,
     breakdown,

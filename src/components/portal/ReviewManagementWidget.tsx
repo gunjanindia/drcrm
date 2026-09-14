@@ -48,6 +48,12 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   const [filterRating, setFilterRating] = useState<number | 'all'>('all');
   const [postingToGoogleId, setPostingToGoogleId] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (initialReviews && initialReviews.length > 0) {
+      setReviewsList(initialReviews);
+    }
+  }, [initialReviews]);
+
   const handleGenerateReply = (rev: ClientReviewItem) => {
     if (onDeductPoints) {
       const ok = onDeductPoints(1);

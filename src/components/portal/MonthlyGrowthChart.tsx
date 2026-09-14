@@ -21,7 +21,7 @@ export interface MonthlyGrowthChartProps {
 
 export const MonthlyGrowthChart: React.FC<MonthlyGrowthChartProps> = ({
   metrics = DEFAULT_MONTHLY_GROWTH,
-  businessName = 'Ranchi Dental Care',
+  businessName = 'Your Verified Business',
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<'all' | 'calls' | 'visits' | 'appointments' | 'rank'>('all');
   const [timeRange, setTimeRange] = useState<'3m' | '6m'>('6m');

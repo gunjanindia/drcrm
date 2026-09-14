@@ -28,8 +28,8 @@ export interface DigitalHealthAuditCardProps {
 }
 
 export const DigitalHealthAuditCard: React.FC<DigitalHealthAuditCardProps> = ({
-  businessName = 'Ranchi Dental Care',
-  category = 'Dental Clinic',
+  businessName = 'Your Verified Business',
+  category = 'Local Business',
   city = 'Ranchi',
   factors = DEFAULT_AUDIT_FACTORS,
   onActionTrigger,

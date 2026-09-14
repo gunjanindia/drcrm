@@ -41,6 +41,12 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = ({
   const [isSaved, setIsSaved] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
 
+  React.useEffect(() => {
+    if (initialConfig) {
+      setSiteConfig(initialConfig);
+    }
+  }, [initialConfig]);
+
   const sitePublicUrl = `https://digitalranchi.in/s/${siteConfig.customSlug}`;
 
   const handleCategoryTemplateChange = (catId: BusinessCategoryType) => {

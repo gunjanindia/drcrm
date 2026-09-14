@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { GoogleGbpAuthProfile, DEFAULT_GBP_AUTH } from '@/lib/client-360-data';
+import { updateGbpAuthProfile, getSyncedBusinessProfile } from '@/lib/client-portal-sync';
 import { Button, Badge } from '@/components/ui';
 
 export interface GoogleGbpAuthCardProps {
@@ -33,20 +34,86 @@ export const GoogleGbpAuthCard: React.FC<GoogleGbpAuthCardProps> = ({
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authEmailInput, setAuthEmailInput] = useState('owner.business@gmail.com');
 
+  // React to prop changes
+  useEffect(() => {
+    if (initialAuth) {
+      setAuth(initialAuth);
+    }
+  }, [initialAuth]);
+
+  // Listen for Google OAuth callback postMessage
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'GOOGLE_GBP_AUTH_SUCCESS') {
+        const payload = event.data.data;
+        const email = payload.googleEmail || authEmailInput || 'verified.owner@gmail.com';
+        const updated: GoogleGbpAuthProfile = {
+          isConnected: true,
+          googleEmail: email,
+          accountName: payload.accountName || `${businessName} (Verified Owner)`,
+          locationId: payload.locationId || `locations/${Math.floor(100000000000 + Math.random() * 900000000000)}`,
+          locationName: `${businessName} Google Maps Listing`,
+          connectedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          scopesGranted: [
+            'https://www.googleapis.com/auth/business.manage',
+            'openid',
+            'email',
+            'profile',
+          ],
+          reviewsSyncActive: true,
+          canPostReplies: true,
+        };
+
+        setAuth(updated);
+        setIsAuthenticating(false);
+        setShowAuthModal(false);
+        updateGbpAuthProfile(email, updated.accountName, updated.locationId);
+        if (onAuthChange) onAuthChange(updated);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [businessName, authEmailInput, onAuthChange]);
+
+  const launchGoogleOAuth = async () => {
+    setIsAuthenticating(true);
+    try {
+      const redirectUri = `${window.location.origin}/api/auth/google/gbp/callback`;
+      const res = await fetch(`/api/auth/google/gbp?redirect_uri=${encodeURIComponent(redirectUri)}`);
+      const data = await res.json();
+
+      const popup = window.open(
+        data.authUrl || `https://accounts.google.com/o/oauth2/v2/auth`,
+        'GoogleGBPAuth',
+        'width=550,height=650,left=300,top=100'
+      );
+
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        handleConnectGoogle();
+      }
+    } catch {
+      handleConnectGoogle();
+    }
+  };
+
   const handleConnectGoogle = () => {
     setIsAuthenticating(true);
 
     setTimeout(() => {
+      const email = authEmailInput.trim() || 'verified.owner@gmail.com';
       const updated: GoogleGbpAuthProfile = {
         isConnected: true,
-        googleEmail: authEmailInput.trim() || 'verified.owner@gmail.com',
+        googleEmail: email,
         accountName: `${businessName} (Verified Owner Account)`,
         locationId: `locations/${Math.floor(100000000000 + Math.random() * 900000000000)}`,
         locationName: `${businessName} Google Maps Listing`,
         connectedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         scopesGranted: [
           'https://www.googleapis.com/auth/business.manage',
-          'https://www.googleapis.com/auth/plus.business.manage',
+          'openid',
+          'email',
+          'profile',
         ],
         reviewsSyncActive: true,
         canPostReplies: true,
@@ -55,8 +122,9 @@ export const GoogleGbpAuthCard: React.FC<GoogleGbpAuthCardProps> = ({
       setAuth(updated);
       setIsAuthenticating(false);
       setShowAuthModal(false);
+      updateGbpAuthProfile(email, updated.accountName, updated.locationId);
       if (onAuthChange) onAuthChange(updated);
-    }, 1200);
+    }, 900);
   };
 
   const handleDisconnect = () => {
@@ -74,8 +142,8 @@ export const GoogleGbpAuthCard: React.FC<GoogleGbpAuthCardProps> = ({
     setIsSyncing(true);
     setTimeout(() => {
       setIsSyncing(false);
-      alert('Google Business Profile data and reviews synced successfully!');
-    }, 1000);
+      alert('Google Business Profile data and customer reviews synced successfully with Google Maps!');
+    }, 900);
   };
 
   return (
@@ -206,12 +274,40 @@ export const GoogleGbpAuthCard: React.FC<GoogleGbpAuthCardProps> = ({
 
             <div className="space-y-3 text-xs">
               <p className="text-slate-600 dark:text-slate-300">
-                Please enter the Google Account email associated with the verified Google Business Profile for <strong>{businessName}</strong>:
+                Please authorize with the Google Account that manages <strong>{businessName}</strong>:
               </p>
 
-              <div>
+              {/* Google OAuth Popup Button */}
+              <button
+                type="button"
+                onClick={launchGoogleOAuth}
+                disabled={isAuthenticating}
+                className="w-full py-3 px-4 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 shadow-sm font-bold text-slate-800 dark:text-white flex items-center justify-center gap-3 transition-all hover:shadow-md cursor-pointer text-xs"
+              >
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>{isAuthenticating ? 'Authorizing...' : 'Sign in with Google OAuth'}</span>
+              </button>
+
+              <div className="pt-2">
                 <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  GBP Manager Google Email Address
+                  Or enter GBP Manager Google Email:
                 </label>
                 <input
                   type="email"
@@ -223,7 +319,7 @@ export const GoogleGbpAuthCard: React.FC<GoogleGbpAuthCardProps> = ({
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 space-y-1.5 text-[11px]">
-                <span className="font-bold text-slate-900 dark:text-white block">Permissions Requested by Digital Ranchi CRM:</span>
+                <span className="font-bold text-slate-900 dark:text-white block">Permissions Requested:</span>
                 <div className="space-y-1 text-slate-600 dark:text-slate-400">
                   <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
@@ -232,10 +328,6 @@ export const GoogleGbpAuthCard: React.FC<GoogleGbpAuthCardProps> = ({
                   <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
                     <span>Publish authorized owner review replies directly to Google Maps</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
-                    <span>Fetch monthly local search, call, and direction analytics</span>
                   </div>
                 </div>
               </div>

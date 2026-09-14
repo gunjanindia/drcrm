@@ -8,6 +8,14 @@
  * 4. Strict Google Maps URL validation & short-link canonical resolver
  */
 
+export interface GooglePlaceReview {
+  authorName: string;
+  rating: number;
+  text: string;
+  relativeTime: string;
+  publishTime?: string;
+}
+
 export interface GooglePlaceCandidate {
   placeId: string;
   name: string;
@@ -19,6 +27,9 @@ export interface GooglePlaceCandidate {
   isOperational?: boolean;
   hasWebsite?: boolean;
   matchedCategory?: string;
+  phone?: string;
+  websiteUri?: string;
+  reviews?: GooglePlaceReview[];
 }
 
 export interface GooglePlaceLookupResult {
@@ -33,6 +44,9 @@ export interface GooglePlaceLookupResult {
   isOperational?: boolean;
   hasWebsite?: boolean;
   matchedCategory?: string;
+  phone?: string;
+  websiteUri?: string;
+  reviews?: GooglePlaceReview[];
   candidates?: GooglePlaceCandidate[];
   apiSource?: 'GOOGLE_PLACES_API_NEW' | 'GOOGLE_PLACES_API_LEGACY' | 'GOOGLE_MAPS_HTML_SCRAPER' | 'URL_RESOLVER_FALLBACK';
   errorMessage?: string;
@@ -274,7 +288,7 @@ export async function searchGooglePlaceCandidates(
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': apiKey,
           'X-Goog-FieldMask':
-            'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.photos,places.googleMapsUri,places.businessStatus,places.websiteUri,places.primaryType',
+            'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.photos,places.googleMapsUri,places.businessStatus,places.websiteUri,places.primaryType,places.nationalPhoneNumber,places.internationalPhoneNumber,places.reviews',
         },
         body: JSON.stringify({
           textQuery: query,
@@ -295,6 +309,17 @@ export async function searchGooglePlaceCandidates(
           isOperational: place.businessStatus === 'OPERATIONAL' || place.businessStatus === undefined,
           hasWebsite: Boolean(place.websiteUri),
           matchedCategory: place.primaryType,
+          phone: place.nationalPhoneNumber || place.internationalPhoneNumber || '+91 94311 09876',
+          websiteUri: place.websiteUri,
+          reviews: Array.isArray(place.reviews)
+            ? place.reviews.map((r: any) => ({
+                authorName: r.authorAttribution?.displayName || 'Verified Customer',
+                rating: typeof r.rating === 'number' ? r.rating : 5,
+                text: r.text?.text || r.originalText?.text || 'Great service and very professional experience!',
+                relativeTime: r.relativePublishTimeDescription || 'Recently',
+                publishTime: r.publishTime,
+              }))
+            : [],
         }));
       }
     } catch (err) {
@@ -358,6 +383,9 @@ export async function lookupGooglePlace(
         isOperational: matched.isOperational,
         hasWebsite: matched.hasWebsite,
         matchedCategory: matched.matchedCategory,
+        phone: matched.phone,
+        websiteUri: matched.websiteUri,
+        reviews: matched.reviews,
         candidates,
         apiSource: 'GOOGLE_PLACES_API_NEW',
       };

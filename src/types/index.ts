@@ -364,6 +364,13 @@ export interface DigitalPresenceAuditResult {
     isOperational?: boolean;
     hasWebsite?: boolean;
     matchedCategory?: string;
+    phone?: string;
+    reviews?: Array<{
+      authorName: string;
+      rating: number;
+      text: string;
+      relativeTime: string;
+    }>;
   };
   candidates?: Array<{
     placeId: string;
@@ -492,6 +499,13 @@ export interface AuditRecord {
     isOperational?: boolean;
     hasWebsite?: boolean;
     matchedCategory?: string;
+    phone?: string;
+    reviews?: Array<{
+      authorName: string;
+      rating: number;
+      text: string;
+      relativeTime: string;
+    }>;
   };
   candidates?: Array<{
     placeId: string;

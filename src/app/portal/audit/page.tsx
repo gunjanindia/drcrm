@@ -35,6 +35,7 @@ export default function DigitalHealthAuditPage() {
         businessName={profile.businessName}
         category={profile.category}
         city={profile.city}
+        factors={profile.auditFactors}
       />
     </div>
   );

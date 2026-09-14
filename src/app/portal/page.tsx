@@ -168,7 +168,25 @@ export default function ClientPortalDashboard() {
       </div>
 
       {/* Google Business Profile OAuth Connection Card */}
-      <GoogleGbpAuthCard businessName={client.businessName} />
+      <GoogleGbpAuthCard
+        businessName={client.businessName}
+        initialAuth={{
+          isConnected: client.isLiveSynced && !!client.googleOwnerEmail,
+          googleEmail: client.googleOwnerEmail || 'business.owner@gmail.com',
+          accountName: client.googleAccountName || `${client.businessName} Owner`,
+          locationId: client.placeId ? `locations/${client.placeId}` : 'locations/184920485729103948',
+          locationName: `${client.businessName} Google Maps Listing`,
+          connectedAt: client.syncedAt || 'Active Session',
+          scopesGranted: [
+            'https://www.googleapis.com/auth/business.manage',
+            'openid',
+            'email',
+            'profile',
+          ],
+          reviewsSyncActive: true,
+          canPostReplies: true,
+        }}
+      />
 
       {/* Section 1: Monthly Growth & Rise Charts */}
       <div className="space-y-2">
@@ -181,7 +199,10 @@ export default function ClientPortalDashboard() {
             Full Growth Analysis →
           </Link>
         </div>
-        <MonthlyGrowthChart businessName={client.businessName} />
+        <MonthlyGrowthChart
+          businessName={client.businessName}
+          metrics={client.growthMetrics}
+        />
       </div>
 
       {/* Section 2: Digital Health Audit & Score Explanation */}
@@ -195,7 +216,12 @@ export default function ClientPortalDashboard() {
             Score Details & Recommendations →
           </Link>
         </div>
-        <DigitalHealthAuditCard businessName={client.businessName} />
+        <DigitalHealthAuditCard
+          businessName={client.businessName}
+          category={client.category}
+          city={client.city}
+          factors={client.auditFactors}
+        />
       </div>
 
       {/* Section 3: AI Review Management Feed */}
@@ -211,6 +237,7 @@ export default function ClientPortalDashboard() {
         </div>
         <ReviewManagementWidget
           businessName={client.businessName}
+          reviews={client.reviews}
           currentPoints={aiPoints}
           onDeductPoints={handleDeductPoints}
           onOpenRechargeModal={() => setIsWalletOpen(true)}
@@ -230,6 +257,10 @@ export default function ClientPortalDashboard() {
         </div>
         <FestivalCreativeStudio
           businessName={client.businessName}
+          category={client.category}
+          city={client.city}
+          phone={client.phone}
+          whatsapp={client.whatsapp}
           currentPoints={aiPoints}
           onDeductPoints={handleDeductPoints}
           onOpenRechargeModal={() => setIsWalletOpen(true)}

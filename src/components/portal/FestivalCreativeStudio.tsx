@@ -28,6 +28,7 @@ export interface FestivalCreativeStudioProps {
   businessName?: string;
   category?: string;
   phone?: string;
+  whatsapp?: string;
   address?: string;
   city?: string;
   currentPoints?: number;
@@ -39,6 +40,7 @@ export const FestivalCreativeStudio: React.FC<FestivalCreativeStudioProps> = ({
   businessName = 'Ranchi Prime Store',
   category = 'Retail Store',
   phone = '+91 94311 09876',
+  whatsapp,
   address = 'Shop 14, Main Road, Near Lalpur Chowk, Ranchi',
   city = 'Ranchi',
   currentPoints = 50,
