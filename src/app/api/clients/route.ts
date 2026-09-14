@@ -113,56 +113,77 @@ export async function POST(request: Request) {
       }
     }
 
-    if (!createdClient) {
-      const fallbackClient = {
-        id: `cli_${Date.now()}`,
-        tenantId: 'tenant_main',
-        businessName: businessName.trim(),
-        legalName: `${businessName.trim()} Pvt Ltd`,
-        category: category || 'Local Business',
-        phone: cleanPhone,
-        whatsapp: cleanPhone,
-        email: cleanEmail,
-        address: address || `${city || 'Ranchi'}, Jharkhand`,
-        city: city || 'Ranchi',
-        state: 'Jharkhand',
-        pincode: '834001',
-        googleMapsUrl: googleMapsUrl || undefined,
-        assignedManagerId: manager.id,
-        assignedManagerName: manager.name,
-        packageId: pkg.id,
-        packageName: pkg.name,
-        healthScore: 'GREEN' as const,
-        healthReason: 'Active account onboarded in CRM',
-        monthlyRevenue: pkg.price,
-        activeSince: new Date().toISOString(),
-        renewalDate: new Date(Date.now() + 30 * 86400000).toISOString(),
-        reviewCount: typeof reviewCount === 'number' ? reviewCount : 24,
-        averageRating: typeof averageRating === 'number' ? averageRating : 4.8,
-        gbpScore: typeof gbpScore === 'number' ? gbpScore : 82,
-        status: 'ACTIVE' as const,
-        createdAt: new Date().toISOString(),
+    // Always ensure client and client user exist in globalStore and file with passwordHash
+    const finalClientId = createdClient?.id || `cli_${Date.now()}`;
+    const storeClientRecord = {
+      id: finalClientId,
+      tenantId: 'tenant_main',
+      businessName: businessName.trim(),
+      legalName: `${businessName.trim()} Pvt Ltd`,
+      category: category || 'Local Business',
+      phone: cleanPhone,
+      whatsapp: cleanPhone,
+      email: cleanEmail,
+      address: address || `${city || 'Ranchi'}, Jharkhand`,
+      city: city || 'Ranchi',
+      state: 'Jharkhand',
+      pincode: '834001',
+      googleMapsUrl: googleMapsUrl || undefined,
+      assignedManagerId: manager.id,
+      assignedManagerName: manager.name,
+      packageId: pkg.id,
+      packageName: pkg.name,
+      healthScore: 'GREEN' as const,
+      healthReason: 'Active account provisioned with Client 360 portal',
+      monthlyRevenue: pkg.price,
+      activeSince: new Date().toISOString(),
+      renewalDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+      reviewCount: typeof reviewCount === 'number' ? reviewCount : 24,
+      averageRating: typeof averageRating === 'number' ? averageRating : 4.8,
+      gbpScore: typeof gbpScore === 'number' ? gbpScore : 82,
+      status: 'ACTIVE' as const,
+      createdAt: new Date().toISOString(),
+    };
+
+    const existingClientIdx = globalStore.clients.findIndex(
+      (c) => c.id === finalClientId || c.email.toLowerCase() === cleanEmail
+    );
+    if (existingClientIdx !== -1) {
+      globalStore.clients[existingClientIdx] = {
+        ...globalStore.clients[existingClientIdx],
+        ...storeClientRecord,
       };
-
-      globalStore.clients.unshift(fallbackClient);
-
-      // Create linked client user in store
-      globalStore.users.unshift({
-        id: `usr_${fallbackClient.id}`,
-        tenantId: 'tenant_main',
-        name: contactName?.trim() || businessName.trim(),
-        email: cleanEmail,
-        phone: cleanPhone,
-        role: 'CLIENT',
-        clientId: fallbackClient.id,
-        department: 'Client Portal',
-        passwordHash,
-        createdAt: new Date().toISOString(),
-      });
-
-      globalStore.saveToFile();
-      createdClient = fallbackClient;
+    } else {
+      globalStore.clients.unshift(storeClientRecord);
     }
+
+    const storeUserRecord = {
+      id: `usr_${finalClientId}`,
+      tenantId: 'tenant_main',
+      name: contactName?.trim() || businessName.trim(),
+      email: cleanEmail,
+      phone: cleanPhone,
+      role: 'CLIENT' as const,
+      clientId: finalClientId,
+      department: 'Client Portal',
+      passwordHash,
+      createdAt: new Date().toISOString(),
+    };
+
+    const existingUserIdx = globalStore.users.findIndex(
+      (u) => u.email.toLowerCase() === cleanEmail || u.clientId === finalClientId
+    );
+    if (existingUserIdx !== -1) {
+      globalStore.users[existingUserIdx] = {
+        ...globalStore.users[existingUserIdx],
+        ...storeUserRecord,
+      };
+    } else {
+      globalStore.users.unshift(storeUserRecord);
+    }
+
+    globalStore.saveToFile();
+    if (!createdClient) createdClient = storeClientRecord;
 
     return NextResponse.json({
       success: true,
