@@ -66,6 +66,23 @@
   ],
   "clients": [
     {
+      "id": "cmu1nicyo000004jwufhx59o8",
+      "tenantId": "tenant_main",
+      "businessName": "Life in Lights Academy",
+      "clientType": "BUSINESS",
+      "contactPerson": "Naresh Kumar",
+      "email": "contactnareshonline@gmail.com",
+      "phone": "+91 83404 69107",
+      "whatsapp": "+91 83404 69107",
+      "city": "Dhanbad",
+      "category": "Coaching & EdTech",
+      "status": "ACTIVE",
+      "plan": "GROWTH",
+      "gbpConnected": true,
+      "placeId": "ChIJgUb9xdQ19zgR4-5o_b06r88",
+      "createdAt": "2026-09-14T19:53:51.945Z"
+    },
+    {
       "id": "cli_dw7ha4o_mtilgl58",
       "tenantId": "tenant_main",
       "leadId": "lead_1j94cj8_mtile471",
@@ -1557,6 +1574,18 @@
     }
   ],
   "users": [
+    {
+      "id": "cmu1nid1l000104jwpba9p71i",
+      "tenantId": "tenant_main",
+      "name": "Naresh Kumar",
+      "email": "contactnareshonline@gmail.com",
+      "phone": "+91 83404 69107",
+      "passwordHash": "$2b$12$FV.UAUDqofgE9z4dZr6izuCAASvZ8cuTwlo4CeJzGyYyinuTq6tZm",
+      "role": "CLIENT",
+      "department": "Client Portal",
+      "clientId": "cmu1nicyo000004jwufhx59o8",
+      "createdAt": "2026-09-14T19:53:51.943Z"
+    },
     {
       "id": "usr_super_admin",
       "tenantId": "tenant_main",

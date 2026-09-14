@@ -10,7 +10,7 @@ export default function RecurringEnginePage() {
   const [isRunning, setIsRunning] = useState(false);
   const [lastRunSummary, setLastRunSummary] = useState<string | null>(null);
 
-  const premiumClients = globalStore.clients.filter((c) => c.packageName.includes('Premium'));
+  const premiumClients = globalStore.clients.filter((c) => (c.packageName || '').includes('Premium') || (c.packageName || '').includes('Retainer') || (c as any).plan === 'ENTERPRISE');
 
   const handleTriggerRecurrenceCycle = () => {
     setIsRunning(true);

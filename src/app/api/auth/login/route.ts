@@ -6,11 +6,14 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, password } = body;
 
+    console.log('[API Login] Incoming login attempt:', { email, passwordLength: password?.length });
+
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
     const authResult = await authenticateWithCredentials(email, password);
+    console.log('[API Login] authResult:', authResult ? { userId: authResult.user.id, role: authResult.user.role } : null);
     if (!authResult) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }

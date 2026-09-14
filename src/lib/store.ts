@@ -19,7 +19,18 @@ import {
 } from '@/types';
 import { initialTaxConfig, globalTaxEngine } from './tax-engine';
 import { generateId } from './utils';
-import { prisma } from './prisma';
+
+async function getPrisma() {
+  if (typeof window === 'undefined') {
+    try {
+      const { prisma } = await import('./prisma');
+      return prisma;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 export const defaultSiteSettings: SiteSettings = {
   brandName: 'DIGITAL RANCHI',
@@ -557,11 +568,10 @@ export class AppStore {
 
 
   public async syncFromDb() {
-    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+    const prisma = await getPrisma();
+    if (prisma) {
       try {
-        const { prisma } = require('@/lib/prisma');
-        if (prisma) {
-          const [dbUsers, dbClients, dbLeads, dbTasks, dbProjects, dbServices, dbPackages, dbTax, dbSiteSettings, dbAuditRecords] = await Promise.all([
+        const [dbUsers, dbClients, dbLeads, dbTasks, dbProjects, dbServices, dbPackages, dbTax, dbSiteSettings, dbAuditRecords] = await Promise.all([
             prisma.user.findMany().catch(() => []),
             prisma.client.findMany().catch(() => []),
             prisma.lead.findMany({ orderBy: { createdAt: 'desc' } }).catch(() => []),
@@ -757,7 +767,6 @@ export class AppStore {
             const localOnly = this.tasks.filter((t) => !dbTaskIds.has(t.id));
             this.tasks = [...mappedDbTasks, ...localOnly];
           }
-        }
       } catch (e) {
         console.error('Database sync error:', e);
       }
@@ -778,11 +787,10 @@ export class AppStore {
     this.saveToFile();
 
     // Await persist to Neon PostgreSQL
-    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+    const prisma = await getPrisma();
+    if (prisma) {
       try {
-        const { prisma } = require('@/lib/prisma');
-        if (prisma) {
-          await prisma.lead.create({
+        await prisma.lead.create({
             data: {
               id: newLead.id,
               tenantId: newLead.tenantId,
@@ -804,7 +812,6 @@ export class AppStore {
               auditScore: newLead.auditScore || null,
             },
           });
-        }
       } catch (e) {
         console.error('Failed to persist createLead to Neon:', e);
       }
@@ -824,11 +831,10 @@ export class AppStore {
     this.saveToFile();
 
     // Await update to Neon PostgreSQL
-    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+    const prisma = await getPrisma();
+    if (prisma) {
       try {
-        const { prisma } = require('@/lib/prisma');
-        if (prisma) {
-          const updatePayload: any = {};
+        const updatePayload: any = {};
           if (data.businessName !== undefined) updatePayload.businessName = data.businessName;
           if (data.contactName !== undefined) updatePayload.contactName = data.contactName;
           if (data.phone !== undefined) updatePayload.phone = data.phone;
@@ -849,7 +855,6 @@ export class AppStore {
             where: { id: leadId },
             data: updatePayload,
           });
-        }
       } catch (e) {
         console.error('Failed to update lead in Neon:', e);
       }
@@ -865,14 +870,12 @@ export class AppStore {
     }
     this.saveToFile();
 
-    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+    const prisma = await getPrisma();
+    if (prisma) {
       try {
-        const { prisma } = require('@/lib/prisma');
-        if (prisma) {
-          await prisma.lead.delete({
+        await prisma.lead.delete({
             where: { id: leadId },
           }).catch(() => null);
-        }
       } catch (e) {
         console.error('Failed to delete lead from Neon:', e);
       }
@@ -1060,11 +1063,10 @@ export class AppStore {
     this.saveToFile();
 
     // Persist to Neon PostgreSQL
-    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+    const prisma = await getPrisma();
+    if (prisma) {
       try {
-        const { prisma } = require('@/lib/prisma');
-        if (prisma) {
-          // 1. Ensure Tenant exists
+        // 1. Ensure Tenant exists
           await prisma.tenant.upsert({
             where: { domain: 'digitalranchi.in' },
             update: {},
@@ -1087,6 +1089,7 @@ export class AppStore {
                 name: manager.name,
                 email: manager.email,
                 phone: manager.phone,
+                passwordHash: manager.passwordHash || '$2b$12$e8w3/0M16Hn1Yq0Z2gqgSu3UFSYuS9/G.XTPorPAwFKQebgbEq.',
                 role: (manager.role as any) || 'ACCOUNT_MANAGER',
                 department: manager.department || 'Client Success',
               },
@@ -1103,6 +1106,7 @@ export class AppStore {
                 name: assignee.name,
                 email: assignee.email,
                 phone: assignee.phone,
+                passwordHash: assignee.passwordHash || '$2b$12$e8w3/0M16Hn1Yq0Z2gqgSu3UFSYuS9/G.XTPorPAwFKQebgbEq.',
                 role: (assignee.role as any) || 'DELIVERY_EXECUTIVE',
                 department: assignee.department || 'GBP & Local SEO',
               },
@@ -1225,7 +1229,6 @@ export class AppStore {
               },
             },
           }).catch((err: any) => console.error('Prisma invoice.upsert error:', err));
-        }
       } catch (e) {
         console.error('Failed to persist convertLeadToClient in Neon:', e);
       }
@@ -1286,11 +1289,10 @@ export class AppStore {
     this.tasks.unshift(newTask);
     this.saveToFile();
 
-    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+    const prisma = await getPrisma();
+    if (prisma) {
       try {
-        const { prisma } = require('@/lib/prisma');
-        if (prisma) {
-          // Check if clientId exists in database, fallback to first available client
+        // Check if clientId exists in database, fallback to first available client
           let targetClientId = newTask.clientId;
           const clientExists = targetClientId
             ? await prisma.client.findUnique({ where: { id: targetClientId } }).catch(() => null)
@@ -1326,7 +1328,6 @@ export class AppStore {
               isRecurring: newTask.isRecurring || false,
             },
           }).catch((err: any) => console.error('Prisma task.create error:', err));
-        }
       } catch (e) {
         console.error('Failed to persist createTask to Neon:', e);
       }
@@ -1336,11 +1337,10 @@ export class AppStore {
   }
 
   public async updateTask(taskId: string, data: Partial<Task>): Promise<Task> {
-    if (typeof window === 'undefined' && process.env.DATABASE_URL) {
+    const prisma = await getPrisma();
+    if (prisma) {
       try {
-        const { prisma } = require('@/lib/prisma');
-        if (prisma) {
-          const updatePayload: any = {};
+        const updatePayload: any = {};
           if (data.title !== undefined) updatePayload.title = data.title;
           if (data.description !== undefined) updatePayload.description = data.description;
           if (data.status !== undefined) {
@@ -1404,7 +1404,6 @@ export class AppStore {
               createdAt: updatedDb.createdAt.toISOString(),
             };
           }
-        }
       } catch (e) {
         console.error('Failed to update task in Neon:', e);
       }

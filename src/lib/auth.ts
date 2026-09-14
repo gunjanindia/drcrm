@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { User, UserRole } from '@/types';
 import { globalStore } from './store';
+import { prisma } from './prisma';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'digital_ranchi_os_super_secret_jwt_signing_key_32_chars'
@@ -62,99 +63,97 @@ export async function authenticateWithCredentials(
   const isPhone = hasDigits && !cleanIdentifier.includes('@');
 
   let user: User | null = null;
+  console.log('[auth.ts] authenticateWithCredentials for:', { cleanIdentifier, isPhone });
 
   // 1. Direct Prisma Database query if available
-  if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL && prisma) {
     try {
-      const { prisma } = require('@/lib/prisma');
-      if (prisma) {
-        // A. Search in User table
-        const userWhere = hasDigits
+      // A. Search in User table
+      const userWhere = hasDigits
+        ? {
+            OR: [
+              { email: { equals: cleanIdentifier, mode: 'insensitive' as const } },
+              { phone: { contains: last10Digits } },
+              { email: { contains: last10Digits } },
+            ],
+          }
+        : { email: { equals: cleanIdentifier, mode: 'insensitive' as const } };
+
+      const dbUser = await prisma.user.findFirst({
+        where: userWhere,
+      });
+
+      if (dbUser) {
+        user = {
+          id: dbUser.id,
+          tenantId: dbUser.tenantId,
+          name: dbUser.name,
+          email: dbUser.email,
+          phone: dbUser.phone,
+          role: dbUser.role as UserRole,
+          department: dbUser.department || undefined,
+          avatarUrl: dbUser.avatarUrl || undefined,
+          clientId: dbUser.clientId || undefined,
+          passwordHash: dbUser.passwordHash,
+          createdAt: dbUser.createdAt ? new Date(dbUser.createdAt).toISOString() : new Date().toISOString(),
+        };
+      }
+
+      // B. If not found in User table, search in Client table
+      if (!user) {
+        const clientWhere = hasDigits
           ? {
               OR: [
-                { email: cleanIdentifier },
+                { email: { equals: cleanIdentifier, mode: 'insensitive' as const } },
                 { phone: { contains: last10Digits } },
-                { email: { contains: last10Digits } },
+                { whatsapp: { contains: last10Digits } },
               ],
             }
-          : { email: cleanIdentifier };
+          : { email: { equals: cleanIdentifier, mode: 'insensitive' as const } };
 
-        const dbUser = await prisma.user.findFirst({
-          where: userWhere,
+        const dbClient = await prisma.client.findFirst({
+          where: clientWhere,
         });
 
-        if (dbUser) {
-          user = {
-            id: dbUser.id,
-            tenantId: dbUser.tenantId,
-            name: dbUser.name,
-            email: dbUser.email,
-            phone: dbUser.phone,
-            role: dbUser.role as UserRole,
-            department: dbUser.department || undefined,
-            avatarUrl: dbUser.avatarUrl || undefined,
-            clientId: dbUser.clientId || undefined,
-            passwordHash: dbUser.passwordHash,
-            createdAt: dbUser.createdAt ? new Date(dbUser.createdAt).toISOString() : new Date().toISOString(),
-          };
-        }
-
-        // B. If not found in User table, search in Client table
-        if (!user) {
-          const clientWhere = hasDigits
-            ? {
-                OR: [
-                  { email: cleanIdentifier },
-                  { phone: { contains: last10Digits } },
-                  { whatsapp: { contains: last10Digits } },
-                ],
-              }
-            : { email: cleanIdentifier };
-
-          const dbClient = await prisma.client.findFirst({
-            where: clientWhere,
+        if (dbClient) {
+          // Find if there is a linked user for this client
+          const linkedUser = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { clientId: dbClient.id },
+                { email: { equals: dbClient.email.toLowerCase(), mode: 'insensitive' as const } },
+                ...(dbClient.phone ? [{ phone: { contains: dbClient.phone.replace(/[^0-9]/g, '').slice(-10) } }] : []),
+              ],
+            },
           });
 
-          if (dbClient) {
-            // Find if there is a linked user for this client
-            const linkedUser = await prisma.user.findFirst({
-              where: {
-                OR: [
-                  { clientId: dbClient.id },
-                  { email: dbClient.email.toLowerCase() },
-                  ...(dbClient.phone ? [{ phone: { contains: dbClient.phone.replace(/[^0-9]/g, '').slice(-10) } }] : []),
-                ],
-              },
-            });
-
-            if (linkedUser) {
-              user = {
-                id: linkedUser.id,
-                tenantId: linkedUser.tenantId,
-                name: linkedUser.name,
-                email: linkedUser.email,
-                phone: linkedUser.phone,
-                role: linkedUser.role as UserRole,
-                department: linkedUser.department || undefined,
-                avatarUrl: linkedUser.avatarUrl || undefined,
-                clientId: dbClient.id,
-                passwordHash: linkedUser.passwordHash,
-                createdAt: linkedUser.createdAt ? new Date(linkedUser.createdAt).toISOString() : new Date().toISOString(),
-              };
-            } else {
-              user = {
-                id: `usr_${dbClient.id}`,
-                tenantId: dbClient.tenantId || 'tenant_main',
-                name: dbClient.businessName,
-                email: dbClient.email,
-                phone: dbClient.phone,
-                role: 'CLIENT',
-                clientId: dbClient.id,
-                department: 'Client Portal',
-                passwordHash: undefined,
-                createdAt: dbClient.createdAt ? new Date(dbClient.createdAt).toISOString() : new Date().toISOString(),
-              };
-            }
+          if (linkedUser) {
+            user = {
+              id: linkedUser.id,
+              tenantId: linkedUser.tenantId,
+              name: linkedUser.name,
+              email: linkedUser.email,
+              phone: linkedUser.phone,
+              role: linkedUser.role as UserRole,
+              department: linkedUser.department || undefined,
+              avatarUrl: linkedUser.avatarUrl || undefined,
+              clientId: dbClient.id,
+              passwordHash: linkedUser.passwordHash,
+              createdAt: linkedUser.createdAt ? new Date(linkedUser.createdAt).toISOString() : new Date().toISOString(),
+            };
+          } else {
+            user = {
+              id: `usr_${dbClient.id}`,
+              tenantId: dbClient.tenantId || 'tenant_main',
+              name: dbClient.businessName,
+              email: dbClient.email,
+              phone: dbClient.phone,
+              role: 'CLIENT',
+              clientId: dbClient.id,
+              department: 'Client Portal',
+              passwordHash: undefined,
+              createdAt: dbClient.createdAt ? new Date(dbClient.createdAt).toISOString() : new Date().toISOString(),
+            };
           }
         }
       }
@@ -256,11 +255,9 @@ export async function authenticateWithCredentials(
       user.passwordHash = newHash;
 
       // Persist to Prisma
-      if (process.env.DATABASE_URL) {
+      if (process.env.DATABASE_URL && prisma) {
         try {
-          const { prisma } = require('@/lib/prisma');
-          if (prisma) {
-            await prisma.user.upsert({
+          await prisma.user.upsert({
               where: { email: user.email.toLowerCase() },
               update: {
                 passwordHash: newHash,
@@ -278,7 +275,6 @@ export async function authenticateWithCredentials(
                 department: user.department || 'Client Portal',
               },
             });
-          }
         } catch (e) {
           console.error('Auto-save password hash error in DB:', e);
         }
@@ -326,11 +322,9 @@ export async function requestPasswordReset(identifier: string): Promise<{
   let targetEmail: string | null = null;
 
   // Search User in DB
-  if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL && prisma) {
     try {
-      const { prisma } = require('@/lib/prisma');
-      if (prisma) {
-        const whereClause = hasDigits
+      const whereClause = hasDigits
           ? {
               OR: [
                 { email: cleanId },
@@ -346,7 +340,6 @@ export async function requestPasswordReset(identifier: string): Promise<{
           const dbClient = await prisma.client.findFirst({ where: whereClause });
           if (dbClient) targetEmail = dbClient.email;
         }
-      }
     } catch (e) {
       console.error('Password reset user lookup error:', e);
     }
@@ -445,11 +438,9 @@ export async function resetPasswordWithCode(
   // Hash new password using bcrypt
   const newHash = await hashPassword(newPassword);
 
-  if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL && prisma) {
     try {
-      const { prisma } = require('@/lib/prisma');
-      if (prisma) {
-        const client = await prisma.client.findFirst({
+      const client = await prisma.client.findFirst({
           where: {
             OR: [
               { email: cleanId },
@@ -472,7 +463,6 @@ export async function resetPasswordWithCode(
             department: 'Client Portal',
           },
         });
-      }
     } catch (dbErr) {
       console.error('Failed to update password in DB:', dbErr);
     }
@@ -529,11 +519,9 @@ export async function changeUserPassword(
       (u) => u.id === userId || (u.email && u.email.toLowerCase() === userId.toLowerCase())
     ) || null;
 
-  if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL && prisma) {
     try {
-      const { prisma } = require('@/lib/prisma');
-      if (prisma) {
-        const dbUser = await prisma.user.findFirst({
+      const dbUser = await prisma.user.findFirst({
           where: {
             OR: [{ id: userId }, { email: user?.email || userId.toLowerCase() }],
           },
@@ -555,7 +543,6 @@ export async function changeUserPassword(
             user.passwordHash = dbUser.passwordHash;
           }
         }
-      }
     } catch (e) {
       console.error('Change password user lookup error:', e);
     }
@@ -598,17 +585,14 @@ export async function changeUserPassword(
 
   const newHash = await hashPassword(newPassword);
 
-  if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL && prisma) {
     try {
-      const { prisma } = require('@/lib/prisma');
-      if (prisma) {
-        await prisma.user.updateMany({
+      await prisma.user.updateMany({
           where: {
             OR: [{ id: user.id }, { id: userId }, { email: user.email.toLowerCase() }],
           },
           data: { passwordHash: newHash },
         });
-      }
     } catch (dbErr) {
       console.error('Failed to update password in DB:', dbErr);
     }
