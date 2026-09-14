@@ -1,28 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FestivalCreativeStudio } from '@/components/portal/FestivalCreativeStudio';
 import { AIPointsWalletModal } from '@/components/portal/AIPointsWalletModal';
 import { Zap } from 'lucide-react';
-import {
-  getSyncedBusinessProfile,
-  SyncedBusinessProfile,
-  DEMO_BUSINESS_PROFILE,
-} from '@/lib/client-portal-sync';
+import { usePortalProfile } from '@/contexts/PortalProfileContext';
 
 export default function CreativeStudioPage() {
-  const [profile, setProfile] = useState<SyncedBusinessProfile>(DEMO_BUSINESS_PROFILE);
+  const { profile } = usePortalProfile();
   const [aiPoints, setAiPoints] = useState(65);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
-
-  useEffect(() => {
-    setProfile(getSyncedBusinessProfile());
-    const handleUpdate = (e: any) => {
-      if (e.detail) setProfile(e.detail);
-    };
-    window.addEventListener('drcrm_gbp_profile_updated', handleUpdate);
-    return () => window.removeEventListener('drcrm_gbp_profile_updated', handleUpdate);
-  }, []);
 
   const handleDeductPoints = (amount: number) => {
     if (aiPoints < amount) {

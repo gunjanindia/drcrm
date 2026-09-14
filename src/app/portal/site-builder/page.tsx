@@ -1,25 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { OnePageSiteBuilder } from '@/components/portal/OnePageSiteBuilder';
 import { DEFAULT_MINI_SITE } from '@/lib/client-360-data';
-import {
-  getSyncedBusinessProfile,
-  SyncedBusinessProfile,
-  DEMO_BUSINESS_PROFILE,
-} from '@/lib/client-portal-sync';
+import { usePortalProfile } from '@/contexts/PortalProfileContext';
 
 export default function SiteBuilderPage() {
-  const [profile, setProfile] = useState<SyncedBusinessProfile>(DEMO_BUSINESS_PROFILE);
-
-  useEffect(() => {
-    setProfile(getSyncedBusinessProfile());
-    const handleUpdate = (e: any) => {
-      if (e.detail) setProfile(e.detail);
-    };
-    window.addEventListener('drcrm_gbp_profile_updated', handleUpdate);
-    return () => window.removeEventListener('drcrm_gbp_profile_updated', handleUpdate);
-  }, []);
+  const { profile } = usePortalProfile();
 
   const configToUse = profile.miniSiteConfig || {
     ...DEFAULT_MINI_SITE,

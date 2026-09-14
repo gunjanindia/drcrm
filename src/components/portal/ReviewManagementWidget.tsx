@@ -29,24 +29,29 @@ export interface ReviewManagementWidgetProps {
   onDeductPoints?: (pts: number) => boolean;
   onOpenRechargeModal?: () => void;
   onConnectGbp?: () => void;
+  onSaveReply?: (reviewId: string, replyText: string, authorName?: string) => Promise<boolean>;
 }
 
 export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
-  businessName = 'Ranchi Prime Store',
-  reviews: initialReviews = DEFAULT_CLIENT_REVIEWS,
+  businessName = 'Business Profile',
+  reviews: initialReviews,
   currentPoints = 50,
   gbpAuth = DEFAULT_GBP_AUTH,
   onDeductPoints,
   onOpenRechargeModal,
   onConnectGbp,
+  onSaveReply,
 }) => {
-  const [reviewsList, setReviewsList] = useState<ClientReviewItem[]>(initialReviews);
+  const [reviewsList, setReviewsList] = useState<ClientReviewItem[]>(
+    initialReviews && initialReviews.length > 0 ? initialReviews : DEFAULT_CLIENT_REVIEWS
+  );
   const [activeTone, setActiveTone] = useState<'WARM' | 'PROFESSIONAL' | 'HINGLISH' | 'RESOLUTION'>('WARM');
   const [draftResponses, setDraftResponses] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const [filterRating, setFilterRating] = useState<number | 'all'>('all');
   const [postingToGoogleId, setPostingToGoogleId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (initialReviews && initialReviews.length > 0) {
@@ -83,33 +88,62 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handlePostToGoogleMaps = (id: string) => {
-    if (!gbpAuth.isConnected) {
-      if (onConnectGbp) onConnectGbp();
-      else alert('Please connect your verified Google Business Profile account first.');
+  const handlePostToGoogleMaps = async (id: string) => {
+    const targetRev = reviewsList.find((r) => r.id === id);
+    const draft = draftResponses[id] || targetRev?.replyText || '';
+
+    if (!draft) {
+      alert('Please enter or generate a reply before publishing.');
       return;
     }
 
-    const draft = draftResponses[id];
     setPostingToGoogleId(id);
 
-    setTimeout(() => {
+    try {
+      if (onSaveReply) {
+        await onSaveReply(id, draft, targetRev?.authorName);
+      } else {
+        await fetch('/api/portal/reviews/reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reviewId: id,
+            replyText: draft,
+            authorName: targetRev?.authorName,
+          }),
+        });
+      }
+
       setReviewsList((prev) =>
         prev.map((r) =>
           r.id === id
             ? {
                 ...r,
                 status: 'REPLIED',
-                replyText: draft || r.replyText,
-                repliedAt: 'Published live just now',
+                replyText: draft,
+                repliedAt: 'Published to Google Maps just now',
                 isLiveOnGoogle: true,
+                source: 'Verified GBP Sync',
               }
             : r
         )
       );
+
+      // Clear draft response after successful publish
+      setDraftResponses((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+
+      setSuccessMessage(`✓ Official owner reply published live to Google Maps listing for ${targetRev?.authorName || 'customer'}!`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err: any) {
+      console.error('Failed to post reply to Google Maps:', err);
+      alert('Failed to publish reply. Please check your connection and try again.');
+    } finally {
       setPostingToGoogleId(null);
-      alert('Official owner response successfully published live to Google Maps listing via Google Business Profile API!');
-    }, 900);
+    }
   };
 
   const filtered = reviewsList.filter((r) =>
@@ -120,6 +154,22 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Success Notification */}
+      {successMessage && (
+        <div className="p-4 rounded-2xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-between gap-2 shadow-lg animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4" />
+            <span>{successMessage}</span>
+          </div>
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="text-white/80 hover:text-white text-xs px-2 py-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* GBP Auth Live Status Alert Bar */}
       <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-900/40 via-slate-900 to-indigo-950 border border-blue-500/30 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-white">
         <div className="flex items-center gap-2.5">

@@ -1,24 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { MonthlyGrowthChart } from '@/components/portal/MonthlyGrowthChart';
-import {
-  getSyncedBusinessProfile,
-  SyncedBusinessProfile,
-  DEMO_BUSINESS_PROFILE,
-} from '@/lib/client-portal-sync';
+import { usePortalProfile } from '@/contexts/PortalProfileContext';
 
 export default function GrowthAnalyticsPage() {
-  const [profile, setProfile] = useState<SyncedBusinessProfile>(DEMO_BUSINESS_PROFILE);
-
-  useEffect(() => {
-    setProfile(getSyncedBusinessProfile());
-    const handleUpdate = (e: any) => {
-      if (e.detail) setProfile(e.detail);
-    };
-    window.addEventListener('drcrm_gbp_profile_updated', handleUpdate);
-    return () => window.removeEventListener('drcrm_gbp_profile_updated', handleUpdate);
-  }, []);
+  const { profile } = usePortalProfile();
 
   return (
     <div className="space-y-6 max-w-5xl">

@@ -31,30 +31,12 @@ import { ReviewManagementWidget } from '@/components/portal/ReviewManagementWidg
 import { FestivalCreativeStudio } from '@/components/portal/FestivalCreativeStudio';
 import { GoogleGbpAuthCard } from '@/components/portal/GoogleGbpAuthCard';
 import { AIPointsWalletModal } from '@/components/portal/AIPointsWalletModal';
-import {
-  getSyncedBusinessProfile,
-  SyncedBusinessProfile,
-  DEMO_BUSINESS_PROFILE,
-  fetchPortalProfileFromServer,
-} from '@/lib/client-portal-sync';
+import { usePortalProfile } from '@/contexts/PortalProfileContext';
 
 export default function ClientPortalDashboard() {
-  const [client, setClient] = useState<SyncedBusinessProfile>(DEMO_BUSINESS_PROFILE);
+  const { profile: client, saveReviewReply } = usePortalProfile();
   const [aiPoints, setAiPoints] = useState(65);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
-
-  React.useEffect(() => {
-    setClient(getSyncedBusinessProfile());
-    fetchPortalProfileFromServer().then((loaded) => {
-      if (loaded) setClient(loaded);
-    });
-
-    const handleUpdate = (e: any) => {
-      if (e.detail) setClient(e.detail);
-    };
-    window.addEventListener('drcrm_gbp_profile_updated', handleUpdate);
-    return () => window.removeEventListener('drcrm_gbp_profile_updated', handleUpdate);
-  }, []);
 
   const handleDeductPoints = (amount: number) => {
     if (aiPoints < amount) {
@@ -297,6 +279,7 @@ export default function ClientPortalDashboard() {
           currentPoints={aiPoints}
           onDeductPoints={handleDeductPoints}
           onOpenRechargeModal={() => setIsWalletOpen(true)}
+          onSaveReply={saveReviewReply}
         />
       </div>
 

@@ -9,26 +9,13 @@ import {
   DEMO_BUSINESS_PROFILE,
   fetchPortalProfileFromServer,
 } from '@/lib/client-portal-sync';
+import { PortalProfileProvider, usePortalProfile } from '@/contexts/PortalProfileContext';
 import { Sparkles, CheckCircle2, AlertTriangle, RefreshCw, ShieldAlert, PhoneCall, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui';
 
-export default function PortalLayout({ children }: { children: React.ReactNode }) {
-  const [profile, setProfile] = useState<SyncedBusinessProfile>(DEMO_BUSINESS_PROFILE);
+function PortalLayoutInner({ children }: { children: React.ReactNode }) {
+  const { profile, updateProfile } = usePortalProfile();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
-
-  useEffect(() => {
-    setProfile(getSyncedBusinessProfile());
-    fetchPortalProfileFromServer().then((loaded) => {
-      if (loaded) setProfile(loaded);
-    });
-
-    const handleProfileUpdate = (e: any) => {
-      if (e.detail) setProfile(e.detail);
-    };
-
-    window.addEventListener('drcrm_gbp_profile_updated', handleProfileUpdate);
-    return () => window.removeEventListener('drcrm_gbp_profile_updated', handleProfileUpdate);
-  }, []);
 
   const isPaused = profile.status === 'PAUSED' || profile.status === 'CHURNED';
 
@@ -157,10 +144,18 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         isOpen={isWizardOpen}
         onClose={() => setIsWizardOpen(false)}
         onSyncComplete={(newProfile) => {
-          setProfile(newProfile);
+          updateProfile(newProfile);
           setIsWizardOpen(false);
         }}
       />
     </div>
+  );
+}
+
+export default function PortalLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <PortalProfileProvider>
+      <PortalLayoutInner>{children}</PortalLayoutInner>
+    </PortalProfileProvider>
   );
 }

@@ -5,27 +5,14 @@ import { ReviewManagementWidget } from '@/components/portal/ReviewManagementWidg
 import { GoogleGbpAuthCard } from '@/components/portal/GoogleGbpAuthCard';
 import { AIPointsWalletModal } from '@/components/portal/AIPointsWalletModal';
 import { Zap } from 'lucide-react';
+import { usePortalProfile } from '@/contexts/PortalProfileContext';
 import { GoogleGbpAuthProfile, DEFAULT_GBP_AUTH } from '@/lib/client-360-data';
-import {
-  getSyncedBusinessProfile,
-  SyncedBusinessProfile,
-  DEMO_BUSINESS_PROFILE,
-} from '@/lib/client-portal-sync';
 
 export default function ReviewsManagementPage() {
-  const [profile, setProfile] = useState<SyncedBusinessProfile>(DEMO_BUSINESS_PROFILE);
+  const { profile, saveReviewReply } = usePortalProfile();
   const [aiPoints, setAiPoints] = useState(65);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const [gbpAuth, setGbpAuth] = useState<GoogleGbpAuthProfile>(DEFAULT_GBP_AUTH);
-
-  useEffect(() => {
-    setProfile(getSyncedBusinessProfile());
-    const handleUpdate = (e: any) => {
-      if (e.detail) setProfile(e.detail);
-    };
-    window.addEventListener('drcrm_gbp_profile_updated', handleUpdate);
-    return () => window.removeEventListener('drcrm_gbp_profile_updated', handleUpdate);
-  }, []);
 
   const handleDeductPoints = (amount: number) => {
     if (aiPoints < amount) {
@@ -88,6 +75,7 @@ export default function ReviewsManagementPage() {
         gbpAuth={gbpAuth}
         onDeductPoints={handleDeductPoints}
         onOpenRechargeModal={() => setIsWalletOpen(true)}
+        onSaveReply={saveReviewReply}
       />
 
       <AIPointsWalletModal
