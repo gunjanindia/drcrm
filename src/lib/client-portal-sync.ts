@@ -454,3 +454,20 @@ export function clearSyncedBusinessProfile(): void {
     window.dispatchEvent(new CustomEvent('drcrm_gbp_profile_updated', { detail: DEMO_BUSINESS_PROFILE }));
   } catch (e) {}
 }
+
+export async function fetchPortalProfileFromServer(): Promise<SyncedBusinessProfile> {
+  if (typeof window === 'undefined') return DEMO_BUSINESS_PROFILE;
+  try {
+    const res = await fetch('/api/portal/profile');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.data && data.authenticated) {
+        saveSyncedBusinessProfile(data.data);
+        return data.data;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load profile from server session:', err);
+  }
+  return getSyncedBusinessProfile();
+}

@@ -161,11 +161,15 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
     setIsAuthorizing(true);
     try {
       const redirectUri = `${window.location.origin}/api/auth/google/gbp/callback`;
-      const res = await fetch(`/api/auth/google/gbp?redirect_uri=${encodeURIComponent(redirectUri)}`);
+      const businessNameParam = encodeURIComponent(discoveredPlace?.name || searchName || 'Your Business');
+      const emailParam = encodeURIComponent(googleEmail.trim() || '');
+      const res = await fetch(
+        `/api/auth/google/gbp?redirect_uri=${encodeURIComponent(redirectUri)}&businessName=${businessNameParam}&email=${emailParam}`
+      );
       const data = await res.json();
 
       const popup = window.open(
-        data.authUrl || `https://accounts.google.com/o/oauth2/v2/auth`,
+        data.authUrl || `/api/auth/google/gbp/callback?mode=consent&businessName=${businessNameParam}`,
         'GoogleGBPAuth',
         'width=550,height=650,left=300,top=100'
       );

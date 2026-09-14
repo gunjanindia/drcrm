@@ -33,6 +33,7 @@ import {
   getSyncedBusinessProfile,
   SyncedBusinessProfile,
   DEMO_BUSINESS_PROFILE,
+  fetchPortalProfileFromServer,
 } from '@/lib/client-portal-sync';
 
 export default function ClientPortalDashboard() {
@@ -42,6 +43,10 @@ export default function ClientPortalDashboard() {
 
   React.useEffect(() => {
     setClient(getSyncedBusinessProfile());
+    fetchPortalProfileFromServer().then((loaded) => {
+      if (loaded) setClient(loaded);
+    });
+
     const handleUpdate = (e: any) => {
       if (e.detail) setClient(e.detail);
     };

@@ -82,9 +82,9 @@ export default function LoginPage() {
         {/* Credentials Form */}
         <form onSubmit={handleLogin} className="space-y-4 text-xs">
           <Input
-            label="Email Address *"
-            type="email"
-            placeholder="your.email@digitalranchi.in"
+            label="Email Address or Mobile Number *"
+            type="text"
+            placeholder="e.g. contact@business.in or 9431109876"
             icon={Mail}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
