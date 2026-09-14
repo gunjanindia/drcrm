@@ -277,6 +277,9 @@ export default function ClientPortalDashboard() {
           businessName={client.businessName}
           reviews={client.reviews}
           currentPoints={aiPoints}
+          googleMapsUrl={client.googleMapsUrl}
+          placeId={client.placeId}
+          city={client.city}
           onDeductPoints={handleDeductPoints}
           onOpenRechargeModal={() => setIsWalletOpen(true)}
           onSaveReply={saveReviewReply}

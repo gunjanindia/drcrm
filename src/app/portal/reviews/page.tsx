@@ -73,6 +73,9 @@ export default function ReviewsManagementPage() {
         reviews={profile.reviews}
         currentPoints={aiPoints}
         gbpAuth={gbpAuth}
+        googleMapsUrl={profile.googleMapsUrl}
+        placeId={profile.placeId}
+        city={profile.city}
         onDeductPoints={handleDeductPoints}
         onOpenRechargeModal={() => setIsWalletOpen(true)}
         onSaveReply={saveReviewReply}
