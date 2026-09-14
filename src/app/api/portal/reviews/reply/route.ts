@@ -137,7 +137,42 @@ export async function POST(request: Request) {
       });
     }
 
-    // 5. Persist updated reviews list & activity to Neon PostgreSQL
+    // 5. Attempt Live Google My Business API Direct Dispatch if Google Token is available
+    let googleApiDispatched = false;
+    let googleApiError: string | null = null;
+
+    const googleToken = body.accessToken || process.env.GOOGLE_GBP_ACCESS_TOKEN;
+    const locationId = body.locationId || clientRecord?.placeId;
+
+    if (googleToken && locationId && reviewId) {
+      try {
+        // Direct call to Google My Business API v4 reviews.reply endpoint
+        const formattedLocation = locationId.startsWith('locations/') ? locationId : `locations/${locationId}`;
+        const gbpApiUrl = `https://mybusiness.googleapis.com/v4/${formattedLocation}/reviews/${reviewId}/reply`;
+
+        const apiRes = await fetch(gbpApiUrl, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${googleToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            comment: replyText.trim(),
+          }),
+        });
+
+        if (apiRes.ok) {
+          googleApiDispatched = true;
+        } else {
+          const errData = await apiRes.json().catch(() => ({}));
+          googleApiError = errData?.error?.message || `Google API status ${apiRes.status}`;
+        }
+      } catch (err: any) {
+        googleApiError = err.message || 'Error communicating with Google GBP API';
+      }
+    }
+
+    // 6. Persist updated reviews list & activity to Neon PostgreSQL
     if (process.env.DATABASE_URL && prisma && clientRecord) {
       try {
         // Save the updated reviews array into TimelineActivity so subsequent reloads retain the reply
@@ -158,7 +193,7 @@ export async function POST(request: Request) {
             clientId: clientRecord.id,
             type: 'REVIEW_REPLIED',
             title: `Google Review Replied: ${authorName || 'Customer'}`,
-            description: `Official response published to Google Maps: "${replyText.trim().substring(0, 120)}..."`,
+            description: `Official response published ${googleApiDispatched ? 'directly via Google API' : 'to CRM'}: "${replyText.trim().substring(0, 120)}..."`,
             actorName: googleEmail || session?.email || `${businessName} Owner`,
             timestamp: new Date(),
           },
@@ -168,7 +203,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 6. Persist to globalStore & crm_store.json
+    // 7. Persist to globalStore & crm_store.json
     if (clientRecord) {
       const storeIdx = globalStore.clients.findIndex((c) => c.id === clientRecord.id);
       if (storeIdx !== -1) {
@@ -179,10 +214,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Official response successfully published to Google Maps listing and saved to CRM.',
+      message: googleApiDispatched
+        ? 'Official response successfully published live to Google Maps via Google My Business API!'
+        : 'Official response saved to CRM and ready for Google Maps listing.',
       businessName,
       reviews,
       publishedAt: nowStr,
+      googleApiDispatched,
+      googleApiError,
     });
   } catch (error: any) {
     console.error('POST /api/portal/reviews/reply error:', error);
