@@ -10,6 +10,7 @@ import {
 } from './client-360-data';
 
 export interface SyncedBusinessProfile {
+  clientId?: string;
   isLiveSynced: boolean;
   businessName: string;
   category: string;
@@ -32,6 +33,7 @@ export interface SyncedBusinessProfile {
   googleAccountName?: string;
   googleAvatarUrl?: string;
   syncedAt?: string;
+  status?: 'ACTIVE' | 'ONBOARDING' | 'AT_RISK' | 'PAUSED' | 'CHURNED';
   isOperational?: boolean;
   reviews?: ClientReviewItem[];
   growthMetrics?: MonthlyGrowthMetric[];
@@ -41,24 +43,26 @@ export interface SyncedBusinessProfile {
 
 export const DEMO_BUSINESS_PROFILE: SyncedBusinessProfile = {
   isLiveSynced: false,
-  businessName: 'Your Business Name (Demo Mode)',
-  category: 'Local Retail & Services',
+  businessName: 'Your Business Name',
+  category: 'Local Business & Services',
   city: 'Ranchi',
-  address: 'Shop 14, Main Road, Near Lalpur, Ranchi, Jharkhand - 834001',
-  phone: '+91 94311 09876',
-  whatsapp: '919431109876',
+  address: 'Main Road, Ranchi, Jharkhand - 834001',
+  phone: '+91 94311 00000',
+  whatsapp: '919431100000',
   email: 'contact@yourbusiness.in',
-  websiteUrl: 'https://digitalranchi.in/s/your-business',
+  websiteUrl: 'https://digitalranchi.in',
   googleMapsUrl: 'https://maps.google.com/?q=Ranchi',
-  placeId: 'loc_demo_placeholder',
-  averageRating: 4.8,
-  reviewCount: 24,
-  photosCount: 15,
-  gbpScore: 82,
+  placeId: 'loc_preview',
+  averageRating: 5.0,
+  reviewCount: 0,
+  photosCount: 0,
+  gbpScore: 80,
   packageName: 'Growth Retainer Plan',
-  monthlyRevenue: 2499,
-  renewalDate: new Date(Date.now() + 20 * 86400000).toISOString(),
+  monthlyRevenue: 999,
+  renewalDate: new Date(Date.now() + 30 * 86400000).toISOString(),
   googleOwnerEmail: '',
+  status: 'ACTIVE',
+  isOperational: true,
 };
 
 const STORAGE_KEY = 'drcrm_synced_gbp_profile_v2';
@@ -455,13 +459,19 @@ export function clearSyncedBusinessProfile(): void {
   } catch (e) {}
 }
 
-export async function fetchPortalProfileFromServer(): Promise<SyncedBusinessProfile> {
+export async function fetchPortalProfileFromServer(clientIdParam?: string): Promise<SyncedBusinessProfile> {
   if (typeof window === 'undefined') return DEMO_BUSINESS_PROFILE;
   try {
-    const res = await fetch('/api/portal/profile');
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetClientId = clientIdParam || urlParams.get('clientId');
+    const endpoint = targetClientId
+      ? `/api/portal/profile?clientId=${encodeURIComponent(targetClientId)}`
+      : '/api/portal/profile';
+
+    const res = await fetch(endpoint);
     if (res.ok) {
       const data = await res.json();
-      if (data.data && data.authenticated) {
+      if (data.data) {
         saveSyncedBusinessProfile(data.data);
         return data.data;
       }

@@ -2,6 +2,7 @@
 
 import React, { useState, use } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Building2,
   Phone,
@@ -20,6 +21,10 @@ import {
   ArrowLeft,
   DollarSign,
   AlertTriangle,
+  PauseCircle,
+  PlayCircle,
+  Trash2,
+  ShieldAlert,
 } from 'lucide-react';
 import { Button, Badge, Modal } from '@/components/ui';
 import { globalStore } from '@/lib/store';
@@ -33,6 +38,7 @@ import { PrintableReviewQRGenerator } from '@/components/portal/PrintableReviewQ
 import { OnePageSiteBuilder } from '@/components/portal/OnePageSiteBuilder';
 
 export default function Client360Page({ params }: { params: Promise<{ id: string }> }) {
+  const router = useRouter();
   const resolvedParams = use(params);
   const clientId = resolvedParams.id;
 
@@ -102,6 +108,11 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
     globalStore.activities.filter((a) => a.clientId === client.id)
   );
 
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [statusNotification, setStatusNotification] = useState<string | null>(null);
+
   React.useEffect(() => {
     fetch('/api/clients')
       .then((r) => r.json())
@@ -137,6 +148,55 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
       .catch(() => {});
   }, [clientId]);
 
+  const handleToggleStatus = async () => {
+    const nextStatus = client.status === 'PAUSED' ? 'ACTIVE' : 'PAUSED';
+    setIsUpdatingStatus(true);
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: client.id,
+          status: nextStatus,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setClient((prev: any) => ({ ...prev, status: nextStatus }));
+        setStatusNotification(
+          nextStatus === 'PAUSED'
+            ? 'Client 360 Portal Deactivated / Paused successfully.'
+            : 'Client 360 Portal Reactivated successfully!'
+        );
+        setTimeout(() => setStatusNotification(null), 4000);
+      }
+    } catch (e) {
+      console.error('Failed to update client status:', e);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleDeleteClient = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/clients?id=${encodeURIComponent(client.id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsDeleteModalOpen(false);
+        router.push('/app/clients');
+      } else {
+        alert(data.error || 'Failed to delete client');
+      }
+    } catch (e) {
+      console.error('Failed to delete client:', e);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'audit', label: 'Health Audit & Factors' },
@@ -154,8 +214,45 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
     { id: 'ai', label: 'AI & Upsell Engine' },
   ];
 
+  const isPaused = client.status === 'PAUSED' || client.status === 'CHURNED';
+
   return (
     <div className="space-y-6">
+      {/* Status Notification Toast */}
+      {statusNotification && (
+        <div className="p-3.5 rounded-2xl bg-slate-900 text-white border border-slate-700 shadow-xl flex items-center justify-between text-xs font-semibold animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{statusNotification}</span>
+          </div>
+          <button onClick={() => setStatusNotification(null)} className="text-slate-400 hover:text-white text-xs">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Deactivated Warning Alert */}
+      {isPaused && (
+        <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert className="w-5 h-5 text-rose-500 shrink-0" />
+            <div>
+              <strong>Client 360 Portal Deactivated:</strong> This portal is currently paused. Client cannot access active features or AI tools.
+            </div>
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            icon={PlayCircle}
+            disabled={isUpdatingStatus}
+            onClick={handleToggleStatus}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+          >
+            Reactivate Portal Access
+          </Button>
+        </div>
+      )}
+
       {/* Back Button & Header */}
       <div className="flex items-center gap-3">
         <Link href="/app/clients">
@@ -169,11 +266,15 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-indigo-600/30">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg ${
+              isPaused
+                ? 'bg-slate-600 shadow-slate-600/30'
+                : 'bg-gradient-to-tr from-indigo-600 to-sky-500 shadow-indigo-600/30'
+            }`}>
               {client.businessName.substring(0, 2).toUpperCase()}
             </div>
             <div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                   {client.businessName}
                 </h2>
@@ -184,6 +285,15 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
                 >
                   Health: {client.healthScore}
                 </span>
+                <span
+                  className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase ${
+                    isPaused
+                      ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border-rose-300'
+                      : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-300'
+                  }`}
+                >
+                  {client.status || 'ACTIVE'}
+                </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
                 {client.category} • {client.city}, Jharkhand • Active since {formatDate(client.activeSince)}
@@ -191,9 +301,9 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <a
-              href={`https://wa.me/${client.phone.replace(/[^0-9]/g, '')}`}
+              href={`https://wa.me/${(client.phone || '').replace(/[^0-9]/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -201,11 +311,38 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
                 WhatsApp Client
               </Button>
             </a>
-            <Link href="/portal">
-              <Button variant="outline" size="sm">
-                View Client Portal View
+            <Link href={`/portal?clientId=${client.id}`} target="_blank">
+              <Button variant="outline" size="sm" icon={Globe}>
+                Client Portal
               </Button>
             </Link>
+
+            {/* Deactivate / Reactivate Portal Button */}
+            <Button
+              variant={isPaused ? 'primary' : 'outline'}
+              size="sm"
+              icon={isPaused ? PlayCircle : PauseCircle}
+              disabled={isUpdatingStatus}
+              onClick={handleToggleStatus}
+              className={
+                isPaused
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  : 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 border-amber-300'
+              }
+            >
+              {isUpdatingStatus ? 'Updating...' : isPaused ? 'Reactivate Portal' : 'Deactivate Portal'}
+            </Button>
+
+            {/* Delete Client Portal Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              icon={Trash2}
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-300"
+            >
+              Delete Portal
+            </Button>
           </div>
         </div>
 
@@ -226,6 +363,52 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
           ))}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete Client 360 Portal"
+        description="Permanently delete this business account and its client portal."
+      >
+        <div className="space-y-4 text-xs">
+          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-200 space-y-2">
+            <p className="font-bold flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              Warning: This action is permanent and cannot be undone.
+            </p>
+            <p>
+              Deleting <strong>{client.businessName}</strong> will remove:
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-slate-600 dark:text-slate-300">
+              <li>Client 360 portal account & login access</li>
+              <li>Associated deliverables, tasks, and support tickets</li>
+              <li>Billing history and payment records</li>
+            </ul>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDeleteModalOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={Trash2}
+              onClick={handleDeleteClient}
+              disabled={isDeleting}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {isDeleting ? 'Deleting...' : 'Yes, Delete Permanently'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Tab 1: Overview */}
       {activeTab === 'overview' && (
@@ -343,7 +526,7 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
           businessName={client.businessName}
           category={client.category}
           city={client.city}
-          googleReviewUrl={client.googleMapsUrl || 'https://g.page/r/ranchi-dental-care/review'}
+          googleReviewUrl={client.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(client.businessName)}`}
         />
       )}
 

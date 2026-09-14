@@ -180,3 +180,144 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to create client' }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const {
+      id,
+      status,
+      healthScore,
+      healthReason,
+      monthlyRevenue,
+      packageName,
+      packageId,
+      businessName,
+      phone,
+      email,
+      googleMapsUrl,
+    } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
+    }
+
+    let updatedClient: any = null;
+
+    if (process.env.DATABASE_URL) {
+      try {
+        const updateData: any = {};
+        if (status !== undefined) updateData.status = status;
+        if (healthScore !== undefined) updateData.healthScore = healthScore;
+        if (healthReason !== undefined) updateData.healthReason = healthReason;
+        if (monthlyRevenue !== undefined) updateData.monthlyRevenue = Number(monthlyRevenue);
+        if (packageName !== undefined) updateData.packageName = packageName;
+        if (packageId !== undefined) updateData.packageId = packageId;
+        if (businessName !== undefined) updateData.businessName = businessName;
+        if (phone !== undefined) {
+          updateData.phone = phone;
+          updateData.whatsapp = phone;
+        }
+        if (email !== undefined) updateData.email = email;
+        if (googleMapsUrl !== undefined) updateData.googleMapsUrl = googleMapsUrl;
+
+        updatedClient = await prisma.client.update({
+          where: { id },
+          data: updateData,
+        });
+      } catch (dbErr) {
+        console.error('Prisma PATCH client error, fallback to globalStore:', dbErr);
+      }
+    }
+
+    // Update in globalStore as well
+    const index = globalStore.clients.findIndex((c) => c.id === id);
+    if (index !== -1) {
+      globalStore.clients[index] = {
+        ...globalStore.clients[index],
+        ...(status !== undefined && { status }),
+        ...(healthScore !== undefined && { healthScore }),
+        ...(healthReason !== undefined && { healthReason }),
+        ...(monthlyRevenue !== undefined && { monthlyRevenue: Number(monthlyRevenue) }),
+        ...(packageName !== undefined && { packageName }),
+        ...(packageId !== undefined && { packageId }),
+        ...(businessName !== undefined && { businessName }),
+        ...(phone !== undefined && { phone, whatsapp: phone }),
+        ...(email !== undefined && { email }),
+        ...(googleMapsUrl !== undefined && { googleMapsUrl }),
+      };
+      if (!updatedClient) updatedClient = globalStore.clients[index];
+      globalStore.saveToFile();
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: updatedClient,
+      message: `Client 360 portal status updated to ${status || 'updated'} successfully.`,
+    });
+  } catch (err: any) {
+    console.error('PATCH /api/clients error:', err);
+    return NextResponse.json({ error: 'Failed to update client' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    let id = searchParams.get('id');
+
+    if (!id) {
+      try {
+        const body = await request.json();
+        id = body?.id;
+      } catch {}
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
+    }
+
+    if (process.env.DATABASE_URL) {
+      try {
+        await prisma.$transaction([
+          prisma.deliverableItem.deleteMany({ where: { clientId: id } }),
+          prisma.taskComment.deleteMany({ where: { task: { clientId: id } } }),
+          prisma.task.deleteMany({ where: { clientId: id } }),
+          prisma.project.deleteMany({ where: { clientId: id } }),
+          prisma.paymentRecord.deleteMany({ where: { clientId: id } }),
+          prisma.invoiceItem.deleteMany({ where: { invoice: { clientId: id } } }),
+          prisma.invoice.deleteMany({ where: { clientId: id } }),
+          prisma.ticket.deleteMany({ where: { clientId: id } }),
+          prisma.gbpProfile.deleteMany({ where: { clientId: id } }),
+          prisma.recurringTaskRule.deleteMany({ where: { clientId: id } }),
+          prisma.timelineActivity.deleteMany({ where: { clientId: id } }),
+          prisma.user.deleteMany({ where: { clientId: id } }),
+          prisma.client.delete({ where: { id } }),
+        ]);
+      } catch (dbErr) {
+        console.error('Prisma DELETE client transaction error:', dbErr);
+      }
+    }
+
+    // Clean up in globalStore
+    globalStore.clients = globalStore.clients.filter((c) => c.id !== id);
+    globalStore.users = globalStore.users.filter((u) => u.clientId !== id);
+    globalStore.tasks = globalStore.tasks.filter((t) => t.clientId !== id);
+    globalStore.deliverables = globalStore.deliverables.filter((d) => d.clientId !== id);
+    globalStore.projects = globalStore.projects.filter((p) => p.clientId !== id);
+    globalStore.invoices = globalStore.invoices.filter((i) => i.clientId !== id);
+    globalStore.payments = globalStore.payments.filter((p) => p.clientId !== id);
+    globalStore.tickets = globalStore.tickets.filter((t) => t.clientId !== id);
+    globalStore.gbpProfiles = globalStore.gbpProfiles.filter((g) => g.clientId !== id);
+    globalStore.activities = globalStore.activities.filter((a) => a.clientId !== id);
+    globalStore.saveToFile();
+
+    return NextResponse.json({
+      success: true,
+      message: 'Client 360 portal and all associated records deleted permanently.',
+    });
+  } catch (err: any) {
+    console.error('DELETE /api/clients error:', err);
+    return NextResponse.json({ error: 'Failed to delete client' }, { status: 500 });
+  }
+}

@@ -11,87 +11,104 @@ import {
 } from '@/lib/client-portal-sync';
 import { DEFAULT_MINI_SITE } from '@/lib/client-360-data';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const requestedClientId = searchParams.get('clientId');
     const session = await getCurrentUserSession();
-    if (!session) {
-      return NextResponse.json({
-        authenticated: false,
-        data: DEMO_BUSINESS_PROFILE,
-        message: 'No active session, returning demo profile',
-      });
-    }
 
     let clientRecord: any = null;
 
-    // 1. Fetch from Prisma Database if configured
-    if (process.env.DATABASE_URL) {
-      try {
-        if (session.clientId) {
+    // 1. If explicit clientId requested (e.g. from Admin 360 preview or specific portal link)
+    if (requestedClientId) {
+      if (process.env.DATABASE_URL) {
+        try {
           clientRecord = await prisma.client.findUnique({
-            where: { id: session.clientId },
+            where: { id: requestedClientId },
           });
+        } catch (e) {
+          console.error('Error fetching requested clientId from Prisma:', e);
         }
-
-        if (!clientRecord && session.email) {
-          clientRecord = await prisma.client.findFirst({
-            where: {
-              OR: [
-                { email: session.email.toLowerCase() },
-                { phone: { contains: session.email.replace(/[^0-9]/g, '').slice(-10) } },
-              ],
-            },
-          });
-        }
-      } catch (dbErr) {
-        console.error('Failed to fetch client from Prisma DB:', dbErr);
+      }
+      if (!clientRecord) {
+        clientRecord = globalStore.clients.find((c) => c.id === requestedClientId);
       }
     }
 
-    // 2. Fallback to globalStore
-    if (!clientRecord) {
+    // 2. Fetch based on authenticated user session if not explicitly requested
+    if (!clientRecord && session) {
       if (session.clientId) {
-        clientRecord = globalStore.clients.find((c) => c.id === session.clientId);
+        if (process.env.DATABASE_URL) {
+          try {
+            clientRecord = await prisma.client.findUnique({
+              where: { id: session.clientId },
+            });
+          } catch (e) {
+            console.error('Error fetching session clientId from Prisma:', e);
+          }
+        }
+        if (!clientRecord) {
+          clientRecord = globalStore.clients.find((c) => c.id === session.clientId);
+        }
       }
+
       if (!clientRecord && session.email) {
         const cleanEmail = session.email.toLowerCase();
         const digits = cleanEmail.replace(/[^0-9]/g, '');
-        clientRecord = globalStore.clients.find(
-          (c) =>
-            c.email.toLowerCase() === cleanEmail ||
-            (digits.length >= 10 && c.phone && c.phone.replace(/[^0-9]/g, '').endsWith(digits.slice(-10)))
-        );
+        if (process.env.DATABASE_URL) {
+          try {
+            clientRecord = await prisma.client.findFirst({
+              where: {
+                OR: [
+                  { email: cleanEmail },
+                  ...(digits.length >= 10 ? [{ phone: { contains: digits.slice(-10) } }] : []),
+                ],
+              },
+            });
+          } catch (e) {
+            console.error('Error fetching client by session email from Prisma:', e);
+          }
+        }
+        if (!clientRecord) {
+          clientRecord = globalStore.clients.find(
+            (c) =>
+              c.email.toLowerCase() === cleanEmail ||
+              (digits.length >= 10 && c.phone && c.phone.replace(/[^0-9]/g, '').endsWith(digits.slice(-10)))
+          );
+        }
       }
-    }
 
-    // 3. If staff member viewing without specific client, use first client
-    if (!clientRecord && session.role !== 'CLIENT') {
-      clientRecord = globalStore.clients[0] || null;
+      // If staff/admin viewing without specific client, fallback to first available active client
+      if (!clientRecord && session.role !== 'CLIENT') {
+        clientRecord = globalStore.clients.find((c) => c.status === 'ACTIVE') || globalStore.clients[0] || null;
+      }
     }
 
     if (!clientRecord) {
       return NextResponse.json({
-        authenticated: true,
+        authenticated: !!session,
         data: DEMO_BUSINESS_PROFILE,
-        message: 'Client record not found, using baseline profile',
+        message: 'No specific client record found, using default baseline profile',
       });
     }
 
-    // 4. Construct SyncedBusinessProfile purely from stored database records (Zero Google API calls)
-    const rating = typeof clientRecord.averageRating === 'number' ? clientRecord.averageRating : 4.8;
-    const reviewCount = typeof clientRecord.reviewCount === 'number' ? clientRecord.reviewCount : 24;
-    const gbpScore = typeof clientRecord.gbpScore === 'number' ? clientRecord.gbpScore : 82;
-    const photosCount = 15;
+    // 3. Construct SyncedBusinessProfile purely from stored database records
+    const rating = typeof clientRecord.averageRating === 'number' ? clientRecord.averageRating : 5.0;
+    const reviewCount = typeof clientRecord.reviewCount === 'number' ? clientRecord.reviewCount : 0;
+    const gbpScore = typeof clientRecord.gbpScore === 'number' ? clientRecord.gbpScore : 80;
+    const photosCount = 12;
+    const isPaused = clientRecord.status === 'PAUSED' || clientRecord.status === 'CHURNED';
 
     const profile: SyncedBusinessProfile = {
+      clientId: clientRecord.id,
       isLiveSynced: true,
       businessName: clientRecord.businessName,
       category: clientRecord.category || 'Local Business',
       city: clientRecord.city || 'Ranchi',
       address: clientRecord.address || `${clientRecord.city || 'Ranchi'}, Jharkhand`,
-      phone: clientRecord.phone || '+91 94311 09876',
-      whatsapp: (clientRecord.whatsapp || clientRecord.phone || '+91 94311 09876').replace(/[^0-9]/g, ''),
-      email: clientRecord.email || session.email,
+      phone: clientRecord.phone || '+91 94311 00000',
+      whatsapp: (clientRecord.whatsapp || clientRecord.phone || '+91 94311 00000').replace(/[^0-9]/g, ''),
+      email: clientRecord.email || (session?.email ?? ''),
       googleMapsUrl: clientRecord.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(clientRecord.businessName)}`,
       placeId: `loc_${clientRecord.id}`,
       averageRating: rating,
@@ -99,14 +116,15 @@ export async function GET() {
       photosCount: photosCount,
       gbpScore: gbpScore,
       packageName: clientRecord.packageName || 'Growth Retainer Plan',
-      monthlyRevenue: clientRecord.monthlyRevenue || 2499,
+      monthlyRevenue: clientRecord.monthlyRevenue || 999,
       renewalDate: clientRecord.renewalDate
         ? new Date(clientRecord.renewalDate).toISOString()
-        : new Date(Date.now() + 20 * 86400000).toISOString(),
-      googleOwnerEmail: session.email || clientRecord.email,
+        : new Date(Date.now() + 30 * 86400000).toISOString(),
+      googleOwnerEmail: session?.email || clientRecord.email,
       googleAccountName: `${clientRecord.businessName} (Verified Owner)`,
       syncedAt: 'Stored in CRM Database',
-      isOperational: true,
+      status: clientRecord.status || 'ACTIVE',
+      isOperational: !isPaused,
       reviews: generateDynamicReviewsForBusiness(clientRecord.businessName, clientRecord.category, clientRecord.city, rating),
       growthMetrics: generateDynamicGrowthForBusiness(reviewCount, rating),
       auditFactors: generateDynamicAuditFactorsForBusiness(
@@ -130,7 +148,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      authenticated: true,
+      authenticated: !!session,
       user: session,
       data: profile,
       source: 'DATABASE_STORED_RECORDS',

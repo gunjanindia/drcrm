@@ -19,6 +19,8 @@ import {
   CalendarCheck,
   CheckCircle2,
   Zap,
+  AlertTriangle,
+  ShieldAlert,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { globalStore } from '@/lib/store';
@@ -67,15 +69,64 @@ export default function ClientPortalDashboard() {
     setAiPoints((prev) => prev + added);
   };
 
+  const isPaused = client.status === 'PAUSED' || client.status === 'CHURNED';
+
   return (
     <div className="space-y-6 max-w-6xl pb-12">
+      {/* Deactivated Notice Banner if Portal is Paused */}
+      {isPaused && (
+        <div className="p-6 rounded-3xl bg-gradient-to-r from-rose-900 via-slate-900 to-amber-950 text-white shadow-xl border border-rose-700/50 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="p-3 rounded-2xl bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-rose-200">
+                Client 360 Portal Suspended / Deactivated
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+                Access to your live Google Business Profile sync, AI review responder, and creative generation has been deactivated by Digital Ranchi. Please reach out to your Account Manager to reactivate.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <a
+              href={`https://wa.me/917004700318?text=${encodeURIComponent(
+                `Hi Digital Ranchi, I would like to reactivate the Client 360 Portal for ${client.businessName}.`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-md"
+            >
+              <MessageSquare className="w-4 h-4" />
+              Reactivate via WhatsApp (+91 70047 00318)
+            </a>
+            <a
+              href="tel:+917004700318"
+              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 transition-all border border-white/20"
+            >
+              <PhoneCall className="w-4 h-4" />
+              Call Support (+91 70047 00318)
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Top Banner & Wallet Status */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-sky-900 via-slate-900 to-indigo-950 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-sky-800/40">
+      <div className={`p-6 rounded-3xl text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border ${
+        isPaused
+          ? 'bg-gradient-to-r from-slate-900 to-slate-950 border-slate-800 opacity-80'
+          : 'bg-gradient-to-r from-sky-900 via-slate-900 to-indigo-950 border-sky-800/40'
+      }`}>
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
+              isPaused
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+            }`}>
               <ShieldCheck className="w-3 h-3" />
-              Verified Google Business Profile
+              {isPaused ? 'Portal Deactivated' : 'Verified Google Business Profile'}
             </span>
             <span className="text-xs text-sky-200">
               Package: <strong>{client.packageName}</strong>

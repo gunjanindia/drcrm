@@ -34,14 +34,16 @@ All staff accounts use the default initialization password: `Password@123`
 
 ---
 
-## 🏥 3. Client Portal Accounts (Client Self-Service)
+## 🏥 3. Client Portal Accounts (Client 360 Self-Service)
 
-Clients log in at the same `/login` screen and are automatically redirected to their dedicated `/portal`.
+Clients log in at `/login` using their registered **Email** or **Mobile Number** and are automatically redirected to their dedicated `/portal`.
 
-| Client Business Name | Contact Person | Login Email | Default Password | Linked Package |
+| Provisioning Method | Contact / Owner | Login Identifier | Default Password | Linked Package |
 | :--- | :--- | :--- | :--- | :--- |
-| **Ranchi Dental Care & Implant Center** | Dr. Alok Srivastava | `client@ranchidental.com` | `Password@123` | Growth Accelerate (₹999/mo) |
-| **Converted Lead Accounts** | Lead Owner / Business Contact | *(Registered Business Email)* | `Password@123` | *(Selected Starting Package)* |
+| **Client 360 Portal Provisioning** | Business Owner / Manager | *(Registered Email or Mobile)* | As configured by Admin | *(Selected Retainer Package)* |
+| **Converted Lead Accounts** | Lead Owner / Business Contact | *(Registered Business Email/Phone)* | `Client@1234` | *(Selected Starting Package)* |
+
+> **Admin Management**: Administrators can **Deactivate (Pause)** or **Reactivate** a client's portal at any time from the Client Directory or Client 360 page. Administrators can also permanently **Delete** a Client 360 portal along with associated deliverables and user accounts.
 
 ---
 

@@ -384,8 +384,8 @@ export default function HomePage() {
               </p>
               <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">Dr. Alok Srivastava</h4>
-                  <p className="text-[11px] text-slate-500">Ranchi Dental Care & Implant Center</p>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">Dr. Rajesh Sahay</h4>
+                  <p className="text-[11px] text-slate-500">Apex Healthcare & Diagnostic Center</p>
                 </div>
                 <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   +210% Calls
