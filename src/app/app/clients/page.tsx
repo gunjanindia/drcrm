@@ -18,12 +18,15 @@ import { Button, Input, Modal, Badge } from '@/components/ui';
 import { globalStore } from '@/lib/store';
 import { Client } from '@/types';
 import { formatINR, formatDate, getHealthScoreColor } from '@/lib/utils';
+import { CreateClientPortalModal } from '@/components/admin/CreateClientPortalModal';
+import { Sparkles, Globe, QrCode } from 'lucide-react';
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
   const [filterHealth, setFilterHealth] = useState('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isProvisionModalOpen, setIsProvisionModalOpen] = useState(false);
 
   // New Client Form
   const [bizName, setBizName] = useState('');
@@ -101,14 +104,25 @@ export default function ClientsPage() {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          size="sm"
-          icon={Plus}
-          onClick={() => setIsAddModalOpen(true)}
-        >
-          Add Client Account
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={Sparkles}
+            onClick={() => setIsProvisionModalOpen(true)}
+          >
+            Provision Client 360 Portal
+          </Button>
+
+          <Button
+            variant="primary"
+            size="sm"
+            icon={Plus}
+            onClick={() => setIsAddModalOpen(true)}
+          >
+            Add Account
+          </Button>
+        </div>
       </div>
 
       {/* Filter Bar */}
@@ -214,18 +228,32 @@ export default function ClientsPage() {
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-[10px] text-slate-400">Mgr: {client.assignedManagerName}</span>
-                <Link href={`/app/clients/${client.id}`}>
-                  <Button variant="outline" size="sm" icon={ArrowUpRight}>
-                    Open 360 Hub
-                  </Button>
-                </Link>
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                <span className="text-[10px] text-slate-400 truncate">Mgr: {client.assignedManagerName}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Link href={`/portal?clientId=${client.id}`} target="_blank">
+                    <Button variant="ghost" size="sm" icon={Globe} className="text-sky-600 hover:bg-sky-50">
+                      Client Portal
+                    </Button>
+                  </Link>
+                  <Link href={`/app/clients/${client.id}`}>
+                    <Button variant="outline" size="sm" icon={ArrowUpRight}>
+                      Admin 360
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Provision Client 360 Portal Modal */}
+      <CreateClientPortalModal
+        isOpen={isProvisionModalOpen}
+        onClose={() => setIsProvisionModalOpen(false)}
+        onClientCreated={() => fetchClients()}
+      />
 
       {/* Add Client Account Modal */}
       <Modal

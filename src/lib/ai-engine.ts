@@ -208,6 +208,61 @@ Can we schedule a 5-minute call today to discuss your setup?`;
       ],
     };
   }
+
+  public generateReviewResponse(
+    reviewContent: string,
+    authorName: string,
+    rating: number,
+    businessName: string,
+    tone: 'PROFESSIONAL' | 'WARM' | 'HINGLISH' | 'RESOLUTION' = 'WARM'
+  ): string {
+    const cleanAuthor = authorName || 'Valued Customer';
+
+    if (rating >= 4) {
+      if (tone === 'HINGLISH') {
+        return `Namaste ${cleanAuthor} ji! 🙏 Bahut bahut dhanyawaad aapke review aur trust ke liye. ${businessName} me hamari hamesha koshish rehti hai ki aapko best treatment aur hygienic care mile. Agli baar bhi jab zaroorat ho, zaroor visit karein. Shubhkaamnayein!`;
+      }
+      if (tone === 'PROFESSIONAL') {
+        return `Dear ${cleanAuthor}, thank you for taking the time to share your feedback. The entire team at ${businessName} appreciates your positive rating. We remain committed to delivering the highest clinical and service standards for our patrons.`;
+      }
+      // WARM (Default)
+      return `Dear ${cleanAuthor}, thank you so much for your kind words! 🙏 We are delighted to hear that you had a comfortable and positive experience at ${businessName}. Your satisfaction means the world to our team. Looking forward to keeping your smile healthy and bright!`;
+    } else {
+      // 1-3 Stars / Resolution
+      if (tone === 'HINGLISH') {
+        return `Namaste ${cleanAuthor} ji, hume khed hai ki aapka experience hamare standard ke anusaar nahi raha. ${businessName} me patient satisfaction hamari top priority hai. Kripya hume +91 94311 09876 par call ya WhatsApp karein taaki hum turant is mamle ko resolve kar sakein.`;
+      }
+      return `Dear ${cleanAuthor}, thank you for bringing this to our attention. At ${businessName}, patient satisfaction and prompt care are our top priorities. We sincerely apologize that your visit did not meet full expectations. Please reach out to us directly on WhatsApp/Call at +91 94311 09876 so we can address your concerns immediately.`;
+    }
+  }
+
+  public generateFestivalCreativeCopy(
+    festivalName: string,
+    offerTitle: string,
+    businessName: string,
+    city: string = 'Ranchi'
+  ): {
+    headline: string;
+    caption: string;
+    whatsAppBroadcast: string;
+    tags: string[];
+  } {
+    const headline = `✨ ${festivalName} Exclusive from ${businessName}!`;
+    const caption = `Celebrate this joyous festive season with healthy smiles and exclusive wellness privileges at ${businessName} (${city})! 🌸\n\n🎉 SPECIAL FESTIVE PRIVILEGE:\n👉 ${offerTitle}\n\n📍 Visit: Lalpur Commercial Complex, Circular Road, Ranchi\n📞 Call/WhatsApp: +91 94311 09876 to reserve your priority festive slot today!\n\n#${festivalName.replace(/[^a-zA-Z0-9]/g, '')} #Ranchi #HealthySmiles #${businessName.replace(/[^a-zA-Z0-9]/g, '')} #FestiveOffer`;
+
+    const whatsAppBroadcast = `🌟 *${festivalName} Festive Greetings from ${businessName}!* 🌟\n\nMay this season bring radiant health, joy, and peace to you and your family! 🙏\n\n🎁 *Exclusive Festive Privilege:* \n*${offerTitle}*\n\n✅ Advanced painless checkup & digital scans\n✅ Valid for appointments booked this week\n\n👉 *Book Appointment in 1-Click:* \nhttps://wa.me/919431109876?text=Hi%20${encodeURIComponent(businessName)},%20I%20want%20to%20claim%20the%20${encodeURIComponent(festivalName)}%20Festive%20Offer!`;
+
+    const tags = [
+      `#${festivalName.replace(/[^a-zA-Z0-9]/g, '')}2026`,
+      `#${city}Healthcare`,
+      `#${businessName.replace(/[^a-zA-Z0-9]/g, '')}`,
+      '#FestiveSavings',
+      '#LocalBusinessRanchi',
+    ];
+
+    return { headline, caption, whatsAppBroadcast, tags };
+  }
 }
 
 export const aiAssistantEngine = new AIAssistantEngine();
+

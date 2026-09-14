@@ -1,53 +1,89 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
+  Activity,
+  TrendingUp,
+  MessageSquare,
+  Sparkles,
+  QrCode,
+  Globe,
   CheckCircle2,
   ListTodo,
   FileBarChart2,
   Receipt,
   HelpCircle,
-  Building,
+  Zap,
   ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  getSyncedBusinessProfile,
+  SyncedBusinessProfile,
+  DEMO_BUSINESS_PROFILE,
+} from '@/lib/client-portal-sync';
 
 export const PortalSidebar: React.FC = () => {
   const pathname = usePathname();
+  const [profile, setProfile] = React.useState<SyncedBusinessProfile>(DEMO_BUSINESS_PROFILE);
+
+  React.useEffect(() => {
+    setProfile(getSyncedBusinessProfile());
+    const handleUpdate = (e: any) => {
+      if (e.detail) setProfile(e.detail);
+    };
+    window.addEventListener('drcrm_gbp_profile_updated', handleUpdate);
+    return () => window.removeEventListener('drcrm_gbp_profile_updated', handleUpdate);
+  }, []);
 
   const navigation = [
     { name: 'Dashboard', href: '/portal', icon: LayoutDashboard, exact: true },
-    { name: 'Approvals & Creatives', href: '/portal/deliverables', icon: CheckCircle2, badge: '1 Action' },
+    { name: 'Digital Health Audit', href: '/portal/audit', icon: Activity, badge: `${profile.gbpScore}/100` },
+    { name: 'Growth & Rank Rise', href: '/portal/growth', icon: TrendingUp, badge: '#1 Rank' },
+    { name: 'AI Review Assistant', href: '/portal/reviews', icon: MessageSquare, badge: 'AI' },
+    { name: 'Festival Creative Studio', href: '/portal/creative-studio', icon: Sparkles, badge: 'New' },
+    { name: 'Print Review QR Stand', href: '/portal/qr-stand', icon: QrCode },
+    { name: '1-Page Mini-Site', href: '/portal/site-builder', icon: Globe },
+    { name: 'Deliverables & Approvals', href: '/portal/deliverables', icon: CheckCircle2 },
     { name: 'Live Service Tasks', href: '/portal/tasks', icon: ListTodo },
-    { name: 'Monthly Reports', href: '/portal/reports', icon: FileBarChart2 },
     { name: 'Invoices & Renewals', href: '/portal/invoices', icon: Receipt },
     { name: 'Support Tickets', href: '/portal/tickets', icon: HelpCircle },
   ];
+
+  const initials = profile.businessName
+    .split(' ')
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'DR';
 
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen sticky top-0 shrink-0 text-slate-300">
       {/* Client Profile Header */}
       <div className="p-5 border-b border-slate-800">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-sky-600/30">
-            RD
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-sky-600/30 text-xs">
+            {initials}
           </div>
           <div className="min-w-0">
             <span className="font-bold text-xs text-white truncate block">
-              Ranchi Dental Care
+              {profile.businessName}
             </span>
-            <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider block">
-              Premium Growth Tier
+            <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider block truncate">
+              {profile.isLiveSynced ? 'Verified Live Profile' : 'Demo Mode'}
             </span>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
         <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-          Client Workspace
+          Client 360 Workspace
         </div>
         {navigation.map((item) => {
           const isActive = item.exact
@@ -59,23 +95,30 @@ export const PortalSidebar: React.FC = () => {
               key={item.name}
               href={item.href}
               className={cn(
-                'flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all group',
+                'flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all group',
                 isActive
                   ? 'bg-sky-600 text-white shadow-sm shadow-sky-500/20 font-semibold'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               )}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <item.icon
                   className={cn(
-                    'w-4 h-4 transition-colors',
+                    'w-4 h-4 shrink-0 transition-colors',
                     isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
                   )}
                 />
-                <span>{item.name}</span>
+                <span className="truncate">{item.name}</span>
               </div>
               {item.badge && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span
+                  className={cn(
+                    'text-[9px] font-bold px-1.5 py-0.5 rounded border shrink-0',
+                    item.badge === 'AI' || item.badge === 'New'
+                      ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  )}
+                >
                   {item.badge}
                 </span>
               )}
@@ -87,7 +130,7 @@ export const PortalSidebar: React.FC = () => {
       {/* Dedicated Manager Card + Logout */}
       <div className="p-4 border-t border-slate-800 bg-slate-950/40 space-y-3">
         <div className="text-[10px] uppercase font-bold text-slate-500">
-          Your Account Manager
+          Dedicated Account Manager
         </div>
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">

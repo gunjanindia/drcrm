@@ -25,13 +25,32 @@ import { Button, Badge, Modal } from '@/components/ui';
 import { globalStore } from '@/lib/store';
 import { formatINR, formatDate, getHealthScoreColor, getStatusBadgeClass } from '@/lib/utils';
 import { aiAssistantEngine } from '@/lib/ai-engine';
+import { DigitalHealthAuditCard } from '@/components/portal/DigitalHealthAuditCard';
+import { MonthlyGrowthChart } from '@/components/portal/MonthlyGrowthChart';
+import { ReviewManagementWidget } from '@/components/portal/ReviewManagementWidget';
+import { FestivalCreativeStudio } from '@/components/portal/FestivalCreativeStudio';
+import { PrintableReviewQRGenerator } from '@/components/portal/PrintableReviewQRGenerator';
+import { OnePageSiteBuilder } from '@/components/portal/OnePageSiteBuilder';
 
 export default function Client360Page({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const clientId = resolvedParams.id;
 
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'services' | 'tasks' | 'approvals' | 'billing' | 'tickets' | 'timeline' | 'ai'
+    | 'overview'
+    | 'audit'
+    | 'growth'
+    | 'reviews'
+    | 'creatives'
+    | 'qr'
+    | 'site'
+    | 'services'
+    | 'tasks'
+    | 'approvals'
+    | 'billing'
+    | 'tickets'
+    | 'timeline'
+    | 'ai'
   >('overview');
 
   const [client, setClient] = useState<any>(() => {
@@ -120,6 +139,12 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
+    { id: 'audit', label: 'Health Audit & Factors' },
+    { id: 'growth', label: 'Monthly Growth & Rank' },
+    { id: 'reviews', label: 'AI Review Assistant' },
+    { id: 'creatives', label: 'Festival Creative Studio' },
+    { id: 'qr', label: 'Review QR Stand' },
+    { id: 'site', label: '1-Page Mini-Site' },
     { id: 'services', label: 'Services & Package' },
     { id: 'tasks', label: `Tasks (${clientTasks.length})` },
     { id: 'approvals', label: `Approvals (${clientDeliverables.length})` },
@@ -283,7 +308,51 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      {/* Tab 2: Services & Package */}
+      {/* Tab: Digital Health Audit */}
+      {activeTab === 'audit' && (
+        <DigitalHealthAuditCard
+          businessName={client.businessName}
+          category={client.category}
+          city={client.city}
+        />
+      )}
+
+      {/* Tab: Monthly Growth & Rank Rise */}
+      {activeTab === 'growth' && (
+        <MonthlyGrowthChart businessName={client.businessName} />
+      )}
+
+      {/* Tab: AI Review Assistant */}
+      {activeTab === 'reviews' && (
+        <ReviewManagementWidget businessName={client.businessName} />
+      )}
+
+      {/* Tab: Festival Creative Studio */}
+      {activeTab === 'creatives' && (
+        <FestivalCreativeStudio
+          businessName={client.businessName}
+          phone={client.phone}
+          address={client.address}
+          city={client.city}
+        />
+      )}
+
+      {/* Tab: Review QR Stand */}
+      {activeTab === 'qr' && (
+        <PrintableReviewQRGenerator
+          businessName={client.businessName}
+          category={client.category}
+          city={client.city}
+          googleReviewUrl={client.googleMapsUrl || 'https://g.page/r/ranchi-dental-care/review'}
+        />
+      )}
+
+      {/* Tab: 1-Page Mini-Site */}
+      {activeTab === 'site' && (
+        <OnePageSiteBuilder />
+      )}
+
+      {/* Tab: Services & Package */}
       {activeTab === 'services' && (
         <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
           <div className="flex justify-between items-start">
