@@ -169,6 +169,30 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
     }
   };
 
+  const handleLaunchOAuth = async () => {
+    try {
+      const redirectUri = `${window.location.origin}/api/auth/google/gbp/callback`;
+      const businessNameParam = encodeURIComponent(businessName);
+      const emailParam = encodeURIComponent(gbpAuth?.googleEmail || '');
+      const res = await fetch(
+        `/api/auth/google/gbp?redirect_uri=${encodeURIComponent(redirectUri)}&businessName=${businessNameParam}&email=${emailParam}`
+      );
+      const data = await res.json();
+
+      const popup = window.open(
+        data.authUrl || `/api/auth/google/gbp/callback?mode=consent&businessName=${businessNameParam}&email=${emailParam}`,
+        'GoogleGBPAuth',
+        'width=550,height=650,left=300,top=100'
+      );
+
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        window.location.href = data.authUrl || `/api/auth/google/gbp/callback?mode=consent&businessName=${businessNameParam}`;
+      }
+    } catch {
+      window.location.href = `/api/auth/google/gbp/callback?mode=consent&businessName=${encodeURIComponent(businessName)}`;
+    }
+  };
+
   const handleOpenGoogleMapsListing = (replyToCopy?: string) => {
     if (replyToCopy) {
       try {
@@ -259,9 +283,9 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
               variant="primary"
               size="sm"
               icon={KeyRound}
-              onClick={() => (onConnectGbp ? onConnectGbp() : alert('Connect Google Account in Settings'))}
+              onClick={() => (onConnectGbp ? onConnectGbp() : handleLaunchOAuth())}
             >
-              Authorize GBP Account
+              Authorize Owner Account
             </Button>
           )}
         </div>
