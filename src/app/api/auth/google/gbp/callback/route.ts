@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   try {
@@ -315,6 +316,42 @@ export async function GET(request: Request) {
         }
       } catch (tokenErr) {
         console.error('Google OAuth token exchange error:', tokenErr);
+      }
+    }
+
+    // Persist live Google OAuth tokens to Neon PostgreSQL
+    if (process.env.DATABASE_URL && prisma && (accessToken || refreshToken)) {
+      try {
+        const client = await prisma.client.findFirst({
+          where: {
+            OR: [
+              { email: { equals: userEmail, mode: 'insensitive' } },
+              { businessName: { contains: businessName, mode: 'insensitive' } },
+            ],
+          },
+        });
+
+        if (client) {
+          await prisma.timelineActivity.create({
+            data: {
+              clientId: client.id,
+              type: 'GBP_OAUTH_TOKENS',
+              title: `Google Business Profile OAuth Connected`,
+              description: JSON.stringify({
+                accessToken,
+                refreshToken,
+                userEmail,
+                accountName,
+                locationId,
+                expiresAt: Date.now() + 3500 * 1000,
+              }),
+              actorName: userEmail,
+              timestamp: new Date(),
+            },
+          }).catch(() => null);
+        }
+      } catch (dbErr) {
+        console.error('Failed to store GBP OAuth tokens in DB:', dbErr);
       }
     }
 

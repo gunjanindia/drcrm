@@ -137,12 +137,78 @@ export async function POST(request: Request) {
       });
     }
 
-    // 5. Attempt Live Google My Business API Direct Dispatch if Google Token is available
+    // 5. Attempt Live Google My Business API Direct Dispatch
     let googleApiDispatched = false;
     let googleApiError: string | null = null;
 
-    const googleToken = body.accessToken || process.env.GOOGLE_GBP_ACCESS_TOKEN;
-    const locationId = body.locationId || clientRecord?.placeId;
+    let googleToken = body.accessToken || process.env.GOOGLE_GBP_ACCESS_TOKEN;
+    let locationId = body.locationId || clientRecord?.placeId;
+
+    // If no direct token in request, check stored OAuth tokens in PostgreSQL
+    if (!googleToken && process.env.DATABASE_URL && prisma && clientRecord) {
+      try {
+        const storedTokenActivity = await prisma.timelineActivity.findFirst({
+          where: {
+            clientId: clientRecord.id,
+            type: 'GBP_OAUTH_TOKENS',
+          },
+          orderBy: { timestamp: 'desc' },
+        });
+
+        if (storedTokenActivity && storedTokenActivity.description) {
+          const tokenObj = JSON.parse(storedTokenActivity.description);
+          if (tokenObj.accessToken) {
+            googleToken = tokenObj.accessToken;
+            if (!locationId && tokenObj.locationId) {
+              locationId = tokenObj.locationId;
+            }
+
+            // Check token expiration and auto-refresh using refreshToken if available
+            const isExpired = tokenObj.expiresAt && Date.now() > tokenObj.expiresAt;
+            const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+            const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+            if (isExpired && tokenObj.refreshToken && clientId && clientSecret) {
+              try {
+                const refreshRes = await fetch('https://oauth2.googleapis.com/token', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: new URLSearchParams({
+                    client_id: clientId,
+                    client_secret: clientSecret,
+                    refresh_token: tokenObj.refreshToken,
+                    grant_type: 'refresh_token',
+                  }),
+                });
+                const refreshData = await refreshRes.json();
+                if (refreshData.access_token) {
+                  googleToken = refreshData.access_token;
+                  // Update stored token in DB
+                  await prisma.timelineActivity.create({
+                    data: {
+                      clientId: clientRecord.id,
+                      type: 'GBP_OAUTH_TOKENS',
+                      title: `Google Business Profile Token Refreshed`,
+                      description: JSON.stringify({
+                        ...tokenObj,
+                        accessToken: refreshData.access_token,
+                        expiresAt: Date.now() + 3500 * 1000,
+                      }),
+                      actorName: tokenObj.userEmail || 'System Auto-Refresh',
+                      timestamp: new Date(),
+                    },
+                  }).catch(() => null);
+                }
+              } catch (refreshErr) {
+                console.warn('Auto-refreshing Google access token failed:', refreshErr);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error loading stored GBP tokens from DB:', e);
+      }
+    }
 
     if (googleToken && locationId && reviewId) {
       try {
