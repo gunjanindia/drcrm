@@ -50,9 +50,10 @@ export const PortalSidebar: React.FC = () => {
       badge: pendingCount > 0 ? `${pendingCount} Urgent` : undefined,
       isUrgent: pendingCount > 0,
     },
+    { name: '1-Page GBP Website', href: '/portal/site-builder', icon: Globe, badge: 'Live' },
     { name: 'Local SEO & Growth', href: '/portal/growth', icon: TrendingUp, badge: `${profile.gbpScore || 85}/100 Score` },
     { name: 'Festival Posters Studio', href: '/portal/creative-studio', icon: Sparkles, badge: 'AI' },
-    { name: 'Review QR Stand & Site', href: '/portal/qr-stand', icon: QrCode },
+    { name: 'Review QR Stand', href: '/portal/qr-stand', icon: QrCode },
     { name: 'My Plan & Invoices', href: '/portal/invoices', icon: Receipt },
   ];
 

@@ -262,7 +262,25 @@ export default function ClientPortalDashboard() {
       </div>
 
       {/* 4 Feature Action Cards for Non-Technical Owners */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+        <Link
+          href="/portal/site-builder"
+          className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-sky-500 hover:shadow-lg transition-all space-y-3 group"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-sky-500/15 text-sky-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <Globe className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-sky-600 flex items-center justify-between">
+              <span>1-Page GBP Website</span>
+              <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </h4>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Mobile-first landing page with 1-click WhatsApp booking, category styling, and JSON-LD schema.
+            </p>
+          </div>
+        </Link>
+
         <Link
           href="/portal/growth"
           className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:shadow-lg transition-all space-y-3 group"
@@ -272,7 +290,7 @@ export default function ClientPortalDashboard() {
           </div>
           <div>
             <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-indigo-600 flex items-center justify-between">
-              <span>Local Search Growth</span>
+              <span>Local SEO Growth</span>
               <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
             </h4>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
@@ -308,7 +326,7 @@ export default function ClientPortalDashboard() {
           </div>
           <div>
             <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-emerald-600 flex items-center justify-between">
-              <span>Review QR Stand & Mini-Site</span>
+              <span>Review QR Stand</span>
               <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
             </h4>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
