@@ -123,7 +123,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
         // Fetch all GBP accounts and locations linked to this Google account
         try {
           const res = await fetch(
-            `/api/auth/google/gbp/locations?businessName=${encodeURIComponent(businessName)}&email=${encodeURIComponent(email)}&accessToken=${encodeURIComponent(token)}`
+            `/api/auth/google/gbp/locations?businessName=${encodeURIComponent(businessName)}&city=${encodeURIComponent(city || 'Dhanbad')}&email=${encodeURIComponent(email)}&accessToken=${encodeURIComponent(token)}`
           );
           const data = await res.json();
           if (data.locations && data.locations.length > 0) {
@@ -138,7 +138,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
 
     window.addEventListener('message', handleAuthMessage);
     return () => window.removeEventListener('message', handleAuthMessage);
-  }, [businessName, authGoogleEmail]);
+  }, [businessName, city, authGoogleEmail]);
 
   const getTargetMapsUrl = () => {
     if (googleMapsUrl && googleMapsUrl.startsWith('http')) return googleMapsUrl;
@@ -361,7 +361,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
     try {
       const email = gbpAuth?.googleEmail || authGoogleEmail || '';
       const res = await fetch(
-        `/api/auth/google/gbp/locations?businessName=${encodeURIComponent(businessName)}&email=${encodeURIComponent(email)}&accessToken=${encodeURIComponent(authAccessToken)}`
+        `/api/auth/google/gbp/locations?businessName=${encodeURIComponent(businessName)}&city=${encodeURIComponent(city || 'Dhanbad')}&email=${encodeURIComponent(email)}&accessToken=${encodeURIComponent(authAccessToken)}`
       );
       const data = await res.json();
       if (data.matchedLocation?.reviews && data.matchedLocation.reviews.length > 0) {
