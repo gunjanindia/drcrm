@@ -21,6 +21,9 @@ export default function GrowthAnalyticsPage() {
       <MonthlyGrowthChart
         businessName={profile.businessName}
         metrics={profile.growthMetrics}
+        syncedAt={profile.syncedAt}
+        isLiveSynced={profile.isLiveSynced}
+        city={profile.city}
       />
     </div>
   );

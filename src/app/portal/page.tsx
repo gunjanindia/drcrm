@@ -21,6 +21,7 @@ import {
   Zap,
   AlertTriangle,
   ShieldAlert,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { globalStore } from '@/lib/store';
@@ -113,6 +114,12 @@ export default function ClientPortalDashboard() {
             <span className="text-xs text-sky-200">
               Package: <strong>{client.packageName}</strong>
             </span>
+            {client.syncedAt && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/10 text-slate-200 border border-white/20">
+                <Clock className="w-3 h-3 text-sky-300" />
+                Last Synced: {client.syncedAt}
+              </span>
+            )}
           </div>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
             Namaste, {client.businessName}!
@@ -240,6 +247,9 @@ export default function ClientPortalDashboard() {
         <MonthlyGrowthChart
           businessName={client.businessName}
           metrics={client.growthMetrics}
+          syncedAt={client.syncedAt}
+          isLiveSynced={client.isLiveSynced}
+          city={client.city}
         />
       </div>
 

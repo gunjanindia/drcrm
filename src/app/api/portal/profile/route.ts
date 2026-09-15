@@ -164,6 +164,58 @@ export async function GET(request: Request) {
       reviewsToUse = generateDynamicReviewsForBusiness(clientRecord.businessName, clientRecord.category, clientRecord.city, rating);
     }
 
+    // Resolve last sync date from TimelineActivity or GbpProfile
+    let lastSyncDate: Date | null = null;
+    let customGrowthMetrics: any[] | null = null;
+
+    if (process.env.DATABASE_URL && prisma) {
+      try {
+        const lastSyncActivity = await prisma.timelineActivity.findFirst({
+          where: {
+            clientId: clientRecord.id,
+            type: { in: ['GBP_SYNCED', 'GBP_REVIEWS_DATA', 'GBP_OAUTH_TOKENS', 'AUDIT_COMPLETED'] },
+          },
+          orderBy: { timestamp: 'desc' },
+        });
+
+        if (lastSyncActivity && lastSyncActivity.timestamp) {
+          lastSyncDate = new Date(lastSyncActivity.timestamp);
+        }
+
+        const storedGrowthActivity = await prisma.timelineActivity.findFirst({
+          where: {
+            clientId: clientRecord.id,
+            type: 'GBP_GROWTH_METRICS',
+          },
+          orderBy: { timestamp: 'desc' },
+        });
+        if (storedGrowthActivity && storedGrowthActivity.description) {
+          const parsedGrowth = JSON.parse(storedGrowthActivity.description);
+          if (Array.isArray(parsedGrowth) && parsedGrowth.length > 0) {
+            customGrowthMetrics = parsedGrowth;
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching last sync date for profile:', e);
+      }
+    }
+
+    if (!lastSyncDate && clientRecord.updatedAt) {
+      lastSyncDate = new Date(clientRecord.updatedAt);
+    }
+    if (!lastSyncDate) {
+      lastSyncDate = new Date();
+    }
+
+    const formattedSyncDate = `${lastSyncDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })} • ${lastSyncDate.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })}`;
+
     const isPaused = clientRecord.status === 'PAUSED';
 
     const profile: SyncedBusinessProfile = {
@@ -189,11 +241,11 @@ export async function GET(request: Request) {
         : new Date(Date.now() + 30 * 86400000).toISOString(),
       googleOwnerEmail: session?.email || clientRecord.email,
       googleAccountName: `${clientRecord.businessName} (Verified Owner)`,
-      syncedAt: 'Stored in CRM Database',
+      syncedAt: formattedSyncDate,
       status: clientRecord.status || 'ACTIVE',
       isOperational: !isPaused,
       reviews: reviewsToUse,
-      growthMetrics: generateDynamicGrowthForBusiness(reviewCount, rating),
+      growthMetrics: customGrowthMetrics || generateDynamicGrowthForBusiness(reviewCount, rating, gbpScore),
       auditFactors: generateDynamicAuditFactorsForBusiness(
         clientRecord.businessName,
         clientRecord.category,

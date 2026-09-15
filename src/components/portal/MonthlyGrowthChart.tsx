@@ -11,17 +11,26 @@ import {
   Filter,
   BarChart3,
   LineChart,
+  Clock,
+  ShieldCheck,
+  Globe,
 } from 'lucide-react';
 import { MonthlyGrowthMetric, DEFAULT_MONTHLY_GROWTH } from '@/lib/client-360-data';
 
 export interface MonthlyGrowthChartProps {
   metrics?: MonthlyGrowthMetric[];
   businessName?: string;
+  syncedAt?: string;
+  isLiveSynced?: boolean;
+  city?: string;
 }
 
 export const MonthlyGrowthChart: React.FC<MonthlyGrowthChartProps> = ({
   metrics = DEFAULT_MONTHLY_GROWTH,
   businessName = 'Your Verified Business',
+  syncedAt,
+  isLiveSynced = true,
+  city = 'Ranchi',
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<'all' | 'calls' | 'visits' | 'appointments' | 'rank'>('all');
   const [timeRange, setTimeRange] = useState<'3m' | '6m'>('6m');
@@ -66,6 +75,32 @@ export const MonthlyGrowthChart: React.FC<MonthlyGrowthChartProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Live GBP Sync & Last Updated Info Bar */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+            <TrendingUp className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-sm text-white">{businessName}</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                ✓ GBP Live Sync
+              </span>
+            </div>
+            <span className="text-[11px] text-slate-300 flex items-center gap-1.5 mt-0.5">
+              <Clock className="w-3.5 h-3.5 text-indigo-400" />
+              <strong>Last Synced with Google Maps:</strong> {syncedAt || 'Active Session'}
+            </span>
+          </div>
+        </div>
+
+        <div className="text-left sm:text-right text-[11px] text-slate-400 shrink-0">
+          <span className="text-slate-300 font-semibold block">{city || 'Local Market'}</span>
+          <span>Rank #{last.rank} in Google Local Pack</span>
+        </div>
+      </div>
+
       {/* 4 Summary Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div
@@ -85,7 +120,7 @@ export const MonthlyGrowthChart: React.FC<MonthlyGrowthChartProps> = ({
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">
-            #{last.rank} <span className="text-xs font-normal text-slate-400">in Ranchi</span>
+            #{last.rank} <span className="text-xs font-normal text-slate-400">in {city || 'Ranchi'}</span>
           </div>
           <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5 mt-1">
             <ArrowUpRight className="w-3 h-3" /> Climbed from #{first.rank}

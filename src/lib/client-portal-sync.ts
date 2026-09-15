@@ -312,18 +312,34 @@ export function generateDynamicReviewsForBusiness(
   ];
 }
 
-export function generateDynamicGrowthForBusiness(reviewCount: number = 24, rating: number = 4.8): MonthlyGrowthMetric[] {
-  const currentCalls = Math.max(80, Math.round(reviewCount * 7.5));
-  const currentVisits = Math.max(1200, Math.round(reviewCount * 145));
-  const currentAppts = Math.max(25, Math.round(reviewCount * 2.8));
+export function generateDynamicGrowthForBusiness(
+  reviewCount: number = 24,
+  rating: number = 4.8,
+  gbpScore: number = 84
+): MonthlyGrowthMetric[] {
+  const currentCalls = Math.max(28, Math.round(reviewCount * 6.5 + (gbpScore / 100) * 45));
+  const currentVisits = Math.max(480, Math.round(reviewCount * 120 + (gbpScore / 100) * 850));
+  const currentAppts = Math.max(12, Math.round(reviewCount * 2.2 + (gbpScore / 100) * 18));
+
+  // Generate dynamic last 6 months based on current real month
+  const now = new Date();
+  const months: string[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const mName = d.toLocaleString('en-US', { month: 'short' });
+    months.push(i === 0 ? `${mName} (Current)` : mName);
+  }
+
+  const finalRank = gbpScore >= 85 ? 1 : gbpScore >= 70 ? 2 : 3;
+  const initialRank = Math.min(8, finalRank + 5);
 
   return [
-    { month: 'Apr', rank: 7, calls: Math.round(currentCalls * 0.2), visits: Math.round(currentVisits * 0.18), appointments: Math.round(currentAppts * 0.22) },
-    { month: 'May', rank: 5, calls: Math.round(currentCalls * 0.35), visits: Math.round(currentVisits * 0.32), appointments: Math.round(currentAppts * 0.38) },
-    { month: 'Jun', rank: 4, calls: Math.round(currentCalls * 0.52), visits: Math.round(currentVisits * 0.48), appointments: Math.round(currentAppts * 0.55) },
-    { month: 'Jul', rank: 3, calls: Math.round(currentCalls * 0.7), visits: Math.round(currentVisits * 0.68), appointments: Math.round(currentAppts * 0.72) },
-    { month: 'Aug', rank: 2, calls: Math.round(currentCalls * 0.88), visits: Math.round(currentVisits * 0.85), appointments: Math.round(currentAppts * 0.89) },
-    { month: 'Sep (Current)', rank: 1, calls: currentCalls, visits: currentVisits, appointments: currentAppts },
+    { month: months[0], rank: initialRank, calls: Math.max(5, Math.round(currentCalls * 0.22)), visits: Math.max(90, Math.round(currentVisits * 0.20)), appointments: Math.max(2, Math.round(currentAppts * 0.24)) },
+    { month: months[1], rank: Math.max(finalRank + 3, initialRank - 1), calls: Math.max(8, Math.round(currentCalls * 0.38)), visits: Math.max(160, Math.round(currentVisits * 0.35)), appointments: Math.max(4, Math.round(currentAppts * 0.40)) },
+    { month: months[2], rank: Math.max(finalRank + 2, initialRank - 2), calls: Math.max(12, Math.round(currentCalls * 0.54)), visits: Math.max(250, Math.round(currentVisits * 0.50)), appointments: Math.max(6, Math.round(currentAppts * 0.56)) },
+    { month: months[3], rank: Math.max(finalRank + 1, initialRank - 3), calls: Math.max(18, Math.round(currentCalls * 0.70)), visits: Math.max(340, Math.round(currentVisits * 0.68)), appointments: Math.max(8, Math.round(currentAppts * 0.72)) },
+    { month: months[4], rank: finalRank + 1, calls: Math.max(22, Math.round(currentCalls * 0.86)), visits: Math.max(420, Math.round(currentVisits * 0.84)), appointments: Math.max(10, Math.round(currentAppts * 0.88)) },
+    { month: months[5], rank: finalRank, calls: currentCalls, visits: currentVisits, appointments: currentAppts },
   ];
 }
 
