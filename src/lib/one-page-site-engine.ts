@@ -681,6 +681,8 @@ export interface GeneratedWebsiteData {
   headline: string;
   subheadline: string;
   aboutText: string;
+  logoUrl?: string;
+  bannerUrl?: string;
   services: Array<{ title: string; desc: string; price?: string; badge?: string }>;
   faqs: Array<{ q: string; a: string }>;
   galleryImages: Array<{ title: string; category: string; aspect: string }>;
@@ -701,10 +703,15 @@ export function buildGeneratedWebsiteData(params: {
   rating?: number;
   reviewCount?: number;
   workingHours?: string;
+  headline?: string;
+  subheadline?: string;
   customHeadline?: string;
   customSubheadline?: string;
   customAbout?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
   customServices?: Array<{ title: string; desc: string; price?: string; badge?: string }>;
+  customFaqs?: Array<{ q: string; a: string }>;
   realReviews?: Array<{ authorName: string; rating: number; text: string; relativeTime?: string }>;
 }): GeneratedWebsiteData {
   const catKey = detectCategoryKeyFromGbp(params.category);
@@ -718,14 +725,14 @@ export function buildGeneratedWebsiteData(params: {
   const address = params.address || (city ? `${city}` : 'Main Road');
   const workingHours = params.workingHours || 'Mon – Sat: 9:30 AM – 8:30 PM | Sun: Open';
 
-  const headline = params.customHeadline || theme.headlineTemplate(businessName, city);
-  const subheadline = params.customSubheadline || theme.subheadlineTemplate(params.category || theme.name, city);
+  const headline = params.headline || params.customHeadline || theme.headlineTemplate(businessName, city);
+  const subheadline = params.subheadline || params.customSubheadline || theme.subheadlineTemplate(params.category || theme.name, city);
   const aboutText =
     params.customAbout ||
     `Welcome to ${businessName}. We are dedicated to providing our clients with exceptional service, uncompromising quality, and fast local support. Get in touch with us directly via phone or WhatsApp.`;
 
   const services = params.customServices && params.customServices.length > 0 ? params.customServices : theme.defaultServices;
-  const faqs = theme.defaultFaqs;
+  const faqs = params.customFaqs && params.customFaqs.length > 0 ? params.customFaqs : theme.defaultFaqs;
   const galleryImages = theme.defaultGalleryImages;
 
   const reviews =
@@ -745,7 +752,7 @@ export function buildGeneratedWebsiteData(params: {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     name: businessName,
-    image: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?w=800&auto=format&fit=crop&q=80',
+    image: params.bannerUrl || params.logoUrl || 'https://images.unsplash.com/photo-1577495508048-b635879837f1?w=800&auto=format&fit=crop&q=80',
     '@id': params.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(businessName + ' ' + city)}`,
     url: params.googleMapsUrl || '',
     telephone: phone,
@@ -782,6 +789,8 @@ export function buildGeneratedWebsiteData(params: {
     headline,
     subheadline,
     aboutText,
+    logoUrl: params.logoUrl,
+    bannerUrl: params.bannerUrl,
     services,
     faqs,
     galleryImages,
@@ -976,6 +985,14 @@ document.addEventListener('DOMContentLoaded', () => {
     )
     .join('');
 
+  const logoHtml = data.logoUrl
+    ? `<div style="display: flex; align-items: center; gap: 0.75rem;"><img src="${data.logoUrl}" alt="${data.businessName}" style="max-height: 42px; max-width: 150px; object-fit: contain; border-radius: 8px;" /><span class="logo-title" style="font-size: 1.05rem;">${data.businessName}</span></div>`
+    : `<div class="logo-title">${data.businessName}</div>`;
+
+  const heroStyle = data.bannerUrl
+    ? `style="background: linear-gradient(rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.9)), url('${data.bannerUrl}') center/cover no-repeat;"`
+    : '';
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -993,7 +1010,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- Sticky Header -->
   <header>
     <div class="container header-wrap">
-      <div class="logo-title">${data.businessName}</div>
+      ${logoHtml}
       <div class="header-actions">
         <a href="https://wa.me/${data.whatsapp}" class="btn btn-whatsapp" target="_blank" rel="noreferrer">
           💬 WhatsApp
@@ -1006,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </header>
 
   <!-- Hero Section -->
-  <section class="hero">
+  <section class="hero" ${heroStyle}>
     <div class="container">
       <div class="hero-badge">★ ${data.rating} Rating on Google Maps (${data.reviewCount}+ Reviews)</div>
       <h1>${data.headline}</h1>

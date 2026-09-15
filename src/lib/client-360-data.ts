@@ -236,7 +236,12 @@ export interface MiniSiteConfig {
   aboutText: string;
   ownerName: string;
   ownerTitle: string;
-  services: Array<{ title: string; desc: string; price: string; icon: string }>;
+  logoUrl?: string;
+  bannerUrl?: string;
+  services: Array<{ title: string; desc: string; price: string; icon: string; badge?: string }>;
+  faqs?: Array<{ q: string; a: string }>;
+  customHtml?: string;
+  customCss?: string;
   workingHours: string;
   address: string;
   phone: string;

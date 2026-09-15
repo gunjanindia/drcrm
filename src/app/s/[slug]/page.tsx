@@ -44,7 +44,15 @@ export default function PublicOnePageWebsite() {
       customHeadline: profile.miniSiteConfig?.headline,
       customSubheadline: profile.miniSiteConfig?.subheadline,
       customAbout: profile.miniSiteConfig?.aboutText,
-      customServices: profile.miniSiteConfig?.services,
+      logoUrl: profile.miniSiteConfig?.logoUrl,
+      bannerUrl: profile.miniSiteConfig?.bannerUrl,
+      customServices: profile.miniSiteConfig?.services?.map((s) => ({
+        title: s.title,
+        desc: s.desc,
+        price: s.price,
+        badge: (s as any).badge,
+      })),
+      customFaqs: profile.miniSiteConfig?.faqs,
       realReviews: profile.reviews?.map((r) => ({
         authorName: r.authorName,
         rating: r.rating,
@@ -67,13 +75,21 @@ export default function PublicOnePageWebsite() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased pb-20 sm:pb-0">
-      {/* Sticky Header */}
+      {/* Sticky Header with Logo Support */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 transition-all shadow-xs">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-xl ${theme.accentBg} text-white font-black flex items-center justify-center text-xs shadow-xs`}>
-              {siteData.businessName.substring(0, 2).toUpperCase()}
-            </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {siteData.logoUrl ? (
+              <img
+                src={siteData.logoUrl}
+                alt={siteData.businessName}
+                className="h-9 max-w-[140px] object-contain rounded-md"
+              />
+            ) : (
+              <div className={`w-8 h-8 rounded-xl ${theme.accentBg} text-white font-black flex items-center justify-center text-xs shadow-xs`}>
+                {siteData.businessName.substring(0, 2).toUpperCase()}
+              </div>
+            )}
             <div>
               <span className="font-extrabold text-sm sm:text-base text-slate-900 block leading-tight">
                 {siteData.businessName}
@@ -105,8 +121,19 @@ export default function PublicOnePageWebsite() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className={`py-14 sm:py-20 px-4 sm:px-6 bg-gradient-to-br ${theme.gradient} text-white text-center relative overflow-hidden`}>
+      {/* Hero Section with Banner Image Background */}
+      <section
+        className={`py-14 sm:py-20 px-4 sm:px-6 text-white text-center relative overflow-hidden`}
+        style={{
+          background: siteData.bannerUrl
+            ? `linear-gradient(rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.9)), url('${siteData.bannerUrl}') center/cover no-repeat`
+            : undefined,
+        }}
+      >
+        {!siteData.bannerUrl && (
+          <div className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} -z-10`} />
+        )}
+
         <div className="max-w-4xl mx-auto space-y-5 relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-amber-300 font-bold text-xs uppercase tracking-wider">
             <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
