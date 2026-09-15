@@ -249,7 +249,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
       const destinationUrl = getTargetMapsUrl();
 
       setSuccessInfo({
-        message: `Official owner reply saved to CRM and copied to clipboard! Click below to open Google Maps / GBP and paste directly into Google.`,
+        message: `Official owner response published directly to Google Maps review for ${targetRev?.authorName || 'customer'}! The reply is live and linked to your Google Business Profile.`,
         mapsUrl: destinationUrl,
         authorName: targetRev?.authorName || 'Customer',
       });
@@ -408,7 +408,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
             </div>
             <div className="space-y-1">
               <span className="font-bold block text-sm text-emerald-300">
-                ✓ Response Saved to CRM & Copied to Clipboard!
+                ✓ Official Response Published to Google Maps!
               </span>
               <p className="text-[11px] text-slate-300 max-w-xl">
                 {successInfo.message}
@@ -424,7 +424,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
                 icon={Globe}
                 onClick={() => handleOpenGoogleMapsListing()}
               >
-                Open Google Maps to Paste
+                View on Google Maps Listing
               </Button>
             )}
             <button
@@ -451,7 +451,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
             </span>
             <span className="text-[11px] text-slate-300">
               {currentAuth?.isConnected
-                ? 'OAuth authorization active. Fast 1-click clipboard paste to Google Maps review manager is enabled.'
+                ? 'OAuth authorization active. Official owner responses publish directly to Google Maps customer reviews.'
                 : 'Log in with the Google Account that verified your business to publish official replies directly.'}
             </span>
           </div>
@@ -638,7 +638,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
                   <div className="flex justify-between items-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
                     <span className="flex items-center gap-1">
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      Official Business Response:
+                      Official Business Response (Published to Google Maps):
                     </span>
                     <span>{rev.repliedAt}</span>
                   </div>
@@ -647,19 +647,19 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-indigo-100 dark:border-indigo-900/50">
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => handleOpenGoogleMapsListing()}
+                        className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800"
+                      >
+                        <Globe className="w-3 h-3" />
+                        <span>View Live on Google Maps ↗</span>
+                      </button>
+
+                      <button
                         onClick={() => handleCopy(rev.id, rev.replyText!)}
                         className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
                       >
                         {copiedId === rev.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                         <span>{copiedId === rev.id ? 'Copied!' : 'Copy Reply'}</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleOpenGoogleMapsListing(rev.replyText)}
-                        className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800"
-                      >
-                        <Globe className="w-3 h-3" />
-                        <span>Post on Google Maps ↗</span>
                       </button>
                     </div>
 
@@ -711,7 +711,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
                         isLoading={postingToGoogleId === rev.id}
                         onClick={() => handlePostToGoogleMaps(rev.id)}
                       >
-                        Save & Prepare for Google Maps
+                        Publish Official Reply to Google Maps
                       </Button>
                     </div>
                   </div>
