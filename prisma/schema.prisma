@@ -680,3 +680,38 @@ model AuditRecord {
   @@index([phone])
   @@index([businessName])
 }
+
+// ---------------------------------------------------------
+// 12. CATEGORY TEMPLATES & ONE-PAGE WEBSITE ENGINES
+// ---------------------------------------------------------
+
+model CategoryTemplate {
+  id                    String   @id @default(cuid())
+  categoryKey           String   @unique
+  name                  String
+  taglineDefault        String
+  headlineTemplate      String
+  subheadlineTemplate   String
+  primaryCtaText        String   @default("Get Free Quote")
+  primaryCtaType        String   @default("whatsapp")
+  secondaryCtaText      String   @default("Call Directly")
+  secondaryCtaType      String   @default("call")
+  accentColor           String   @default("#4f46e5")
+  accentBg              String   @default("bg-indigo-600")
+  gradient              String   @default("from-slate-900 via-indigo-950 to-slate-900")
+  badgeText             String   @default("Verified Local Business")
+  servicesTitle         String   @default("Our Professional Services")
+  servicesSubtitle      String   @default("Tailored solutions delivered with precision and customer satisfaction.")
+  galleryTitle          String   @default("Our Work & Showcase")
+  trustTitle            String   @default("Why Choose Us")
+  defaultServices       Json
+  defaultFaqs           Json
+  defaultGalleryImages  Json?
+  customCss             String?
+  isCustom              Boolean  @default(true)
+  isAiGenerated         Boolean  @default(false)
+  gbpSourceContext      String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+

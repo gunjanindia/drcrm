@@ -15,6 +15,7 @@ import {
   CreditCard,
   Settings,
   Sparkles,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -67,6 +68,7 @@ export const AppSidebar: React.FC = () => {
     { name: 'Recurring Engine', href: '/app/recurring', icon: Repeat },
     { name: 'GBP Health & SEO', href: '/app/gbp', icon: MapPin },
     { name: 'Billing & Invoices', href: '/app/billing', icon: FileText },
+    { name: 'Website Templates', href: '/app/templates', icon: Layers, badge: 'AI Engine' },
     { name: 'AI Operations Agent', href: '/app/ai', icon: Sparkles, badge: 'Gemini' },
     { name: 'System & Tax Settings', href: '/app/settings', icon: Settings },
   ];
