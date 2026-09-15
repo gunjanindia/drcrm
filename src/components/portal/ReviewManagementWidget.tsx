@@ -18,10 +18,11 @@ import {
   KeyRound,
   RefreshCw,
   Building2,
+  Lock,
 } from 'lucide-react';
 import { ClientReviewItem, DEFAULT_CLIENT_REVIEWS, GoogleGbpAuthProfile, DEFAULT_GBP_AUTH } from '@/lib/client-360-data';
 import { aiAssistantEngine } from '@/lib/ai-engine';
-import { Button, Badge } from '@/components/ui';
+import { Button, Badge, Modal } from '@/components/ui';
 import {
   GbpAccountLocationSelectorModal,
   GbpDiscoveredLocation,
@@ -69,7 +70,9 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   const [isRefreshingReviews, setIsRefreshingReviews] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{ message: string; mapsUrl?: string; authorName?: string } | null>(null);
 
-  // GBP Multi-Location Selection State
+  // GBP Auth Required Prompt & Multi-Location Selection State
+  const [isAuthPromptModalOpen, setIsAuthPromptModalOpen] = useState(false);
+  const [pendingReplyRev, setPendingReplyRev] = useState<ClientReviewItem | null>(null);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [discoveredLocations, setDiscoveredLocations] = useState<GbpDiscoveredLocation[]>([]);
   const [authGoogleEmail, setAuthGoogleEmail] = useState(gbpAuth?.googleEmail || '');
@@ -118,6 +121,12 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   };
 
   const handleGenerateReply = (rev: ClientReviewItem) => {
+    if (!gbpAuth?.isConnected) {
+      setPendingReplyRev(rev);
+      setIsAuthPromptModalOpen(true);
+      return;
+    }
+
     if (onDeductPoints) {
       const ok = onDeductPoints(1);
       if (!ok) {
@@ -152,6 +161,12 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
 
     if (!draft) {
       alert('Please enter or generate a reply before publishing.');
+      return;
+    }
+
+    if (!gbpAuth?.isConnected) {
+      setPendingReplyRev(targetRev || null);
+      setIsAuthPromptModalOpen(true);
       return;
     }
 
@@ -657,19 +672,45 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
 
               {/* Action Buttons */}
               {!draft && (
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-[11px] text-slate-400">
-                    {hasReplied ? 'Want to change or improve response?' : 'Draft official reply with 1 click:'}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={Sparkles}
-                    isLoading={isGenerating === rev.id}
-                    onClick={() => handleGenerateReply(rev)}
-                  >
-                    Generate AI Reply (1 Credit)
-                  </Button>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <div className="flex items-center gap-1.5">
+                    {!gbpAuth?.isConnected ? (
+                      <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        <Lock className="w-3.5 h-3.5 shrink-0" />
+                        Connect Google Business Profile to unlock direct replies
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-slate-400">
+                        {hasReplied ? 'Want to change or improve response?' : 'Draft official reply with 1 click:'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {!gbpAuth?.isConnected ? (
+                      <Button
+                        variant="amber"
+                        size="sm"
+                        icon={KeyRound}
+                        onClick={() => {
+                          setPendingReplyRev(rev);
+                          setIsAuthPromptModalOpen(true);
+                        }}
+                      >
+                        Connect GBP to Reply
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={Sparkles}
+                        isLoading={isGenerating === rev.id}
+                        onClick={() => handleGenerateReply(rev)}
+                      >
+                        Generate AI Reply (1 Credit)
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -687,6 +728,83 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
         accessToken={authAccessToken}
         onSelectLocation={handleLocationSelected}
       />
+
+      {/* Connect Google Business Profile Before Replying Modal */}
+      <Modal
+        isOpen={isAuthPromptModalOpen}
+        onClose={() => setIsAuthPromptModalOpen(false)}
+        title="Connect Google Business Profile Before Replying"
+        maxWidth="md"
+      >
+        <div className="space-y-5">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-indigo-500/10 to-sky-500/15 border border-amber-500/30 text-xs space-y-2">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-bold text-sm">
+              <ShieldCheck className="w-4 h-4 text-amber-600" />
+              Verified Owner Authorization Required
+            </div>
+            <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px]">
+              Google Maps requires the official owner account to be authenticated so replies are verified and published directly with the <strong>Official Business Response</strong> badge.
+            </p>
+          </div>
+
+          <div className="space-y-3 text-xs text-slate-700 dark:text-slate-300">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                1
+              </div>
+              <div>
+                <strong className="block text-slate-900 dark:text-white">Authenticate with Google</strong>
+                <span className="text-[11px] text-slate-500">Sign in with the Google account linked to <strong>{businessName}</strong>.</span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                2
+              </div>
+              <div>
+                <strong className="block text-slate-900 dark:text-white">Auto-Discover & Match Location</strong>
+                <span className="text-[11px] text-slate-500">Finds and links the Google Maps listing for this client profile.</span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                3
+              </div>
+              <div>
+                <strong className="block text-slate-900 dark:text-white">Publish Verified Map Replies</strong>
+                <span className="text-[11px] text-slate-500">Generate AI responses and publish live to Google Maps in 1-click.</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAuthPromptModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={KeyRound}
+              onClick={() => {
+                setIsAuthPromptModalOpen(false);
+                if (onConnectGbp) {
+                  onConnectGbp();
+                } else {
+                  handleLaunchOAuth();
+                }
+              }}
+            >
+              Authorize Owner Account
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -23,6 +23,27 @@ export default function ReviewsManagementPage() {
     return true;
   };
 
+  useEffect(() => {
+    if (profile.isLiveSynced && profile.googleOwnerEmail) {
+      setGbpAuth({
+        isConnected: true,
+        googleEmail: profile.googleOwnerEmail,
+        accountName: profile.googleAccountName || `${profile.businessName} (Verified Owner)`,
+        locationId: profile.placeId ? `locations/${profile.placeId}` : 'locations/184920485729103948',
+        locationName: `${profile.businessName} Google Maps Listing`,
+        connectedAt: profile.syncedAt || 'Active Session',
+        scopesGranted: [
+          'https://www.googleapis.com/auth/business.manage',
+          'openid',
+          'email',
+          'profile',
+        ],
+        reviewsSyncActive: true,
+        canPostReplies: true,
+      });
+    }
+  }, [profile]);
+
   return (
     <div className="space-y-6 max-w-5xl">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
