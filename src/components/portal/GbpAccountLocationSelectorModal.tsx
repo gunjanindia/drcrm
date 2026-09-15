@@ -101,7 +101,9 @@ export const GbpAccountLocationSelectorModal: React.FC<GbpAccountLocationSelecto
               </span>
               <span className="font-bold text-sm text-white block">{googleEmail || 'Verified Owner'}</span>
               <span className="text-[11px] text-slate-300">
-                Found {discoveredLocations.length} Google Business Profile {discoveredLocations.length === 1 ? 'listing' : 'listings'} linked to this account.
+                {discoveredLocations.length === 1
+                  ? `Found 1 verified Google Business Profile for ${clientBusinessName}.`
+                  : `Found ${discoveredLocations.length} matching Google Business Profile locations.`}
               </span>
             </div>
           </div>

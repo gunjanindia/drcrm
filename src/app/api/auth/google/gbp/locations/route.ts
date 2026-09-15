@@ -185,25 +185,32 @@ export async function GET(request: Request) {
             accountName: `${emailParam || 'Google Account'} (Verified Owner)`,
           });
 
-          // Add candidates if multiple branches were found
+          // Add branch candidates ONLY if they actually match the business name closely
           if (Array.isArray(placeLookup.candidates) && placeLookup.candidates.length > 1) {
+            const cleanTarget = businessName.toLowerCase().replace(/[^a-z0-9]/g, '');
             placeLookup.candidates.slice(1).forEach((cand: any, idx: number) => {
-              discoveredLocations.push({
-                id: cand.placeId ? `locations/${cand.placeId}` : `locations/cand_${idx}`,
-                locationName: cand.name,
-                primaryCategory: cand.matchedCategory || 'Branch Listing',
-                formattedAddress: cand.formattedAddress,
-                rating: cand.rating || 4.5,
-                reviewCount: cand.userRatingsTotal || 10,
-                photosCount: cand.photosCount || 8,
-                googleMapsUrl: cand.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(cand.name)}`,
-                placeId: cand.placeId,
-                isMatched: cand.name.toLowerCase() === businessName.toLowerCase(),
-                matchConfidence: cand.name.toLowerCase() === businessName.toLowerCase() ? 90 : 60,
-                reviews: cand.reviews ? convertGoogleReviewsToClientReviews(cand.reviews, cand.name) : [],
-                isOperational: cand.isOperational !== false,
-                accountName: `${emailParam || 'Google Account'} (Branch Listing)`,
-              });
+              const cleanCand = (cand.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              const isNameMatch = cleanCand.includes(cleanTarget) || cleanTarget.includes(cleanCand);
+
+              // Only include candidate if it is an actual branch of the same business
+              if (isNameMatch) {
+                discoveredLocations.push({
+                  id: cand.placeId ? `locations/${cand.placeId}` : `locations/cand_${idx}`,
+                  locationName: cand.name,
+                  primaryCategory: cand.matchedCategory || 'Branch Listing',
+                  formattedAddress: cand.formattedAddress,
+                  rating: cand.rating || 4.5,
+                  reviewCount: cand.userRatingsTotal || 10,
+                  photosCount: cand.photosCount || 8,
+                  googleMapsUrl: cand.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(cand.name)}`,
+                  placeId: cand.placeId,
+                  isMatched: true,
+                  matchConfidence: 90,
+                  reviews: cand.reviews ? convertGoogleReviewsToClientReviews(cand.reviews, cand.name) : [],
+                  isOperational: cand.isOperational !== false,
+                  accountName: `${emailParam || 'Google Account'} (Branch Listing)`,
+                });
+              }
             });
           }
         }
@@ -211,6 +218,15 @@ export async function GET(request: Request) {
         console.error('Google Places discovery fallback error:', placesErr);
       }
     }
+
+    // Deduplicate discovered locations by placeId or locationName
+    const seenIds = new Set<string>();
+    const uniqueLocations = discoveredLocations.filter((loc) => {
+      const key = loc.placeId || loc.id || loc.locationName;
+      if (seenIds.has(key)) return false;
+      seenIds.add(key);
+      return true;
+    });
 
     // If still empty, provide the verified listing representation
     if (discoveredLocations.length === 0) {
@@ -232,14 +248,14 @@ export async function GET(request: Request) {
     }
 
     // Sort with best matched listing first
-    discoveredLocations.sort((a, b) => b.matchConfidence - a.matchConfidence);
+    uniqueLocations.sort((a, b) => b.matchConfidence - a.matchConfidence);
 
     return NextResponse.json({
       success: true,
       googleEmail: emailParam || (accessToken ? 'verified.google.owner@gmail.com' : clientRecord?.email),
-      totalDiscovered: discoveredLocations.length,
-      matchedLocation: discoveredLocations[0],
-      locations: discoveredLocations,
+      totalDiscovered: uniqueLocations.length,
+      matchedLocation: uniqueLocations[0],
+      locations: uniqueLocations,
     });
   } catch (error: any) {
     console.error('GET /api/auth/google/gbp/locations error:', error);
