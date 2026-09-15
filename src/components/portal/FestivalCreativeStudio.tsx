@@ -37,12 +37,12 @@ export interface FestivalCreativeStudioProps {
 }
 
 export const FestivalCreativeStudio: React.FC<FestivalCreativeStudioProps> = ({
-  businessName = 'Ranchi Prime Store',
-  category = 'Retail Store',
-  phone = '+91 94311 09876',
+  businessName = 'Your Business Name',
+  category = 'Retail & Commercial Store',
+  phone = '',
   whatsapp,
-  address = 'Shop 14, Main Road, Near Lalpur Chowk, Ranchi',
-  city = 'Ranchi',
+  address = '',
+  city = '',
   currentPoints = 50,
   onDeductPoints,
   onOpenRechargeModal,

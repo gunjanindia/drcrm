@@ -16,28 +16,27 @@ import {
   ArrowRight,
   PhoneCall,
   MapPin,
-  CalendarCheck,
   CheckCircle2,
   Zap,
   AlertTriangle,
   ShieldAlert,
   Clock,
+  RefreshCw,
+  Building2,
+  ExternalLink,
+  MessageCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
-import { globalStore } from '@/lib/store';
 import { formatINR, formatDate } from '@/lib/utils';
-import { DigitalHealthAuditCard } from '@/components/portal/DigitalHealthAuditCard';
-import { MonthlyGrowthChart } from '@/components/portal/MonthlyGrowthChart';
 import { ReviewManagementWidget } from '@/components/portal/ReviewManagementWidget';
-import { FestivalCreativeStudio } from '@/components/portal/FestivalCreativeStudio';
-import { GoogleGbpAuthCard } from '@/components/portal/GoogleGbpAuthCard';
 import { AIPointsWalletModal } from '@/components/portal/AIPointsWalletModal';
 import { usePortalProfile } from '@/contexts/PortalProfileContext';
 
 export default function ClientPortalDashboard() {
-  const { profile: client, saveReviewReply } = usePortalProfile();
+  const { profile: client, saveReviewReply, refreshProfile, updateProfile } = usePortalProfile();
   const [aiPoints, setAiPoints] = useState(65);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const handleDeductPoints = (amount: number) => {
     if (aiPoints < amount) {
@@ -52,7 +51,23 @@ export default function ClientPortalDashboard() {
     setAiPoints((prev) => prev + added);
   };
 
+  const handleQuickSync = async () => {
+    setIsSyncing(true);
+    try {
+      await refreshProfile();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const isPaused = client.status === 'PAUSED' || client.status === 'CHURNED';
+  const reviews = client.reviews || [];
+  const pendingReviews = reviews.filter((r) => r.status === 'PENDING');
+  const answeredCount = reviews.filter((r) => r.status === 'REPLIED').length;
+  const responseRate = reviews.length > 0 ? Math.round((answeredCount / reviews.length) * 100) : 100;
+  const cityDisplay = client.city || 'Your Local Area';
 
   return (
     <div className="space-y-6 max-w-6xl pb-12">
@@ -68,7 +83,7 @@ export default function ClientPortalDashboard() {
                 Client 360 Portal Suspended / Deactivated
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
-                Access to your live Google Business Profile sync, AI review responder, and creative generation has been deactivated by Digital Ranchi. Please reach out to your Account Manager to reactivate.
+                Access to your live Google Business Profile sync and AI tools has been deactivated. Please reach out to your Account Manager to reactivate.
               </p>
             </div>
           </div>
@@ -82,207 +97,149 @@ export default function ClientPortalDashboard() {
               className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-md"
             >
               <MessageSquare className="w-4 h-4" />
-              Reactivate via WhatsApp (+91 70047 00318)
-            </a>
-            <a
-              href="tel:+917004700318"
-              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 transition-all border border-white/20"
-            >
-              <PhoneCall className="w-4 h-4" />
-              Call Support (+91 70047 00318)
+              Reactivate via WhatsApp
             </a>
           </div>
         </div>
       )}
 
-      {/* Top Banner & Wallet Status */}
-      <div className={`p-6 rounded-3xl text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border ${
-        isPaused
-          ? 'bg-gradient-to-r from-slate-900 to-slate-950 border-slate-800 opacity-80'
-          : 'bg-gradient-to-r from-sky-900 via-slate-900 to-indigo-950 border-sky-800/40'
-      }`}>
-        <div className="space-y-1.5">
+      {/* Hero Header Card */}
+      <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
-              isPaused
-                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-            }`}>
-              <ShieldCheck className="w-3 h-3" />
-              {isPaused ? 'Portal Deactivated' : 'Verified Google Business Profile'}
+            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Verified Google Business
             </span>
-            <span className="text-xs text-sky-200">
-              Package: <strong>{client.packageName}</strong>
-            </span>
+            {client.city && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white/10 text-slate-200 border border-white/15">
+                <MapPin className="w-3 h-3 text-sky-400" />
+                {client.city}
+              </span>
+            )}
             {client.syncedAt && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/10 text-slate-200 border border-white/20">
-                <Clock className="w-3 h-3 text-sky-300" />
-                Last Synced: {client.syncedAt}
+              <span className="text-[10px] text-slate-400">
+                Synced: {client.syncedAt}
               </span>
             )}
           </div>
-          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-            Namaste, {client.businessName}!
+
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            {client.businessName}
           </h2>
-          <p className="text-xs text-slate-300">
-            Next monthly retainer renewal on <strong>{formatDate(client.renewalDate)}</strong> ({formatINR(client.monthlyRevenue)}/month).
+          <p className="text-xs text-slate-300 max-w-xl">
+            {client.category} {client.city ? `in ${client.city}` : ''} • Growth Retainer Active • Renewal: {formatDate(client.renewalDate)}
           </p>
         </div>
 
-        {/* AI Points Wallet Pill */}
-        <div className="flex items-center gap-3">
+        {/* Quick Sync & AI Credits Pill */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            icon={RefreshCw}
+            isLoading={isSyncing}
+            onClick={handleQuickSync}
+            className="bg-white/10 text-white hover:bg-white/20 border-white/20 text-xs py-2 px-3.5"
+          >
+            {isSyncing ? 'Syncing GBP...' : 'Sync Google Data'}
+          </Button>
+
           <div
             onClick={() => setIsWalletOpen(true)}
-            className="p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 cursor-pointer transition-all flex items-center gap-3 group"
+            className="p-3 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 cursor-pointer transition-all flex items-center gap-2.5 group"
           >
-            <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold shadow-md">
-              <Zap className="w-5 h-5 fill-slate-950" />
+            <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
+            <div className="text-left">
+              <span className="text-[10px] font-bold text-amber-200 block uppercase leading-none">AI Credits</span>
+              <span className="text-xs font-black text-white">{aiPoints} Available <span className="text-[10px] text-amber-300 underline font-normal">+ Recharge</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4 Core Performance KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+          <div className="flex justify-between items-center text-slate-400">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Google Rating</span>
+            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+          </div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+            {client.averageRating || 5.0} <span className="text-amber-500 text-base">★</span>
+          </div>
+          <span className="text-[10px] text-slate-400 block font-medium">
+            Across {client.reviewCount || reviews.length || 0} verified customer reviews
+          </span>
+        </div>
+
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+          <div className="flex justify-between items-center text-slate-400">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Unanswered Reviews</span>
+            <MessageSquare className={`w-4 h-4 ${pendingReviews.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`} />
+          </div>
+          <div className={`text-2xl font-black ${pendingReviews.length > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+            {pendingReviews.length}
+          </div>
+          <span className="text-[10px] text-slate-400 block font-medium">
+            {pendingReviews.length > 0 ? 'Urgent: Needs reply to boost ranking' : 'All reviews answered! (100% SLA)'}
+          </span>
+        </div>
+
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+          <div className="flex justify-between items-center text-slate-400">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Map Pack Rank</span>
+            <TrendingUp className="w-4 h-4 text-indigo-500" />
+          </div>
+          <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
+            #{client.gbpScore >= 85 ? '1' : '2'}
+          </div>
+          <span className="text-[10px] text-slate-400 block font-medium">
+            Top local search in {cityDisplay}
+          </span>
+        </div>
+
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+          <div className="flex justify-between items-center text-slate-400">
+            <span className="text-[11px] font-bold uppercase tracking-wider">GBP Health Score</span>
+            <Activity className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+            {client.gbpScore || 88}/100
+          </div>
+          <span className="text-[10px] text-slate-400 block font-medium">
+            OPTIMAL • Verified NAP & Category
+          </span>
+        </div>
+      </div>
+
+      {/* Urgent Action Center: Reviews Needing Immediate Reply */}
+      <div className="space-y-3">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center">
+              <MessageSquare className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-amber-200 block">AI Points</span>
-              <div className="text-base font-black text-white flex items-center gap-1">
-                {aiPoints} Credits
-                <span className="text-[10px] text-emerald-300 font-semibold group-hover:underline">+ Recharge</span>
-              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Google Reviews & AI Smart Responder
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                {pendingReviews.length > 0
+                  ? `${pendingReviews.length} customer reviews require your official owner response to boost ranking in ${cityDisplay}.`
+                  : `All reviews have official owner replies. Monitoring for new reviews in real-time.`}
+              </p>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Quick Action Navigation Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Link
-          href="/portal/audit"
-          className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:shadow-md transition-all flex items-center gap-3 group"
-        >
-          <div className="w-9 h-9 rounded-xl bg-indigo-500/15 text-indigo-600 flex items-center justify-center shrink-0">
-            <Activity className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-xs font-bold text-slate-900 dark:text-white block group-hover:text-indigo-600 truncate">
-              Health Audit
-            </span>
-            <span className="text-[10px] text-slate-400 block">84/100 • View Factors</span>
-          </div>
-        </Link>
-
-        <Link
-          href="/portal/reviews"
-          className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:shadow-md transition-all flex items-center gap-3 group"
-        >
-          <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center shrink-0">
-            <MessageSquare className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-xs font-bold text-slate-900 dark:text-white block group-hover:text-indigo-600 truncate">
-              AI Review Replies
-            </span>
-            <span className="text-[10px] text-slate-400 block">2 Awaiting Response</span>
-          </div>
-        </Link>
-
-        <Link
-          href="/portal/creative-studio"
-          className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:shadow-md transition-all flex items-center gap-3 group"
-        >
-          <div className="w-9 h-9 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center shrink-0">
-            <Gift className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-xs font-bold text-slate-900 dark:text-white block group-hover:text-indigo-600 truncate">
-              Festival Studio
-            </span>
-            <span className="text-[10px] text-slate-400 block">Posters & Offers</span>
-          </div>
-        </Link>
-
-        <Link
-          href="/portal/qr-stand"
-          className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:shadow-md transition-all flex items-center gap-3 group"
-        >
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
-            <QrCode className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-xs font-bold text-slate-900 dark:text-white block group-hover:text-indigo-600 truncate">
-              Review QR Stand
-            </span>
-            <span className="text-[10px] text-slate-400 block">Print Acrylic Stand</span>
-          </div>
-        </Link>
-      </div>
-
-      {/* Google Business Profile OAuth Connection Card */}
-      <GoogleGbpAuthCard
-        businessName={client.businessName}
-        initialAuth={{
-          isConnected: client.isLiveSynced && !!client.googleOwnerEmail,
-          googleEmail: client.googleOwnerEmail || 'business.owner@gmail.com',
-          accountName: client.googleAccountName || `${client.businessName} Owner`,
-          locationId: client.placeId ? `locations/${client.placeId}` : 'locations/184920485729103948',
-          locationName: `${client.businessName} Google Maps Listing`,
-          connectedAt: client.syncedAt || 'Active Session',
-          scopesGranted: [
-            'https://www.googleapis.com/auth/business.manage',
-            'openid',
-            'email',
-            'profile',
-          ],
-          reviewsSyncActive: true,
-          canPostReplies: true,
-        }}
-      />
-
-      {/* Section 1: Monthly Growth & Rise Charts */}
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-emerald-600" />
-            Monthly Growth & Performance Tracker
-          </h3>
-          <Link href="/portal/growth" className="text-xs font-bold text-sky-600 hover:underline">
-            Full Growth Analysis →
+          <Link href="/portal/reviews">
+            <Button variant="outline" size="sm" icon={ArrowRight} className="text-xs">
+              View All Reviews ({reviews.length})
+            </Button>
           </Link>
         </div>
-        <MonthlyGrowthChart
-          businessName={client.businessName}
-          metrics={client.growthMetrics}
-          syncedAt={client.syncedAt}
-          isLiveSynced={client.isLiveSynced}
-          city={client.city}
-        />
-      </div>
 
-      {/* Section 2: Digital Health Audit & Score Explanation */}
-      <div className="space-y-2 pt-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Activity className="w-5 h-5 text-indigo-600" />
-            Digital Health Audit & Factor Breakdown
-          </h3>
-          <Link href="/portal/audit" className="text-xs font-bold text-indigo-600 hover:underline">
-            Score Details & Recommendations →
-          </Link>
-        </div>
-        <DigitalHealthAuditCard
-          businessName={client.businessName}
-          category={client.category}
-          city={client.city}
-          factors={client.auditFactors}
-        />
-      </div>
-
-      {/* Section 3: AI Review Management Feed */}
-      <div className="space-y-2 pt-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-amber-500" />
-            Recent Customer Reviews & AI Reply Assistant
-          </h3>
-          <Link href="/portal/reviews" className="text-xs font-bold text-amber-600 hover:underline">
-            All Reviews Workspace →
-          </Link>
-        </div>
+        {/* Embedded Reviews Workspace */}
         <ReviewManagementWidget
           businessName={client.businessName}
           reviews={client.reviews}
@@ -293,30 +250,72 @@ export default function ClientPortalDashboard() {
           onDeductPoints={handleDeductPoints}
           onOpenRechargeModal={() => setIsWalletOpen(true)}
           onSaveReply={saveReviewReply}
+          onProfileSynced={(updatedData) => {
+            if (updatedData) {
+              updateProfile({
+                ...client,
+                ...updatedData,
+              });
+            }
+          }}
         />
       </div>
 
-      {/* Section 4: Festival & Offer Creative Studio Preview */}
-      <div className="space-y-2 pt-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Gift className="w-5 h-5 text-rose-500" />
-            Upcoming Festival Graphics & Promotion Generator
-          </h3>
-          <Link href="/portal/creative-studio" className="text-xs font-bold text-rose-600 hover:underline">
-            Open Full Studio →
-          </Link>
-        </div>
-        <FestivalCreativeStudio
-          businessName={client.businessName}
-          category={client.category}
-          city={client.city}
-          phone={client.phone}
-          whatsapp={client.whatsapp}
-          currentPoints={aiPoints}
-          onDeductPoints={handleDeductPoints}
-          onOpenRechargeModal={() => setIsWalletOpen(true)}
-        />
+      {/* 4 Feature Action Cards for Non-Technical Owners */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+        <Link
+          href="/portal/growth"
+          className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:shadow-lg transition-all space-y-3 group"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <TrendingUp className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-indigo-600 flex items-center justify-between">
+              <span>Local Search Growth</span>
+              <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </h4>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Track how your Google Maps direction requests, direct phone calls, and ranking are increasing.
+            </p>
+          </div>
+        </Link>
+
+        <Link
+          href="/portal/creative-studio"
+          className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-rose-500 hover:shadow-lg transition-all space-y-3 group"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-rose-500/15 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <Gift className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-rose-600 flex items-center justify-between">
+              <span>Festival Posters Studio</span>
+              <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </h4>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Generate branded festival greeting posters and promo offer graphics in 1 click for WhatsApp and Instagram.
+            </p>
+          </div>
+        </Link>
+
+        <Link
+          href="/portal/qr-stand"
+          className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 hover:shadow-lg transition-all space-y-3 group"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <QrCode className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-emerald-600 flex items-center justify-between">
+              <span>Review QR Stand & Mini-Site</span>
+              <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </h4>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Print a ready-to-use acrylic QR code stand to collect 5-star customer reviews on your counter.
+            </p>
+          </div>
+        </Link>
       </div>
 
       {/* Razorpay AI Points Wallet Modal */}

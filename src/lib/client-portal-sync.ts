@@ -103,7 +103,7 @@ export function convertGoogleReviewsToClientReviews(
 export function generateDynamicReviewsForBusiness(
   businessName: string,
   category: string,
-  city: string = 'Ranchi',
+  city: string = '',
   avgRating: number = 4.8,
   realGoogleReviews?: Array<{ authorName: string; rating: number; text: string; relativeTime: string }>
 ): ClientReviewItem[] {
@@ -150,16 +150,17 @@ export function generateDynamicGrowthForBusiness(
 export function generateDynamicAuditFactorsForBusiness(
   businessName: string,
   category: string,
-  city: string,
-  rating: number,
-  reviewCount: number,
-  photosCount: number
+  city: string = '',
+  rating: number = 5.0,
+  reviewCount: number = 0,
+  photosCount: number = 0
 ): AuditFactor[] {
   const gbpOptScore = Math.min(25, 20 + (photosCount >= 10 ? 4 : 2));
   const reviewScore = Math.min(25, Math.round(15 + Math.min(10, (reviewCount / 30) * 10)));
   const photosScore = Math.min(20, Math.round(10 + Math.min(10, (photosCount / 20) * 10)));
   const responseScore = 12;
   const directCtaScore = 12;
+  const locationLabel = city ? `${city} ` : '';
 
   return [
     {
@@ -169,7 +170,7 @@ export function generateDynamicAuditFactorsForBusiness(
       score: gbpOptScore,
       maxScore: 25,
       status: gbpOptScore >= 22 ? 'OPTIMAL' : 'MODERATE',
-      impactDescription: `Directly influences Top-3 Map Pack indexing in ${city} local search.`,
+      impactDescription: `Directly influences Top-3 Map Pack indexing in ${locationLabel}local search.`,
       whatMakesThisScore: `Exact Business Name "${businessName}", Phone & Address verified across Google Maps. Primary category is correctly pinned to "${category}".`,
       recommendation: `Keep secondary categories and service catalog updated with seasonal offerings.`,
       pointsToGain: 25 - gbpOptScore,
@@ -183,7 +184,7 @@ export function generateDynamicAuditFactorsForBusiness(
       status: reviewScore >= 22 ? 'OPTIMAL' : 'MODERATE',
       impactDescription: 'Review count & freshness decide customer trust and Google local algorithm favorability.',
       whatMakesThisScore: `Average ${rating}⭐ rating across ${reviewCount} verified Google reviews with active review capture.`,
-      recommendation: `Aim to reach ${Math.max(50, reviewCount + 25)}+ total reviews to cement unshakeable #1 position in ${city}.`,
+      recommendation: `Aim to reach ${Math.max(50, reviewCount + 25)}+ total reviews to cement unshakeable #1 position${city ? ` in ${city}` : ''}.`,
       quickActionLabel: 'Print Review QR Stand',
       pointsToGain: 25 - reviewScore,
     },
@@ -196,7 +197,7 @@ export function generateDynamicAuditFactorsForBusiness(
       status: photosScore >= 16 ? 'OPTIMAL' : 'MODERATE',
       impactDescription: 'Listings with 25+ geotagged photos receive 42% more direction requests on Google Maps.',
       whatMakesThisScore: `${photosCount} high-res photos indexed on Google Maps profile.`,
-      recommendation: `Upload 5 new photos monthly with ${city} geolocation metadata.`,
+      recommendation: `Upload 5 new photos monthly with ${locationLabel}geolocation metadata.`,
       quickActionLabel: 'Upload Geotagged Media',
       pointsToGain: 20 - photosScore,
     },

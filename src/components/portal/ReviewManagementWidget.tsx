@@ -51,7 +51,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   gbpAuth = DEFAULT_GBP_AUTH,
   googleMapsUrl,
   placeId,
-  city = 'Ranchi',
+  city = '',
   onDeductPoints,
   onOpenRechargeModal,
   onConnectGbp,
@@ -65,6 +65,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   const [draftResponses, setDraftResponses] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'PENDING' | 'REPLIED' | 'ALL'>('PENDING');
   const [filterRating, setFilterRating] = useState<number | 'all'>('all');
   const [postingToGoogleId, setPostingToGoogleId] = useState<string | null>(null);
   const [isRefreshingReviews, setIsRefreshingReviews] = useState(false);
@@ -144,8 +145,9 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
     if (placeId && !placeId.startsWith('loc_')) return `https://search.google.com/local/writereview?placeid=${placeId}`;
     const targetName = businessName && businessName !== 'Your Business Profile' && businessName !== 'Business Profile'
       ? businessName
-      : 'Life in Lights Academy';
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${targetName} ${city}`)}`;
+      : 'Business Profile';
+    const citySuffix = city ? ` ${city}` : '';
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${targetName}${citySuffix}`)}`;
   };
 
   const handleGenerateReply = (rev: ClientReviewItem) => {
@@ -401,11 +403,16 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
     window.open(destination, '_blank', 'noopener,noreferrer');
   };
 
-  const filtered = reviewsList.filter((r) =>
-    filterRating === 'all' ? true : r.rating === filterRating
-  );
-
   const pendingCount = reviewsList.filter((r) => r.status === 'PENDING').length;
+  const repliedCount = reviewsList.filter((r) => r.status === 'REPLIED').length;
+
+  const filtered = reviewsList
+    .filter((r) => {
+      if (statusFilter === 'PENDING') return r.status === 'PENDING';
+      if (statusFilter === 'REPLIED') return r.status === 'REPLIED';
+      return true;
+    })
+    .filter((r) => (filterRating === 'all' ? true : r.rating === filterRating));
 
   return (
     <div className="space-y-6">
@@ -590,6 +597,64 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Reviews Tab Navigation (Needs Reply vs Replied vs All) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-2 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setStatusFilter('PENDING')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              statusFilter === 'PENDING'
+                ? 'bg-amber-500 text-slate-950 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <span>⚡ Needs Reply</span>
+            {pendingCount > 0 && (
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                statusFilter === 'PENDING' ? 'bg-slate-950 text-amber-300' : 'bg-amber-500/20 text-amber-600'
+              }`}>
+                {pendingCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setStatusFilter('REPLIED')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              statusFilter === 'REPLIED'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <span>✓ Replied</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+              statusFilter === 'REPLIED' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+            }`}>
+              {repliedCount}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setStatusFilter('ALL')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              statusFilter === 'ALL'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <span>All Reviews ({reviewsList.length})</span>
+          </button>
+        </div>
+
+        <div className="text-[11px] text-slate-500 font-medium px-2">
+          {statusFilter === 'PENDING' && pendingCount > 0 && (
+            <span className="text-amber-600 dark:text-amber-400 font-semibold">
+              ⚡ Replying to these {pendingCount} reviews directly boosts your Google ranking
+            </span>
+          )}
         </div>
       </div>
 
@@ -791,25 +856,47 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
 
         {filtered.length === 0 && (
           <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
-              <MessageSquare className="w-6 h-6" />
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto ${
+              statusFilter === 'PENDING' && reviewsList.length > 0
+                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+            }`}>
+              {statusFilter === 'PENDING' && reviewsList.length > 0 ? (
+                <Check className="w-6 h-6" />
+              ) : (
+                <MessageSquare className="w-6 h-6" />
+              )}
             </div>
             <h4 className="text-base font-bold text-slate-900 dark:text-white">
-              No Google Reviews Found
+              {statusFilter === 'PENDING' && reviewsList.length > 0
+                ? '🎉 All Caught Up! 100% of Reviews Answered'
+                : 'No Google Reviews Found'}
             </h4>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
-              No customer reviews are currently synced for <strong>{businessName}</strong>. Connect your Google Business Profile or refresh live reviews to view and manage customer feedback.
+              {statusFilter === 'PENDING' && reviewsList.length > 0
+                ? `Every customer review for ${businessName} has been answered. Replying to reviews within 24 hours keeps your local ranking in Google Maps strong!`
+                : `No customer reviews are currently found matching this filter for ${businessName}. Sync live reviews or connect your Google Business Profile.`}
             </p>
             <div className="pt-2 flex justify-center gap-3">
-              <Button
-                variant="primary"
-                size="sm"
-                icon={RefreshCw}
-                isLoading={isRefreshingReviews}
-                onClick={handleRefreshLiveReviews}
-              >
-                Sync Live Reviews
-              </Button>
+              {statusFilter === 'PENDING' && reviewsList.length > 0 ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setStatusFilter('REPLIED')}
+                >
+                  View Replied Reviews ({repliedCount})
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={RefreshCw}
+                  isLoading={isRefreshingReviews}
+                  onClick={handleRefreshLiveReviews}
+                >
+                  Sync Live Reviews
+                </Button>
+              )}
             </div>
           </div>
         )}

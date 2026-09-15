@@ -30,7 +30,7 @@ export const MonthlyGrowthChart: React.FC<MonthlyGrowthChartProps> = ({
   businessName = 'Your Verified Business',
   syncedAt,
   isLiveSynced = true,
-  city = 'Ranchi',
+  city = '',
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<'all' | 'calls' | 'visits' | 'appointments' | 'rank'>('all');
   const [timeRange, setTimeRange] = useState<'3m' | '6m'>('6m');

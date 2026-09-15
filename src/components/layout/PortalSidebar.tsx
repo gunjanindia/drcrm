@@ -39,18 +39,21 @@ export const PortalSidebar: React.FC = () => {
     return () => window.removeEventListener('drcrm_gbp_profile_updated', handleUpdate);
   }, []);
 
+  const pendingCount = (profile.reviews || []).filter((r) => r.status === 'PENDING').length;
+
   const navigation = [
-    { name: 'Dashboard', href: '/portal', icon: LayoutDashboard, exact: true },
-    { name: 'Digital Health Audit', href: '/portal/audit', icon: Activity, badge: `${profile.gbpScore}/100` },
-    { name: 'Growth & Rank Rise', href: '/portal/growth', icon: TrendingUp, badge: '#1 Rank' },
-    { name: 'AI Review Assistant', href: '/portal/reviews', icon: MessageSquare, badge: 'AI' },
-    { name: 'Festival Creative Studio', href: '/portal/creative-studio', icon: Sparkles, badge: 'New' },
-    { name: 'Print Review QR Stand', href: '/portal/qr-stand', icon: QrCode },
-    { name: '1-Page Mini-Site', href: '/portal/site-builder', icon: Globe },
-    { name: 'Deliverables & Approvals', href: '/portal/deliverables', icon: CheckCircle2 },
-    { name: 'Live Service Tasks', href: '/portal/tasks', icon: ListTodo },
-    { name: 'Invoices & Renewals', href: '/portal/invoices', icon: Receipt },
-    { name: 'Support Tickets', href: '/portal/tickets', icon: HelpCircle },
+    { name: 'Dashboard Overview', href: '/portal', icon: LayoutDashboard, exact: true, badge: profile.averageRating ? `${profile.averageRating}★` : undefined },
+    {
+      name: 'Google Reviews & Reply',
+      href: '/portal/reviews',
+      icon: MessageSquare,
+      badge: pendingCount > 0 ? `${pendingCount} Urgent` : undefined,
+      isUrgent: pendingCount > 0,
+    },
+    { name: 'Local SEO & Growth', href: '/portal/growth', icon: TrendingUp, badge: `${profile.gbpScore || 85}/100 Score` },
+    { name: 'Festival Posters Studio', href: '/portal/creative-studio', icon: Sparkles, badge: 'AI' },
+    { name: 'Review QR Stand & Site', href: '/portal/qr-stand', icon: QrCode },
+    { name: 'My Plan & Invoices', href: '/portal/invoices', icon: Receipt },
   ];
 
   const initials = profile.businessName
@@ -114,7 +117,9 @@ export const PortalSidebar: React.FC = () => {
                 <span
                   className={cn(
                     'text-[9px] font-bold px-1.5 py-0.5 rounded border shrink-0',
-                    item.badge === 'AI' || item.badge === 'New'
+                    item.isUrgent
+                      ? 'bg-amber-500/25 text-amber-300 border-amber-500/40 animate-pulse'
+                      : item.badge === 'AI' || item.badge === 'New'
                       ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
                       : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                   )}

@@ -23,10 +23,10 @@ export interface PrintableReviewQRGeneratorProps {
 }
 
 export const PrintableReviewQRGenerator: React.FC<PrintableReviewQRGeneratorProps> = ({
-  businessName = 'Ranchi Prime Store',
+  businessName = 'Your Business Name',
   category = 'Retail & Commercial Store',
-  city = 'Ranchi',
-  googleReviewUrl = 'https://g.page/r/ranchi-prime-store/review',
+  city = '',
+  googleReviewUrl = 'https://business.google.com/reviews',
 }) => {
   const [standTitle, setStandTitle] = useState('Help Us Grow with Your 5-Star Feedback!');
   const [standSub, setStandSub] = useState('Scan with your phone camera to share your valuable review on Google Maps');
