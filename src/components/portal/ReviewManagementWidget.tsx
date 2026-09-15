@@ -201,10 +201,11 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
     setPostingToGoogleId(id);
 
     try {
+      let replyResult: any = null;
       if (onSaveReply) {
         await onSaveReply(id, draft, targetRev?.authorName);
       } else {
-        await fetch('/api/portal/reviews/reply', {
+        const res = await fetch('/api/portal/reviews/reply', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -217,9 +218,10 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
             locationId: currentAuth?.locationId,
           }),
         });
+        replyResult = await res.json();
       }
 
-      // Auto copy to clipboard for immediate 1-click posting on Google Maps
+      // Auto copy to clipboard for convenience
       try {
         await navigator.clipboard.writeText(draft);
       } catch {}
@@ -231,7 +233,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
                 ...r,
                 status: 'REPLIED',
                 replyText: draft,
-                repliedAt: 'Published to CRM & Google Manager just now',
+                repliedAt: 'Published just now',
                 isLiveOnGoogle: true,
                 source: 'Verified GBP Sync',
               }
@@ -248,11 +250,19 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
 
       const destinationUrl = getTargetMapsUrl();
 
-      setSuccessInfo({
-        message: `Official owner response published directly to Google Maps review for ${targetRev?.authorName || 'customer'}! The reply is live and linked to your Google Business Profile.`,
-        mapsUrl: destinationUrl,
-        authorName: targetRev?.authorName || 'Customer',
-      });
+      if (replyResult?.googleApiDispatched) {
+        setSuccessInfo({
+          message: `Official owner response was dispatched live to Google Maps via Google My Business API for ${targetRev?.authorName || 'customer'}!`,
+          mapsUrl: destinationUrl,
+          authorName: targetRev?.authorName || 'Customer',
+        });
+      } else {
+        setSuccessInfo({
+          message: `Official response saved to CRM and copied to clipboard. ${replyResult?.googleApiError ? `(Google GBP API: ${replyResult.googleApiError})` : ''} Use the direct link below to verify on your Google Business Profile listing.`,
+          mapsUrl: destinationUrl,
+          authorName: targetRev?.authorName || 'Customer',
+        });
+      }
     } catch (err: any) {
       console.error('Failed to post reply to Google Maps:', err);
       alert('Failed to publish reply. Please check your connection and try again.');
@@ -408,7 +418,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
             </div>
             <div className="space-y-1">
               <span className="font-bold block text-sm text-emerald-300">
-                ✓ Official Response Published to Google Maps!
+                ✓ Official Response Saved & Ready for Google Maps
               </span>
               <p className="text-[11px] text-slate-300 max-w-xl">
                 {successInfo.message}
@@ -416,7 +426,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+          <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-center">
             {successInfo.mapsUrl && (
               <Button
                 variant="success"
@@ -424,9 +434,23 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
                 icon={Globe}
                 onClick={() => handleOpenGoogleMapsListing()}
               >
-                View on Google Maps Listing
+                Open Google Maps Listing
               </Button>
             )}
+            <a
+              href="https://business.google.com/reviews"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                icon={Building2}
+                className="bg-white/10 text-white hover:bg-white/20 border-white/20 text-xs"
+              >
+                Google Business Reviews ↗
+              </Button>
+            </a>
             <button
               onClick={() => setSuccessInfo(null)}
               className="text-white/70 hover:text-white text-xs px-2 py-1.5 rounded-lg hover:bg-white/10"

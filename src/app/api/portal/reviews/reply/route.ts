@@ -210,28 +210,114 @@ export async function POST(request: Request) {
       }
     }
 
-    if (googleToken && locationId && reviewId) {
+    if (googleToken) {
       try {
-        // Direct call to Google My Business API v4 reviews.reply endpoint
-        const formattedLocation = locationId.startsWith('locations/') ? locationId : `locations/${locationId}`;
-        const gbpApiUrl = `https://mybusiness.googleapis.com/v4/${formattedLocation}/reviews/${reviewId}/reply`;
+        let targetAccount = '';
+        let targetLoc = locationId;
 
-        const apiRes = await fetch(gbpApiUrl, {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${googleToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            comment: replyText.trim(),
-          }),
+        // 1. Fetch Google Business Profile Accounts
+        const accRes = await fetch('https://mybusinessaccountmanagement.googleapis.com/v1/accounts', {
+          headers: { Authorization: `Bearer ${googleToken}` },
         });
 
-        if (apiRes.ok) {
-          googleApiDispatched = true;
-        } else {
-          const errData = await apiRes.json().catch(() => ({}));
-          googleApiError = errData?.error?.message || `Google API status ${apiRes.status}`;
+        if (accRes.ok) {
+          const accData = await accRes.json();
+          if (accData.accounts && accData.accounts.length > 0) {
+            targetAccount = accData.accounts[0].name; // e.g. accounts/1123456789
+          }
+        }
+
+        if (targetAccount) {
+          // 2. Fetch locations under this account
+          const locRes = await fetch(
+            `https://mybusinessbusinessinformation.googleapis.com/v1/${targetAccount}/locations?readMask=name,title,storefrontAddress`,
+            { headers: { Authorization: `Bearer ${googleToken}` } }
+          );
+
+          if (locRes.ok) {
+            const locData = await locRes.json();
+            if (locData.locations && locData.locations.length > 0) {
+              const matchedLoc = locData.locations.find((l: any) =>
+                (l.title && businessName && l.title.toLowerCase().includes(businessName.toLowerCase())) ||
+                (businessName && l.title && businessName.toLowerCase().includes(l.title.toLowerCase()))
+              ) || locData.locations[0];
+
+              if (matchedLoc?.name) {
+                targetLoc = matchedLoc.name; // e.g. locations/987654321
+              }
+            }
+          }
+
+          // 3. Match Google Review in Google My Business API
+          let matchedGbpReviewId = reviewId;
+          try {
+            const cleanLoc = targetLoc.includes('/') ? targetLoc : `locations/${targetLoc}`;
+            const reviewsListRes = await fetch(
+              `https://mybusiness.googleapis.com/v4/${targetAccount}/${cleanLoc}/reviews`,
+              { headers: { Authorization: `Bearer ${googleToken}` } }
+            );
+
+            if (reviewsListRes.ok) {
+              const revListData = await reviewsListRes.json();
+              if (Array.isArray(revListData.reviews)) {
+                const matched = revListData.reviews.find((gr: any) =>
+                  gr.reviewId === reviewId ||
+                  gr.name?.endsWith(`/${reviewId}`) ||
+                  (authorName && gr.reviewer?.displayName?.toLowerCase().trim() === authorName.toLowerCase().trim())
+                );
+                if (matched && matched.reviewId) {
+                  matchedGbpReviewId = matched.reviewId;
+                }
+              }
+            }
+          } catch (listErr) {
+            console.warn('Listing GBP reviews for match attempt:', listErr);
+          }
+
+          // 4. Dispatch Official Reply to Google My Business API
+          const cleanLoc = targetLoc.includes('/') ? targetLoc : `locations/${targetLoc}`;
+          const fullReviewPath = `${targetAccount}/${cleanLoc}/reviews/${matchedGbpReviewId}/reply`;
+          const gbpApiUrl = `https://mybusiness.googleapis.com/v4/${fullReviewPath}`;
+
+          const apiRes = await fetch(gbpApiUrl, {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${googleToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              comment: replyText.trim(),
+            }),
+          });
+
+          if (apiRes.ok) {
+            googleApiDispatched = true;
+          } else {
+            const errData = await apiRes.json().catch(() => ({}));
+            googleApiError = errData?.error?.message || `Google API status ${apiRes.status}`;
+          }
+        } else if (locationId && reviewId) {
+          // Direct fallback attempt with provided locationId
+          const formattedLocation = locationId.startsWith('locations/') ? locationId : `locations/${locationId}`;
+          const gbpApiUrl = `https://mybusiness.googleapis.com/v4/${formattedLocation}/reviews/${reviewId}/reply`;
+
+          const apiRes = await fetch(gbpApiUrl, {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${googleToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              comment: replyText.trim(),
+            }),
+          });
+
+          if (apiRes.ok) {
+            googleApiDispatched = true;
+          } else {
+            const errData = await apiRes.json().catch(() => ({}));
+            googleApiError = errData?.error?.message || `Google API status ${apiRes.status}`;
+          }
         }
       } catch (err: any) {
         googleApiError = err.message || 'Error communicating with Google GBP API';
