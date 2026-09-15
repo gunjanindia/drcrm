@@ -146,6 +146,13 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
   const [customHtml, setCustomHtml] = useState<string>(profile.miniSiteConfig?.customHtml || '');
   const [useCustomHtml, setUseCustomHtml] = useState<boolean>(!!profile.miniSiteConfig?.customHtml);
 
+  useEffect(() => {
+    if (profile.miniSiteConfig?.customHtml) {
+      setCustomHtml(profile.miniSiteConfig.customHtml);
+      setUseCustomHtml(true);
+    }
+  }, [profile.miniSiteConfig?.customHtml]);
+
   const [deviceView, setDeviceView] = useState<'mobile' | 'desktop'>('mobile');
   const [activeTab, setActiveTab] = useState<'content' | 'images' | 'services' | 'faqs' | 'code'>('content');
   const [isSaved, setIsSaved] = useState(false);
@@ -1160,30 +1167,44 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
 
         {/* Right Live Device Mockup Preview */}
         <div className="lg:col-span-6 space-y-3 flex flex-col items-center">
-          {/* Device Toggle */}
-          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold">
-            <button
-              onClick={() => setDeviceView('mobile')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
-                deviceView === 'mobile'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                  : 'text-slate-500'
-              }`}
-            >
-              <Smartphone className="w-3.5 h-3.5" />
-              Mobile (375px)
-            </button>
-            <button
-              onClick={() => setDeviceView('desktop')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
-                deviceView === 'desktop'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                  : 'text-slate-500'
-              }`}
-            >
-              <Monitor className="w-3.5 h-3.5" />
-              Desktop View
-            </button>
+          {/* Device Toggle & Status Bar */}
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold">
+              <button
+                onClick={() => setDeviceView('mobile')}
+                className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
+                  deviceView === 'mobile'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                    : 'text-slate-500'
+                }`}
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                Mobile (375px)
+              </button>
+              <button
+                onClick={() => setDeviceView('desktop')}
+                className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
+                  deviceView === 'desktop'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                    : 'text-slate-500'
+                }`}
+              >
+                <Monitor className="w-3.5 h-3.5" />
+                Desktop View
+              </button>
+            </div>
+
+            {useCustomHtml && customHtml.trim() ? (
+              <span className="px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold flex items-center gap-1 border border-indigo-200 dark:border-indigo-800 shadow-xs">
+                <Code className="w-3 h-3 text-indigo-500" />
+                <span>Custom HTML Preview Active</span>
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold flex items-center gap-1 border border-emerald-200 dark:border-emerald-800 shadow-xs">
+                <Sparkles className="w-3 h-3 text-emerald-500" />
+                <span>Dynamic Visual Preview</span>
+              </span>
+            )}
           </div>
 
           {/* Live Preview Container Frame */}
@@ -1192,212 +1213,226 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
               deviceView === 'mobile' ? 'max-w-[390px]' : 'max-w-full'
             }`}
           >
-            <div className="rounded-3xl border-8 border-slate-900 bg-slate-50 text-slate-900 shadow-2xl overflow-hidden text-xs max-h-[680px] overflow-y-auto">
-              {/* Header with Logo */}
-              <div className="p-3.5 bg-white border-b border-slate-200 flex items-center justify-between sticky top-0 z-20">
-                <div className="flex items-center gap-2">
-                  {logoUrl ? (
-                    <img
-                      src={logoUrl}
-                      alt={profile.businessName}
-                      className="h-7 max-w-[90px] object-contain rounded"
-                    />
-                  ) : (
-                    <div className={`w-7 h-7 rounded-lg ${currentTheme.accentBg} text-white font-bold flex items-center justify-center text-[10px]`}>
-                      {profile.businessName.substring(0, 2).toUpperCase()}
+            <div className="rounded-3xl border-8 border-slate-900 bg-white shadow-2xl overflow-hidden text-xs">
+              {useCustomHtml && customHtml.trim() ? (
+                <div className="relative w-full h-[680px] bg-white">
+                  <iframe
+                    key={customHtml}
+                    srcDoc={customHtml}
+                    title="Live Custom HTML Preview"
+                    className="w-full h-full border-0 bg-white"
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                  />
+                </div>
+              ) : (
+                <div className="bg-slate-50 text-slate-900 max-h-[680px] overflow-y-auto">
+                  {/* Header with Logo */}
+                  <div className="p-3.5 bg-white border-b border-slate-200 flex items-center justify-between sticky top-0 z-20">
+                    <div className="flex items-center gap-2">
+                      {logoUrl ? (
+                        <img
+                          src={logoUrl}
+                          alt={profile.businessName}
+                          className="h-7 max-w-[90px] object-contain rounded"
+                        />
+                      ) : (
+                        <div className={`w-7 h-7 rounded-lg ${currentTheme.accentBg} text-white font-bold flex items-center justify-center text-[10px]`}>
+                          {profile.businessName.substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <span className="font-extrabold text-xs text-slate-900 truncate max-w-[130px]">
+                        {profile.businessName}
+                      </span>
                     </div>
-                  )}
-                  <span className="font-extrabold text-xs text-slate-900 truncate max-w-[130px]">
-                    {profile.businessName}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <a
-                    href={`https://wa.me/${whatsapp}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-2.5 py-1 rounded-full bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs"
+                    <div className="flex items-center gap-1.5">
+                      <a
+                        href={`https://wa.me/${whatsapp}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1 rounded-full bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs"
+                      >
+                        <MessageCircle className="w-3 h-3 fill-current" />
+                        <span>WhatsApp</span>
+                      </a>
+                      <a
+                        href={`tel:${phone}`}
+                        className={`px-2.5 py-1 rounded-full ${currentTheme.accentBg} text-white font-bold text-[10px] flex items-center gap-1 shadow-xs`}
+                      >
+                        <Phone className="w-3 h-3" />
+                        <span>Call</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Hero Banner (Supports Custom Background Image) */}
+                  <div
+                    className={`p-6 text-white text-center space-y-3 relative overflow-hidden`}
+                    style={{
+                      background: bannerUrl
+                        ? `linear-gradient(rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.9)), url('${bannerUrl}') center/cover no-repeat`
+                        : undefined,
+                    }}
                   >
-                    <MessageCircle className="w-3 h-3 fill-current" />
-                    <span>WhatsApp</span>
-                  </a>
-                  <a
-                    href={`tel:${phone}`}
-                    className={`px-2.5 py-1 rounded-full ${currentTheme.accentBg} text-white font-bold text-[10px] flex items-center gap-1 shadow-xs`}
-                  >
-                    <Phone className="w-3 h-3" />
-                    <span>Call</span>
-                  </a>
-                </div>
-              </div>
+                    {!bannerUrl && (
+                      <div className={`absolute inset-0 bg-gradient-to-br ${currentTheme.gradient} -z-10`} />
+                    )}
 
-              {/* Hero Banner (Supports Custom Background Image) */}
-              <div
-                className={`p-6 text-white text-center space-y-3 relative overflow-hidden`}
-                style={{
-                  background: bannerUrl
-                    ? `linear-gradient(rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.9)), url('${bannerUrl}') center/cover no-repeat`
-                    : undefined,
-                }}
-              >
-                {!bannerUrl && (
-                  <div className={`absolute inset-0 bg-gradient-to-br ${currentTheme.gradient} -z-10`} />
-                )}
+                    <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-400 text-slate-950 uppercase tracking-wider">
+                      ★ Rated {profile.averageRating || 4.9} on Google Maps ({profile.reviewCount || 30}+ Reviews)
+                    </span>
+                    <h1 className="text-base sm:text-lg font-black tracking-tight leading-snug">
+                      {headline}
+                    </h1>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">{subheadline}</p>
 
-                <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-400 text-slate-950 uppercase tracking-wider">
-                  ★ Rated {profile.averageRating || 4.9} on Google Maps ({profile.reviewCount || 30}+ Reviews)
-                </span>
-                <h1 className="text-base sm:text-lg font-black tracking-tight leading-snug">
-                  {headline}
-                </h1>
-                <p className="text-[11px] text-slate-300 leading-relaxed">{subheadline}</p>
+                    {/* Instant Dual CTA Buttons */}
+                    <div className="flex gap-2 pt-2 justify-center flex-wrap">
+                      <a
+                        href={`https://wa.me/${whatsapp}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                        <span>{currentTheme.primaryCtaText}</span>
+                      </a>
+                      <a
+                        href={`tel:${phone}`}
+                        className="px-3.5 py-2 rounded-xl bg-white text-slate-900 font-bold text-[11px] flex items-center gap-1.5 shadow-md"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>{currentTheme.secondaryCtaText}</span>
+                      </a>
+                    </div>
+                  </div>
 
-                {/* Instant Dual CTA Buttons */}
-                <div className="flex gap-2 pt-2 justify-center flex-wrap">
-                  <a
-                    href={`https://wa.me/${whatsapp}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5 fill-current" />
-                    <span>{currentTheme.primaryCtaText}</span>
-                  </a>
-                  <a
-                    href={`tel:${phone}`}
-                    className="px-3.5 py-2 rounded-xl bg-white text-slate-900 font-bold text-[11px] flex items-center gap-1.5 shadow-md"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>{currentTheme.secondaryCtaText}</span>
-                  </a>
-                </div>
-              </div>
+                  {/* Trust Metrics Bar */}
+                  <div className="grid grid-cols-4 bg-white border-b border-slate-200 text-center py-2 px-1 text-[9px]">
+                    <div>
+                      <strong className="block text-slate-900">{profile.averageRating || 4.9}★</strong>
+                      <span className="text-slate-400">Rating</span>
+                    </div>
+                    <div>
+                      <strong className="block text-slate-900">{profile.reviewCount || 30}+</strong>
+                      <span className="text-slate-400">Reviews</span>
+                    </div>
+                    <div>
+                      <strong className="block text-emerald-600">100%</strong>
+                      <span className="text-slate-400">Verified</span>
+                    </div>
+                    <div>
+                      <strong className="block text-indigo-600">Fast</strong>
+                      <span className="text-slate-400">Support</span>
+                    </div>
+                  </div>
 
-              {/* Trust Metrics Bar */}
-              <div className="grid grid-cols-4 bg-white border-b border-slate-200 text-center py-2 px-1 text-[9px]">
-                <div>
-                  <strong className="block text-slate-900">{profile.averageRating || 4.9}★</strong>
-                  <span className="text-slate-400">Rating</span>
-                </div>
-                <div>
-                  <strong className="block text-slate-900">{profile.reviewCount || 30}+</strong>
-                  <span className="text-slate-400">Reviews</span>
-                </div>
-                <div>
-                  <strong className="block text-emerald-600">100%</strong>
-                  <span className="text-slate-400">Verified</span>
-                </div>
-                <div>
-                  <strong className="block text-indigo-600">Fast</strong>
-                  <span className="text-slate-400">Support</span>
-                </div>
-              </div>
+                  {/* Editable Services List */}
+                  <div className="p-4 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-extrabold text-xs text-slate-900">
+                        {currentTheme.servicesTitle}
+                      </h4>
+                      <span className="text-[10px] text-slate-400">
+                        {services.length} items
+                      </span>
+                    </div>
 
-              {/* Editable Services List */}
-              <div className="p-4 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-extrabold text-xs text-slate-900">
-                    {currentTheme.servicesTitle}
-                  </h4>
-                  <span className="text-[10px] text-slate-400">
-                    {services.length} items
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  {services.map((srv, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 rounded-2xl bg-white border border-slate-200/80 flex items-start justify-between shadow-xs gap-2"
-                    >
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <h5 className="font-bold text-xs text-slate-900">{srv.title}</h5>
-                          {srv.badge && (
-                            <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                              {srv.badge}
+                    <div className="space-y-2">
+                      {services.map((srv, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3 rounded-2xl bg-white border border-slate-200/80 flex items-start justify-between shadow-xs gap-2"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <h5 className="font-bold text-xs text-slate-900">{srv.title}</h5>
+                              {srv.badge && (
+                                <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                  {srv.badge}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-500 leading-tight">{srv.desc}</p>
+                          </div>
+                          {srv.price && (
+                            <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg shrink-0">
+                              {srv.price}
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] text-slate-500 leading-tight">{srv.desc}</p>
-                      </div>
-                      {srv.price && (
-                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg shrink-0">
-                          {srv.price}
-                        </span>
-                      )}
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              {/* Customer Reviews Section */}
-              <div className="p-4 bg-slate-100 border-y border-slate-200 space-y-2">
-                <h4 className="font-extrabold text-xs text-slate-900">Customer Reviews</h4>
-                <div className="space-y-2">
-                  {(generatedData.reviews || []).slice(0, 2).map((rev, idx) => (
-                    <div key={idx} className="p-3 rounded-2xl bg-white border border-slate-200 text-[10px] space-y-1">
-                      <div className="text-amber-400">{'★'.repeat(rev.rating)}</div>
-                      <p className="text-slate-600 italic">"{rev.text}"</p>
-                      <div className="text-slate-400 font-bold">{rev.authorName} • {rev.relativeTime}</div>
+                  {/* Customer Reviews Section */}
+                  <div className="p-4 bg-slate-100 border-y border-slate-200 space-y-2">
+                    <h4 className="font-extrabold text-xs text-slate-900">Customer Reviews</h4>
+                    <div className="space-y-2">
+                      {(generatedData.reviews || []).slice(0, 2).map((rev, idx) => (
+                        <div key={idx} className="p-3 rounded-2xl bg-white border border-slate-200 text-[10px] space-y-1">
+                          <div className="text-amber-400">{'★'.repeat(rev.rating)}</div>
+                          <p className="text-slate-600 italic">"{rev.text}"</p>
+                          <div className="text-slate-400 font-bold">{rev.authorName} • {rev.relativeTime}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              {/* Editable FAQs Accordion */}
-              <div className="p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-extrabold text-xs text-slate-900">Frequently Asked Questions</h4>
-                  <span className="text-[10px] text-slate-400">{faqs.length} FAQs</span>
-                </div>
-                <div className="space-y-1.5">
-                  {faqs.map((faq, idx) => {
-                    const isOpen = openFaqIndex === idx;
-                    return (
-                      <div key={idx} className="rounded-xl bg-white border border-slate-200 overflow-hidden text-[10px]">
-                        <button
-                          onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
-                          className="w-full p-2.5 text-left font-bold text-slate-800 flex justify-between items-center"
-                        >
-                          <span>{faq.q}</span>
-                          <span>{isOpen ? '▲' : '▼'}</span>
-                        </button>
-                        {isOpen && (
-                          <div className="p-2.5 pt-0 text-slate-500 border-t border-slate-100">
-                            {faq.a}
+                  {/* Editable FAQs Accordion */}
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-extrabold text-xs text-slate-900">Frequently Asked Questions</h4>
+                      <span className="text-[10px] text-slate-400">{faqs.length} FAQs</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {faqs.map((faq, idx) => {
+                        const isOpen = openFaqIndex === idx;
+                        return (
+                          <div key={idx} className="rounded-xl bg-white border border-slate-200 overflow-hidden text-[10px]">
+                            <button
+                              onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                              className="w-full p-2.5 text-left font-bold text-slate-800 flex justify-between items-center"
+                            >
+                              <span>{faq.q}</span>
+                              <span>{isOpen ? '▲' : '▼'}</span>
+                            </button>
+                            {isOpen && (
+                              <div className="p-2.5 pt-0 text-slate-500 border-t border-slate-100">
+                                {faq.a}
+                              </div>
+                            )}
                           </div>
-                        )}
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Working Hours & Map Location */}
+                  <div className="p-4 bg-white border-t border-slate-200 space-y-2.5 text-[11px]">
+                    <div className="flex items-start gap-2 text-slate-700">
+                      <Clock className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold block text-slate-900">Business Hours:</span>
+                        <span>{workingHours}</span>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
+                    </div>
 
-              {/* Working Hours & Map Location */}
-              <div className="p-4 bg-white border-t border-slate-200 space-y-2.5 text-[11px]">
-                <div className="flex items-start gap-2 text-slate-700">
-                  <Clock className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block text-slate-900">Business Hours:</span>
-                    <span>{workingHours}</span>
+                    <div className="flex items-start gap-2 text-slate-700">
+                      <MapPin className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold block text-slate-900">Address:</span>
+                        <span>{address}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="p-4 bg-slate-900 text-white text-center text-[10px] space-y-1">
+                    <p className="font-semibold">{profile.businessName}</p>
+                    <p className="text-slate-400">Official Google Business Profile Verified 1-Page Website</p>
                   </div>
                 </div>
-
-                <div className="flex items-start gap-2 text-slate-700">
-                  <MapPin className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block text-slate-900">Address:</span>
-                    <span>{address}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="p-4 bg-slate-900 text-white text-center text-[10px] space-y-1">
-                <p className="font-semibold">{profile.businessName}</p>
-                <p className="text-slate-400">Official Google Business Profile Verified 1-Page Website</p>
-              </div>
+              )}
             </div>
           </div>
         </div>

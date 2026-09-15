@@ -26,10 +26,16 @@ export default function PublicOnePageWebsite() {
   const params = useParams();
   const slug = params?.slug as string;
   const [siteData, setSiteData] = useState<GeneratedWebsiteData | null>(null);
+  const [customHtml, setCustomHtml] = useState<string | null>(null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   useEffect(() => {
     const profile = getSyncedBusinessProfile();
+    if (profile.miniSiteConfig?.customHtml && profile.miniSiteConfig.customHtml.trim()) {
+      setCustomHtml(profile.miniSiteConfig.customHtml);
+    } else {
+      setCustomHtml(null);
+    }
     const data = buildGeneratedWebsiteData({
       businessName: profile.businessName || 'Your Business Name',
       category: profile.category || 'Local Business',
@@ -62,6 +68,19 @@ export default function PublicOnePageWebsite() {
     });
     setSiteData(data);
   }, [slug]);
+
+  if (customHtml) {
+    return (
+      <div className="w-full h-screen fixed inset-0 overflow-hidden bg-white z-50">
+        <iframe
+          srcDoc={customHtml}
+          className="w-full h-full border-0"
+          title={siteData?.businessName || 'Business Website'}
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
+        />
+      </div>
+    );
+  }
 
   if (!siteData) {
     return (
