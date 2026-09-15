@@ -35,15 +35,37 @@ export const MonthlyGrowthChart: React.FC<MonthlyGrowthChartProps> = ({
   const [selectedMetric, setSelectedMetric] = useState<'all' | 'calls' | 'visits' | 'appointments' | 'rank'>('all');
   const [timeRange, setTimeRange] = useState<'3m' | '6m'>('6m');
 
+  if (!metrics || metrics.length === 0) {
+    return (
+      <div className="p-8 rounded-3xl bg-slate-900 border border-slate-800 text-center space-y-4 text-white">
+        <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center mx-auto">
+          <TrendingUp className="w-6 h-6" />
+        </div>
+        <div>
+          <h4 className="text-base font-bold text-white">
+            Google Performance & Growth Insights Pending
+          </h4>
+          <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
+            Connect and sync your Google Business Profile to track month-over-month local map rankings, direction requests, phone calls, and customer discovery metrics for <strong>{businessName}</strong>.
+          </p>
+        </div>
+        <div className="flex justify-center items-center gap-2 text-xs text-emerald-400 font-medium">
+          <ShieldCheck className="w-4 h-4" />
+          <span>Real-time GBP Insights Pipeline Active</span>
+        </div>
+      </div>
+    );
+  }
+
   const filteredMetrics = timeRange === '3m' ? metrics.slice(-3) : metrics;
 
   // Calculate Growth Rates from start to finish
   const first = filteredMetrics[0];
   const last = filteredMetrics[filteredMetrics.length - 1];
 
-  const callsGrowth = Math.round(((last.calls - first.calls) / first.calls) * 100);
-  const visitsGrowth = Math.round(((last.visits - first.visits) / first.visits) * 100);
-  const appointmentsGrowth = Math.round(((last.appointments - first.appointments) / first.appointments) * 100);
+  const callsGrowth = first.calls > 0 ? Math.round(((last.calls - first.calls) / first.calls) * 100) : 0;
+  const visitsGrowth = first.visits > 0 ? Math.round(((last.visits - first.visits) / first.visits) * 100) : 0;
+  const appointmentsGrowth = first.appointments > 0 ? Math.round(((last.appointments - first.appointments) / first.appointments) * 100) : 0;
 
   // SVG Chart Dimensions
   const svgWidth = 650;

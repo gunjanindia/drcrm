@@ -261,28 +261,18 @@ export interface AIPointsPackage {
 // -------------------------------------------------------------
 
 export const DEFAULT_GBP_AUTH: GoogleGbpAuthProfile = {
-  isConnected: true,
-  googleEmail: 'business.owner.ranchi@gmail.com',
-  accountName: 'Official Business Owner Account',
-  locationId: 'locations/184920485729103948',
-  locationName: 'Verified Google Business Profile (Ranchi)',
-  connectedAt: 'Sep 10, 2026',
-  scopesGranted: [
-    'https://www.googleapis.com/auth/business.manage',
-    'https://www.googleapis.com/auth/plus.business.manage',
-  ],
-  reviewsSyncActive: true,
-  canPostReplies: true,
+  isConnected: false,
+  googleEmail: '',
+  accountName: '',
+  locationId: '',
+  locationName: '',
+  connectedAt: '',
+  scopesGranted: [],
+  reviewsSyncActive: false,
+  canPostReplies: false,
 };
 
-export const DEFAULT_MONTHLY_GROWTH: MonthlyGrowthMetric[] = [
-  { month: 'Apr', rank: 8, calls: 42, visits: 950, appointments: 14 },
-  { month: 'May', rank: 6, calls: 68, visits: 1380, appointments: 22 },
-  { month: 'Jun', rank: 5, calls: 110, visits: 2150, appointments: 38 },
-  { month: 'Jul', rank: 3, calls: 175, visits: 3400, appointments: 54 },
-  { month: 'Aug', rank: 2, calls: 245, visits: 4900, appointments: 78 },
-  { month: 'Sep (Current)', rank: 1, calls: 318, visits: 6850, appointments: 95 },
-];
+export const DEFAULT_MONTHLY_GROWTH: MonthlyGrowthMetric[] = [];
 
 export const DEFAULT_AUDIT_FACTORS: AuditFactor[] = [
   {
@@ -300,13 +290,13 @@ export const DEFAULT_AUDIT_FACTORS: AuditFactor[] = [
   {
     id: 'reviews_velocity',
     category: 'Reputation & Reviews',
-    name: 'Review Velocity & 5-Star Average',
+    name: 'Review Velocity & Verified Rating',
     score: 22,
     maxScore: 25,
     status: 'OPTIMAL',
     impactDescription: 'Review count & freshness decide customer trust and Google local algorithm favorability.',
-    whatMakesThisScore: 'Average 4.9⭐ rating across verified reviews with steady monthly influx of authentic reviews via counter QR stand.',
-    recommendation: 'Aim to cross 50+ total reviews to cement unshakeable #1 position over competitors in the area.',
+    whatMakesThisScore: 'Verified Google reviews with active review capture QR stand integration.',
+    recommendation: 'Aim to capture fresh positive customer reviews consistently each week.',
     quickActionLabel: 'Print Review QR Stand',
     pointsToGain: 3,
   },
@@ -314,14 +304,14 @@ export const DEFAULT_AUDIT_FACTORS: AuditFactor[] = [
     id: 'media_gallery',
     category: 'Media & Photo Cadence',
     name: 'Geotagged Store & Product Photos',
-    score: 14,
+    score: 18,
     maxScore: 20,
-    status: 'MODERATE',
-    impactDescription: 'Listings with 30+ geotagged photos receive 42% more direction requests on Google Maps.',
-    whatMakesThisScore: '18 high-res photos uploaded. Missing recent weekly store interior, team, and product showcase photos.',
-    recommendation: 'Upload 5 new photos monthly with city geolocation metadata.',
+    status: 'OPTIMAL',
+    impactDescription: 'Listings with 25+ geotagged photos receive 42% more direction requests on Google Maps.',
+    whatMakesThisScore: 'High-res photos indexed on Google Maps profile.',
+    recommendation: 'Upload 5 new photos monthly with geolocation metadata.',
     quickActionLabel: 'Upload Geotagged Media',
-    pointsToGain: 6,
+    pointsToGain: 2,
   },
   {
     id: 'response_rate',
@@ -331,8 +321,8 @@ export const DEFAULT_AUDIT_FACTORS: AuditFactor[] = [
     maxScore: 15,
     status: 'MODERATE',
     impactDescription: '100% response rate increases customer retention and signals active business ownership to Google.',
-    whatMakesThisScore: '88% of Google reviews have been answered. 2 reviews currently awaiting official reply.',
-    recommendation: 'Use the AI Review Assistant to instantly generate tailored replies for pending reviews in <30 seconds.',
+    whatMakesThisScore: 'Customer reviews answered with official owner replies.',
+    recommendation: 'Use AI Review Assistant to post personalized responses to all reviews in <30 seconds.',
     quickActionLabel: 'Answer Pending Reviews',
     pointsToGain: 3,
   },
@@ -351,54 +341,7 @@ export const DEFAULT_AUDIT_FACTORS: AuditFactor[] = [
   },
 ];
 
-export const DEFAULT_CLIENT_REVIEWS: ClientReviewItem[] = [
-  {
-    id: 'rev_1',
-    authorName: 'Rahul Verma',
-    rating: 5,
-    date: '2 days ago',
-    content: 'Outstanding service and very polite staff! Transparent pricing and quick turnaround. Very satisfied with the experience in Ranchi.',
-    status: 'PENDING',
-    sentiment: 'POSITIVE',
-    source: 'Google Maps',
-  },
-  {
-    id: 'rev_2',
-    authorName: 'Priya Sundaram',
-    rating: 5,
-    date: '5 days ago',
-    content: 'Very professional, clean environment and great attention to detail. Highly recommend to everyone looking for quality service!',
-    status: 'REPLIED',
-    sentiment: 'POSITIVE',
-    replyText: 'Dear Priya, thank you so much for your wonderful review! We are delighted to know you had a positive experience with us. Looking forward to serving you again! 🙏',
-    repliedAt: '4 days ago',
-    source: 'Verified GBP Sync',
-    isLiveOnGoogle: true,
-  },
-  {
-    id: 'rev_3',
-    authorName: 'Sunil Kumar',
-    rating: 4,
-    date: '1 week ago',
-    content: 'Good quality overall, but had to wait about 15 minutes during peak hours on Sunday. Staff was helpful though.',
-    status: 'PENDING',
-    sentiment: 'NEUTRAL',
-    source: 'Google Maps',
-  },
-  {
-    id: 'rev_4',
-    authorName: 'Amitabh Sen',
-    rating: 5,
-    date: '2 weeks ago',
-    content: 'Best place in the city for reliable service. Modern setup and honest pricing. Will definitely visit again.',
-    status: 'REPLIED',
-    sentiment: 'POSITIVE',
-    replyText: 'Thank you Amitabh ji! It was our pleasure to serve you. Please reach out if you ever need any assistance.',
-    repliedAt: '12 days ago',
-    source: 'Direct QR',
-    isLiveOnGoogle: true,
-  },
-];
+export const DEFAULT_CLIENT_REVIEWS: ClientReviewItem[] = [];
 
 export const FESTIVAL_PRESETS: FestivalPreset[] = [
   {

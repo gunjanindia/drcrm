@@ -43,26 +43,28 @@ export interface SyncedBusinessProfile {
 
 export const DEMO_BUSINESS_PROFILE: SyncedBusinessProfile = {
   isLiveSynced: false,
-  businessName: 'Your Business Name',
-  category: 'Local Business & Services',
+  businessName: 'Your Business Profile',
+  category: 'Local Business',
   city: 'Ranchi',
-  address: 'Main Road, Ranchi, Jharkhand - 834001',
-  phone: '+91 94311 00000',
-  whatsapp: '919431100000',
-  email: 'contact@yourbusiness.in',
-  websiteUrl: 'https://digitalranchi.in',
-  googleMapsUrl: 'https://maps.google.com/?q=Ranchi',
-  placeId: 'loc_preview',
-  averageRating: 5.0,
+  address: 'Connect your Google Maps listing to view live data',
+  phone: '',
+  whatsapp: '',
+  email: '',
+  websiteUrl: '',
+  googleMapsUrl: '',
+  placeId: '',
+  averageRating: 0,
   reviewCount: 0,
   photosCount: 0,
-  gbpScore: 80,
+  gbpScore: 0,
   packageName: 'Growth Retainer Plan',
-  monthlyRevenue: 999,
+  monthlyRevenue: 0,
   renewalDate: new Date(Date.now() + 30 * 86400000).toISOString(),
   googleOwnerEmail: '',
   status: 'ACTIVE',
   isOperational: true,
+  reviews: [],
+  growthMetrics: [],
 };
 
 const STORAGE_KEY = 'drcrm_synced_gbp_profile_v2';
@@ -90,14 +92,9 @@ export function convertGoogleReviewsToClientReviews(
     authorName: r.authorName || `Customer ${idx + 1}`,
     rating: r.rating || 5,
     date: r.relativeTime || 'Recently',
-    content: r.text || `Visited ${businessName}. Great service and experience!`,
-    status: idx % 2 === 0 ? 'PENDING' : 'REPLIED',
+    content: r.text || `Visited ${businessName}.`,
+    status: 'PENDING',
     sentiment: r.rating >= 4 ? 'POSITIVE' : r.rating === 3 ? 'NEUTRAL' : 'CRITICAL',
-    replyText:
-      idx % 2 !== 0
-        ? `Dear ${r.authorName}, thank you so much for taking the time to share your feedback for ${businessName}! We truly appreciate your support. 🙏`
-        : undefined,
-    repliedAt: idx % 2 !== 0 ? '1 day ago' : undefined,
     source: 'Google Maps',
     isLiveOnGoogle: true,
   }));
@@ -113,215 +110,22 @@ export function generateDynamicReviewsForBusiness(
   if (realGoogleReviews && realGoogleReviews.length > 0) {
     return convertGoogleReviewsToClientReviews(realGoogleReviews, businessName);
   }
-
-  const catLower = category.toLowerCase();
-  const isFood = catLower.includes('restaurant') || catLower.includes('cafe') || catLower.includes('bakery') || catLower.includes('sweet');
-  const isHealth = catLower.includes('clinic') || catLower.includes('hospital') || catLower.includes('doctor') || catLower.includes('dental');
-  const isSalon = catLower.includes('salon') || catLower.includes('beauty') || catLower.includes('spa') || catLower.includes('parlour');
-  const isEdu = catLower.includes('coaching') || catLower.includes('school') || catLower.includes('classes') || catLower.includes('institute');
-  const isAuto = catLower.includes('car') || catLower.includes('bike') || catLower.includes('auto') || catLower.includes('service');
-
-  if (isFood) {
-    return [
-      {
-        id: `rev_live_1`,
-        authorName: 'Rohan Banerjee',
-        rating: 5,
-        date: '2 days ago',
-        content: `Outstanding food quality and fresh packaging at ${businessName}! The taste is authentic and staff was very welcoming. Best dining spot in ${city}.`,
-        status: 'PENDING',
-        sentiment: 'POSITIVE',
-        source: 'Verified GBP Sync',
-        isLiveOnGoogle: true,
-      },
-      {
-        id: `rev_live_2`,
-        authorName: 'Ananya Mishra',
-        rating: 5,
-        date: '5 days ago',
-        content: `Visited ${businessName} with family. The ambiance and hygienic preparation really impressed us. Reasonable rates too!`,
-        status: 'REPLIED',
-        sentiment: 'POSITIVE',
-        replyText: `Dear Ananya, thank you so much for your warm words! We are delighted that you and your family enjoyed your experience at ${businessName}. Looking forward to serving you again! 🙏`,
-        repliedAt: '4 days ago',
-        source: 'Verified GBP Sync',
-        isLiveOnGoogle: true,
-      },
-      {
-        id: `rev_live_3`,
-        authorName: 'Vikram Singh',
-        rating: 4,
-        date: '1 week ago',
-        content: `Great taste and quick service, though table waiting time was about 15 minutes on Sunday evening. Overall highly recommended.`,
-        status: 'PENDING',
-        sentiment: 'NEUTRAL',
-        source: 'Verified GBP Sync',
-        isLiveOnGoogle: true,
-      },
-      {
-        id: `rev_live_4`,
-        authorName: 'Meera Sengupta',
-        rating: 5,
-        date: '2 weeks ago',
-        content: `One of the best places in ${city} for special celebrations. Fast delivery when ordered on WhatsApp.`,
-        status: 'REPLIED',
-        sentiment: 'POSITIVE',
-        replyText: `Thank you Meera ji! It was our pleasure to serve you. Keep visiting ${businessName}!`,
-        repliedAt: '12 days ago',
-        source: 'Verified GBP Sync',
-        isLiveOnGoogle: true,
-      },
-    ];
-  }
-
-  if (isSalon) {
-    return [
-      {
-        id: `rev_live_1`,
-        authorName: 'Simran Kaur',
-        rating: 5,
-        date: '1 day ago',
-        content: `Got facial and hair spa done at ${businessName}. The beautician was super professional and used premium products. Felt so relaxed!`,
-        status: 'PENDING',
-        sentiment: 'POSITIVE',
-        source: 'Verified GBP Sync',
-        isLiveOnGoogle: true,
-      },
-      {
-        id: `rev_live_2`,
-        authorName: 'Pooja Tiwari',
-        rating: 5,
-        date: '4 days ago',
-        content: `Best beauty salon in ${city}! Clean hygienic equipment, polite staff, and genuine pricing. Will definitely recommend to friends.`,
-        status: 'REPLIED',
-        sentiment: 'POSITIVE',
-        replyText: `Dear Pooja, thank you for your wonderful review! We look forward to pampering you again at ${businessName}. 🙏`,
-        repliedAt: '3 days ago',
-        source: 'Verified GBP Sync',
-        isLiveOnGoogle: true,
-      },
-      {
-        id: `rev_live_3`,
-        authorName: 'Kavita Kumari',
-        rating: 4,
-        date: '1 week ago',
-        content: `Very satisfied with bridal makeover trials at ${businessName}. Staff is attentive.`,
-        status: 'PENDING',
-        sentiment: 'NEUTRAL',
-        source: 'Verified GBP Sync',
-        isLiveOnGoogle: true,
-      },
-    ];
-  }
-
-  if (isEdu) {
-    return [
-      {
-        id: `rev_live_1`,
-        authorName: 'Abhishek Roy (Student)',
-        rating: 5,
-        date: '2 days ago',
-        content: `The conceptual clarity provided by faculty at ${businessName} is unmatched. Regular mock test series helped me improve my rank significantly in ${city}.`,
-        status: 'PENDING',
-        sentiment: 'POSITIVE',
-        source: 'Verified GBP Sync',
-        isLiveOnGoogle: true,
-      },
-      {
-        id: `rev_live_2`,
-        authorName: 'Shambhu Nath (Parent)',
-        rating: 5,
-        date: '6 days ago',
-        content: `Very disciplined academic environment and supportive teachers at ${businessName}. Weekly performance tracking gives parents total peace of mind.`,
-        status: 'REPLIED',
-        sentiment: 'POSITIVE',
-        replyText: `Thank you for your trust in ${businessName}! We are committed to nurturing every student's potential and academic success. 🙏`,
-        repliedAt: '5 days ago',
-        source: 'Verified GBP Sync',
-        isLiveOnGoogle: true,
-      },
-    ];
-  }
-
-  if (isAuto) {
-    return [
-      {
-        id: `rev_live_1`,
-        authorName: 'Deepak Choudhary',
-        rating: 5,
-        date: '2 days ago',
-        content: `Got full periodic servicing and ceramic coating done at ${businessName}. My car looks brand new! Honest mechanics and transparent billing.`,
-        status: 'PENDING',
-        sentiment: 'POSITIVE',
-        source: 'Verified GBP Sync',
-        isLiveOnGoogle: true,
-      },
-      {
-        id: `rev_live_2`,
-        authorName: 'Manish Verma',
-        rating: 5,
-        date: '1 week ago',
-        content: `Quick diagnostics and on-time delivery. Best automotive service center in ${city}.`,
-        status: 'REPLIED',
-        sentiment: 'POSITIVE',
-        replyText: `Dear Manish, thank you for rating ${businessName}! We appreciate your patronage and look forward to assisting you on your next visit.`,
-        repliedAt: '6 days ago',
-        source: 'Verified GBP Sync',
-        isLiveOnGoogle: true,
-      },
-    ];
-  }
-
-  // Default Generic Local Business
-  return [
-    {
-      id: `rev_live_1`,
-      authorName: 'Amitabh Sen',
-      rating: 5,
-      date: '2 days ago',
-      content: `Highly impressed with the professionalism and quality at ${businessName}. Transparent pricing and prompt customer assistance in ${city}!`,
-      status: 'PENDING',
-      sentiment: 'POSITIVE',
-      source: 'Verified GBP Sync',
-      isLiveOnGoogle: true,
-    },
-    {
-      id: `rev_live_2`,
-      authorName: 'Sunita Sharma',
-      rating: 5,
-      date: '5 days ago',
-      content: `Excellent experience with ${businessName}. Polite staff, genuine products/services, and convenient location. High recommended!`,
-      status: 'REPLIED',
-      sentiment: 'POSITIVE',
-      replyText: `Dear Sunita, thank you so much for your kind words! The team at ${businessName} appreciates your trust. 🙏`,
-      repliedAt: '4 days ago',
-      source: 'Verified GBP Sync',
-      isLiveOnGoogle: true,
-    },
-    {
-      id: `rev_live_3`,
-      authorName: 'Rakesh Gupta',
-      rating: 4,
-      date: '1 week ago',
-      content: `Good quality work and courteous team. Had to wait a few minutes during peak hours, but overall very satisfied with ${businessName}.`,
-      status: 'PENDING',
-      sentiment: 'NEUTRAL',
-      source: 'Verified GBP Sync',
-      isLiveOnGoogle: true,
-    },
-  ];
+  // Zero fake dummy reviews returned
+  return [];
 }
 
 export function generateDynamicGrowthForBusiness(
-  reviewCount: number = 24,
-  rating: number = 4.8,
-  gbpScore: number = 84
+  reviewCount: number = 0,
+  rating: number = 5.0,
+  gbpScore: number = 0
 ): MonthlyGrowthMetric[] {
-  const currentCalls = Math.max(28, Math.round(reviewCount * 6.5 + (gbpScore / 100) * 45));
-  const currentVisits = Math.max(480, Math.round(reviewCount * 120 + (gbpScore / 100) * 850));
-  const currentAppts = Math.max(12, Math.round(reviewCount * 2.2 + (gbpScore / 100) * 18));
+  if (reviewCount === 0 && gbpScore === 0) {
+    return [];
+  }
+  const currentCalls = Math.max(0, Math.round(reviewCount * 6.5 + (gbpScore / 100) * 45));
+  const currentVisits = Math.max(0, Math.round(reviewCount * 120 + (gbpScore / 100) * 850));
+  const currentAppts = Math.max(0, Math.round(reviewCount * 2.2 + (gbpScore / 100) * 18));
 
-  // Generate dynamic last 6 months based on current real month
   const now = new Date();
   const months: string[] = [];
   for (let i = 5; i >= 0; i--) {
@@ -334,11 +138,11 @@ export function generateDynamicGrowthForBusiness(
   const initialRank = Math.min(8, finalRank + 5);
 
   return [
-    { month: months[0], rank: initialRank, calls: Math.max(5, Math.round(currentCalls * 0.22)), visits: Math.max(90, Math.round(currentVisits * 0.20)), appointments: Math.max(2, Math.round(currentAppts * 0.24)) },
-    { month: months[1], rank: Math.max(finalRank + 3, initialRank - 1), calls: Math.max(8, Math.round(currentCalls * 0.38)), visits: Math.max(160, Math.round(currentVisits * 0.35)), appointments: Math.max(4, Math.round(currentAppts * 0.40)) },
-    { month: months[2], rank: Math.max(finalRank + 2, initialRank - 2), calls: Math.max(12, Math.round(currentCalls * 0.54)), visits: Math.max(250, Math.round(currentVisits * 0.50)), appointments: Math.max(6, Math.round(currentAppts * 0.56)) },
-    { month: months[3], rank: Math.max(finalRank + 1, initialRank - 3), calls: Math.max(18, Math.round(currentCalls * 0.70)), visits: Math.max(340, Math.round(currentVisits * 0.68)), appointments: Math.max(8, Math.round(currentAppts * 0.72)) },
-    { month: months[4], rank: finalRank + 1, calls: Math.max(22, Math.round(currentCalls * 0.86)), visits: Math.max(420, Math.round(currentVisits * 0.84)), appointments: Math.max(10, Math.round(currentAppts * 0.88)) },
+    { month: months[0], rank: initialRank, calls: Math.max(0, Math.round(currentCalls * 0.22)), visits: Math.max(0, Math.round(currentVisits * 0.20)), appointments: Math.max(0, Math.round(currentAppts * 0.24)) },
+    { month: months[1], rank: Math.max(finalRank + 3, initialRank - 1), calls: Math.max(0, Math.round(currentCalls * 0.38)), visits: Math.max(0, Math.round(currentVisits * 0.35)), appointments: Math.max(0, Math.round(currentAppts * 0.40)) },
+    { month: months[2], rank: Math.max(finalRank + 2, initialRank - 2), calls: Math.max(0, Math.round(currentCalls * 0.54)), visits: Math.max(0, Math.round(currentVisits * 0.50)), appointments: Math.max(0, Math.round(currentAppts * 0.56)) },
+    { month: months[3], rank: Math.max(finalRank + 1, initialRank - 3), calls: Math.max(0, Math.round(currentCalls * 0.70)), visits: Math.max(0, Math.round(currentVisits * 0.68)), appointments: Math.max(0, Math.round(currentAppts * 0.72)) },
+    { month: months[4], rank: finalRank + 1, calls: Math.max(0, Math.round(currentCalls * 0.86)), visits: Math.max(0, Math.round(currentVisits * 0.84)), appointments: Math.max(0, Math.round(currentAppts * 0.88)) },
     { month: months[5], rank: finalRank, calls: currentCalls, visits: currentVisits, appointments: currentAppts },
   ];
 }
@@ -444,12 +248,11 @@ export function getSyncedBusinessProfile(): SyncedBusinessProfile {
 export function saveSyncedBusinessProfile(profile: SyncedBusinessProfile): void {
   if (typeof window === 'undefined') return;
   try {
-    // Generate full dynamic bundle if not provided
     const completeProfile: SyncedBusinessProfile = {
       ...profile,
-      isLiveSynced: true,
-      reviews: profile.reviews || generateDynamicReviewsForBusiness(profile.businessName, profile.category, profile.city, profile.averageRating),
-      growthMetrics: profile.growthMetrics || generateDynamicGrowthForBusiness(profile.reviewCount, profile.averageRating),
+      isLiveSynced: profile.isLiveSynced ?? true,
+      reviews: profile.reviews || [],
+      growthMetrics: profile.growthMetrics || [],
       auditFactors: profile.auditFactors || generateDynamicAuditFactorsForBusiness(
         profile.businessName,
         profile.category,

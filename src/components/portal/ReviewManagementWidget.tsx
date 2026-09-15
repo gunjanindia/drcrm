@@ -59,7 +59,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   onProfileSynced,
 }) => {
   const [reviewsList, setReviewsList] = useState<ClientReviewItem[]>(
-    initialReviews && initialReviews.length > 0 ? initialReviews : DEFAULT_CLIENT_REVIEWS
+    initialReviews || DEFAULT_CLIENT_REVIEWS
   );
   const [activeTone, setActiveTone] = useState<'WARM' | 'PROFESSIONAL' | 'HINGLISH' | 'RESOLUTION'>('WARM');
   const [draftResponses, setDraftResponses] = useState<Record<string, string>>({});
@@ -79,7 +79,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   const [authAccessToken, setAuthAccessToken] = useState('');
 
   React.useEffect(() => {
-    if (initialReviews && initialReviews.length > 0) {
+    if (initialReviews !== undefined) {
       setReviewsList(initialReviews);
     }
   }, [initialReviews]);
@@ -716,6 +716,31 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
             </div>
           );
         })}
+
+        {filtered.length === 0 && (
+          <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
+              <MessageSquare className="w-6 h-6" />
+            </div>
+            <h4 className="text-base font-bold text-slate-900 dark:text-white">
+              No Google Reviews Found
+            </h4>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              No customer reviews are currently synced for <strong>{businessName}</strong>. Connect your Google Business Profile or refresh live reviews to view and manage customer feedback.
+            </p>
+            <div className="pt-2 flex justify-center gap-3">
+              <Button
+                variant="primary"
+                size="sm"
+                icon={RefreshCw}
+                isLoading={isRefreshingReviews}
+                onClick={handleRefreshLiveReviews}
+              >
+                Sync Live Reviews
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Google Business Profile Multi-Location Selector Modal */}

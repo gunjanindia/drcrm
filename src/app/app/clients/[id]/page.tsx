@@ -113,6 +113,8 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
   const [isDeleting, setIsDeleting] = useState(false);
   const [statusNotification, setStatusNotification] = useState<string | null>(null);
 
+  const [syncedProfile, setSyncedProfile] = useState<any>(null);
+
   React.useEffect(() => {
     fetch('/api/clients')
       .then((r) => r.json())
@@ -123,6 +125,17 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
         }
       })
       .catch(() => {});
+
+    if (clientId) {
+      fetch(`/api/portal/profile?clientId=${encodeURIComponent(clientId)}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.data) {
+            setSyncedProfile(d.data);
+          }
+        })
+        .catch(() => {});
+    }
 
     fetch('/api/tasks')
       .then((r) => r.json())
@@ -494,20 +507,32 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
       {/* Tab: Digital Health Audit */}
       {activeTab === 'audit' && (
         <DigitalHealthAuditCard
-          businessName={client.businessName}
-          category={client.category}
-          city={client.city}
+          businessName={syncedProfile?.businessName || client.businessName}
+          category={syncedProfile?.category || client.category}
+          city={syncedProfile?.city || client.city}
+          factors={syncedProfile?.auditFactors}
         />
       )}
 
       {/* Tab: Monthly Growth & Rank Rise */}
       {activeTab === 'growth' && (
-        <MonthlyGrowthChart businessName={client.businessName} />
+        <MonthlyGrowthChart
+          businessName={syncedProfile?.businessName || client.businessName}
+          metrics={syncedProfile?.growthMetrics}
+          syncedAt={syncedProfile?.syncedAt}
+          isLiveSynced={syncedProfile?.isLiveSynced}
+          city={syncedProfile?.city || client.city}
+        />
       )}
 
       {/* Tab: AI Review Assistant */}
       {activeTab === 'reviews' && (
-        <ReviewManagementWidget businessName={client.businessName} />
+        <ReviewManagementWidget
+          businessName={syncedProfile?.businessName || client.businessName}
+          reviews={syncedProfile?.reviews}
+          googleMapsUrl={syncedProfile?.googleMapsUrl || client.googleMapsUrl}
+          city={syncedProfile?.city || client.city}
+        />
       )}
 
       {/* Tab: Festival Creative Studio */}

@@ -160,8 +160,47 @@ export async function GET(request: Request) {
       }
     }
 
-    if (!reviewsToUse || reviewsToUse.length === 0) {
-      reviewsToUse = generateDynamicReviewsForBusiness(clientRecord.businessName, clientRecord.category, clientRecord.city, rating);
+    // If still no reviews but client has a businessName or googleMapsUrl, perform live server lookup
+    if (reviewsToUse.length === 0 && (clientRecord.businessName || clientRecord.googleMapsUrl)) {
+      try {
+        const { lookupGooglePlace } = await import('@/lib/google-places');
+        const { convertGoogleReviewsToClientReviews } = await import('@/lib/client-portal-sync');
+        const placeLookup = await lookupGooglePlace(
+          clientRecord.businessName,
+          clientRecord.city || 'Ranchi',
+          clientRecord.googleMapsUrl,
+          clientRecord.category
+        );
+
+        if (placeLookup.status === 'VERIFIED_MATCH' && Array.isArray(placeLookup.reviews) && placeLookup.reviews.length > 0) {
+          reviewsToUse = convertGoogleReviewsToClientReviews(placeLookup.reviews, clientRecord.businessName);
+
+          // Cache verified reviews to PostgreSQL TimelineActivity
+          if (process.env.DATABASE_URL && prisma) {
+            await prisma.timelineActivity.create({
+              data: {
+                clientId: clientRecord.id,
+                type: 'GBP_REVIEWS_DATA',
+                title: `Google Maps Live Reviews Snapshot (${reviewsToUse.length} reviews)`,
+                description: JSON.stringify(reviewsToUse),
+                actorName: session?.email || 'Server Auto-Sync',
+                timestamp: new Date(),
+              },
+            }).catch(() => null);
+
+            // Update client rating and review count
+            await prisma.client.update({
+              where: { id: clientRecord.id },
+              data: {
+                reviewCount: placeLookup.userRatingsTotal || placeLookup.reviews.length,
+                averageRating: placeLookup.rating || clientRecord.averageRating || 5.0,
+              },
+            }).catch(() => null);
+          }
+        }
+      } catch (liveSyncErr) {
+        console.error('Server live sync error during profile fetch:', liveSyncErr);
+      }
     }
 
     // Resolve last sync date from TimelineActivity or GbpProfile
