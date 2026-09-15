@@ -16,10 +16,17 @@ import {
   ShieldCheck,
   Globe,
   KeyRound,
+  RefreshCw,
+  Building2,
 } from 'lucide-react';
 import { ClientReviewItem, DEFAULT_CLIENT_REVIEWS, GoogleGbpAuthProfile, DEFAULT_GBP_AUTH } from '@/lib/client-360-data';
 import { aiAssistantEngine } from '@/lib/ai-engine';
 import { Button, Badge } from '@/components/ui';
+import {
+  GbpAccountLocationSelectorModal,
+  GbpDiscoveredLocation,
+} from './GbpAccountLocationSelectorModal';
+import { saveSyncedBusinessProfile } from '@/lib/client-portal-sync';
 
 export interface ReviewManagementWidgetProps {
   businessName?: string;
@@ -33,6 +40,7 @@ export interface ReviewManagementWidgetProps {
   onOpenRechargeModal?: () => void;
   onConnectGbp?: () => void;
   onSaveReply?: (reviewId: string, replyText: string, authorName?: string) => Promise<boolean>;
+  onProfileSynced?: (updatedData: any) => void;
 }
 
 export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
@@ -47,6 +55,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   onOpenRechargeModal,
   onConnectGbp,
   onSaveReply,
+  onProfileSynced,
 }) => {
   const [reviewsList, setReviewsList] = useState<ClientReviewItem[]>(
     initialReviews && initialReviews.length > 0 ? initialReviews : DEFAULT_CLIENT_REVIEWS
@@ -57,13 +66,50 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const [filterRating, setFilterRating] = useState<number | 'all'>('all');
   const [postingToGoogleId, setPostingToGoogleId] = useState<string | null>(null);
+  const [isRefreshingReviews, setIsRefreshingReviews] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{ message: string; mapsUrl?: string; authorName?: string } | null>(null);
+
+  // GBP Multi-Location Selection State
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [discoveredLocations, setDiscoveredLocations] = useState<GbpDiscoveredLocation[]>([]);
+  const [authGoogleEmail, setAuthGoogleEmail] = useState(gbpAuth?.googleEmail || '');
+  const [authAccessToken, setAuthAccessToken] = useState('');
 
   React.useEffect(() => {
     if (initialReviews && initialReviews.length > 0) {
       setReviewsList(initialReviews);
     }
   }, [initialReviews]);
+
+  // Listen for Google OAuth postMessage and fetch all linked GBP locations
+  React.useEffect(() => {
+    const handleAuthMessage = async (event: MessageEvent) => {
+      if (event.data?.type === 'GOOGLE_GBP_AUTH_SUCCESS') {
+        const payload = event.data.data;
+        const email = payload.googleEmail || authGoogleEmail || 'verified.owner@gmail.com';
+        const token = payload.accessToken || '';
+        setAuthGoogleEmail(email);
+        setAuthAccessToken(token);
+
+        // Fetch all GBP accounts and locations linked to this Google account
+        try {
+          const res = await fetch(
+            `/api/auth/google/gbp/locations?businessName=${encodeURIComponent(businessName)}&email=${encodeURIComponent(email)}&accessToken=${encodeURIComponent(token)}`
+          );
+          const data = await res.json();
+          if (data.locations && data.locations.length > 0) {
+            setDiscoveredLocations(data.locations);
+            setIsLocationModalOpen(true);
+          }
+        } catch (err) {
+          console.error('Failed to discover GBP locations:', err);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleAuthMessage);
+    return () => window.removeEventListener('message', handleAuthMessage);
+  }, [businessName, authGoogleEmail]);
 
   const getTargetMapsUrl = () => {
     if (googleMapsUrl && googleMapsUrl.startsWith('http')) return googleMapsUrl;
@@ -193,6 +239,85 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
     }
   };
 
+  const handleLocationSelected = async (selected: GbpDiscoveredLocation) => {
+    try {
+      const res = await fetch('/api/portal/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: selected.locationName,
+          category: selected.primaryCategory,
+          city: city,
+          address: selected.formattedAddress,
+          googleMapsUrl: selected.googleMapsUrl,
+          placeId: selected.placeId || selected.id.replace('locations/', ''),
+          rating: selected.rating,
+          averageRating: selected.rating,
+          reviewCount: selected.reviewCount,
+          photosCount: selected.photosCount,
+          googleOwnerEmail: authGoogleEmail || gbpAuth?.googleEmail,
+          googleAccountName: selected.accountName || `${selected.locationName} (Verified Owner)`,
+          reviews: selected.reviews && selected.reviews.length > 0 ? selected.reviews : undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.data?.reviews && data.data.reviews.length > 0) {
+        setReviewsList(data.data.reviews);
+      } else if (selected.reviews && selected.reviews.length > 0) {
+        setReviewsList(selected.reviews);
+      }
+
+      setSuccessInfo({
+        message: `✓ Connected & Synced Google Business Profile: "${selected.locationName}" (${selected.rating}★ across ${selected.reviewCount} reviews)!`,
+        mapsUrl: selected.googleMapsUrl,
+      });
+
+      if (onProfileSynced) {
+        onProfileSynced(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to sync chosen GBP location:', err);
+    }
+  };
+
+  const handleRefreshLiveReviews = async () => {
+    setIsRefreshingReviews(true);
+    try {
+      const email = gbpAuth?.googleEmail || authGoogleEmail || '';
+      const res = await fetch(
+        `/api/auth/google/gbp/locations?businessName=${encodeURIComponent(businessName)}&email=${encodeURIComponent(email)}&accessToken=${encodeURIComponent(authAccessToken)}`
+      );
+      const data = await res.json();
+      if (data.matchedLocation?.reviews && data.matchedLocation.reviews.length > 0) {
+        setReviewsList(data.matchedLocation.reviews);
+        // Persist to Neon PostgreSQL & globalStore
+        await fetch('/api/portal/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessName: data.matchedLocation.locationName,
+            rating: data.matchedLocation.rating,
+            reviewCount: data.matchedLocation.reviewCount,
+            googleMapsUrl: data.matchedLocation.googleMapsUrl,
+            reviews: data.matchedLocation.reviews,
+            googleOwnerEmail: email,
+          }),
+        });
+        setSuccessInfo({
+          message: `✓ Refreshed ${data.matchedLocation.reviews.length} latest live customer reviews from Google Maps listing!`,
+          mapsUrl: data.matchedLocation.googleMapsUrl,
+        });
+      } else {
+        alert('Customer reviews are already up to date with Google Maps.');
+      }
+    } catch (e) {
+      console.error('Failed to refresh reviews:', e);
+    } finally {
+      setIsRefreshingReviews(false);
+    }
+  };
+
   const handleOpenGoogleMapsListing = (replyToCopy?: string) => {
     if (replyToCopy) {
       try {
@@ -269,7 +394,17 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {discoveredLocations.length > 0 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={Building2}
+              onClick={() => setIsLocationModalOpen(true)}
+            >
+              Select Location ({discoveredLocations.length})
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -278,7 +413,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
           >
             Open Maps Listing
           </Button>
-          {!gbpAuth.isConnected && (
+          {!gbpAuth.isConnected ? (
             <Button
               variant="primary"
               size="sm"
@@ -286,6 +421,15 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
               onClick={() => (onConnectGbp ? onConnectGbp() : handleLaunchOAuth())}
             >
               Authorize Owner Account
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={KeyRound}
+              onClick={() => (onConnectGbp ? onConnectGbp() : handleLaunchOAuth())}
+            >
+              Re-Authorize
             </Button>
           )}
         </div>
@@ -310,40 +454,54 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
           </p>
         </div>
 
-        {/* Tone Selector */}
+        {/* Tone Selector & Refresh Controls */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-semibold text-slate-400">Response Tone:</span>
-          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold">
-            <button
-              onClick={() => setActiveTone('WARM')}
-              className={`px-2.5 py-1 rounded-lg transition-all ${
-                activeTone === 'WARM'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-xs'
-                  : 'text-slate-500'
-              }`}
-            >
-              Warm & Friendly
-            </button>
-            <button
-              onClick={() => setActiveTone('PROFESSIONAL')}
-              className={`px-2.5 py-1 rounded-lg transition-all ${
-                activeTone === 'PROFESSIONAL'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-xs'
-                  : 'text-slate-500'
-              }`}
-            >
-              Professional
-            </button>
-            <button
-              onClick={() => setActiveTone('HINGLISH')}
-              className={`px-2.5 py-1 rounded-lg transition-all ${
-                activeTone === 'HINGLISH'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-xs'
-                  : 'text-slate-500'
-              }`}
-            >
-              Hinglish (Local)
-            </button>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={RefreshCw}
+            isLoading={isRefreshingReviews}
+            disabled={isRefreshingReviews}
+            onClick={handleRefreshLiveReviews}
+            className="text-xs"
+          >
+            {isRefreshingReviews ? 'Fetching from Google Maps...' : 'Sync Live Google Reviews'}
+          </Button>
+
+          <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-800">
+            <span className="text-[11px] font-semibold text-slate-400">Response Tone:</span>
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold">
+              <button
+                onClick={() => setActiveTone('WARM')}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  activeTone === 'WARM'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-xs'
+                    : 'text-slate-500'
+                }`}
+              >
+                Warm
+              </button>
+              <button
+                onClick={() => setActiveTone('PROFESSIONAL')}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  activeTone === 'PROFESSIONAL'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-xs'
+                    : 'text-slate-500'
+                }`}
+              >
+                Professional
+              </button>
+              <button
+                onClick={() => setActiveTone('HINGLISH')}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  activeTone === 'HINGLISH'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-xs'
+                    : 'text-slate-500'
+                }`}
+              >
+                Hinglish
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -518,6 +676,17 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
           );
         })}
       </div>
+
+      {/* Google Business Profile Multi-Location Selector Modal */}
+      <GbpAccountLocationSelectorModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        googleEmail={authGoogleEmail || gbpAuth?.googleEmail || ''}
+        clientBusinessName={businessName}
+        discoveredLocations={discoveredLocations}
+        accessToken={authAccessToken}
+        onSelectLocation={handleLocationSelected}
+      />
     </div>
   );
 };

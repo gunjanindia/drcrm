@@ -9,7 +9,7 @@ import { usePortalProfile } from '@/contexts/PortalProfileContext';
 import { GoogleGbpAuthProfile, DEFAULT_GBP_AUTH } from '@/lib/client-360-data';
 
 export default function ReviewsManagementPage() {
-  const { profile, saveReviewReply } = usePortalProfile();
+  const { profile, saveReviewReply, updateProfile, refreshProfile } = usePortalProfile();
   const [aiPoints, setAiPoints] = useState(65);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const [gbpAuth, setGbpAuth] = useState<GoogleGbpAuthProfile>(DEFAULT_GBP_AUTH);
@@ -79,6 +79,15 @@ export default function ReviewsManagementPage() {
         onDeductPoints={handleDeductPoints}
         onOpenRechargeModal={() => setIsWalletOpen(true)}
         onSaveReply={saveReviewReply}
+        onProfileSynced={(updatedData) => {
+          if (updatedData) {
+            updateProfile({
+              ...profile,
+              ...updatedData,
+            });
+            refreshProfile();
+          }
+        }}
       />
 
       <AIPointsWalletModal
