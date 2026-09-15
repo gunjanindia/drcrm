@@ -67,7 +67,7 @@ export async function GET(request: Request) {
       candidateName === 'Business Profile' ||
       candidateName === 'Business';
 
-    const businessName = (!isGenericName ? candidateName : clientRecord?.businessName) || clientRecord?.businessName || 'Business';
+    const businessName = (!isGenericName ? candidateName : clientRecord?.businessName) || clientRecord?.businessName || 'Life in Lights Academy';
     const city = clientRecord?.city || 'Ranchi';
 
     const discoveredLocations: Array<{

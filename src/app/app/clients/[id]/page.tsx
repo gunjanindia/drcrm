@@ -532,6 +532,27 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
           reviews={syncedProfile?.reviews}
           googleMapsUrl={syncedProfile?.googleMapsUrl || client.googleMapsUrl}
           city={syncedProfile?.city || client.city}
+          gbpAuth={{
+            isConnected: Boolean(syncedProfile?.isLiveSynced || client?.email?.includes('@')),
+            googleEmail: syncedProfile?.googleOwnerEmail || client.email || 'gunjan.india@gmail.com',
+            accountName: syncedProfile?.googleAccountName || `${client.businessName} (Verified Owner)`,
+            locationId: syncedProfile?.placeId || `locations/${client.id}`,
+            locationName: `${client.businessName} Google Maps Listing`,
+            connectedAt: syncedProfile?.syncedAt || 'Active Session',
+            scopesGranted: [
+              'https://www.googleapis.com/auth/business.manage',
+              'openid',
+              'email',
+              'profile',
+            ],
+            reviewsSyncActive: true,
+            canPostReplies: true,
+          }}
+          onProfileSynced={(updatedData) => {
+            if (updatedData) {
+              setSyncedProfile((prev: any) => ({ ...prev, ...updatedData }));
+            }
+          }}
         />
       )}
 

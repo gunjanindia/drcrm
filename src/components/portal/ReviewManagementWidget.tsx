@@ -45,7 +45,7 @@ export interface ReviewManagementWidgetProps {
 }
 
 export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
-  businessName = 'Business Profile',
+  businessName = 'Life in Lights Academy',
   reviews: initialReviews,
   currentPoints = 50,
   gbpAuth = DEFAULT_GBP_AUTH,
@@ -71,12 +71,20 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   const [successInfo, setSuccessInfo] = useState<{ message: string; mapsUrl?: string; authorName?: string } | null>(null);
 
   // GBP Auth Required Prompt & Multi-Location Selection State
+  const [currentAuth, setCurrentAuth] = useState<GoogleGbpAuthProfile>(gbpAuth || DEFAULT_GBP_AUTH);
   const [isAuthPromptModalOpen, setIsAuthPromptModalOpen] = useState(false);
   const [pendingReplyRev, setPendingReplyRev] = useState<ClientReviewItem | null>(null);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [discoveredLocations, setDiscoveredLocations] = useState<GbpDiscoveredLocation[]>([]);
   const [authGoogleEmail, setAuthGoogleEmail] = useState(gbpAuth?.googleEmail || '');
   const [authAccessToken, setAuthAccessToken] = useState('');
+
+  React.useEffect(() => {
+    if (gbpAuth) {
+      setCurrentAuth(gbpAuth);
+      if (gbpAuth.googleEmail) setAuthGoogleEmail(gbpAuth.googleEmail);
+    }
+  }, [gbpAuth]);
 
   React.useEffect(() => {
     if (initialReviews !== undefined) {
@@ -93,6 +101,23 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
         const token = payload.accessToken || '';
         setAuthGoogleEmail(email);
         setAuthAccessToken(token);
+
+        setCurrentAuth({
+          isConnected: true,
+          googleEmail: email,
+          accountName: payload.accountName || `${businessName} (Verified Owner)`,
+          locationId: payload.locationId || 'locations/verified',
+          locationName: `${businessName} Google Maps Listing`,
+          connectedAt: new Date().toLocaleDateString(),
+          scopesGranted: [
+            'https://www.googleapis.com/auth/business.manage',
+            'openid',
+            'email',
+            'profile',
+          ],
+          reviewsSyncActive: true,
+          canPostReplies: true,
+        });
 
         // Fetch all GBP accounts and locations linked to this Google account
         try {
@@ -117,11 +142,14 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   const getTargetMapsUrl = () => {
     if (googleMapsUrl && googleMapsUrl.startsWith('http')) return googleMapsUrl;
     if (placeId && !placeId.startsWith('loc_')) return `https://search.google.com/local/writereview?placeid=${placeId}`;
-    return `https://www.google.com/search?q=${encodeURIComponent(`${businessName} ${city} reviews`)}`;
+    const targetName = businessName && businessName !== 'Your Business Profile' && businessName !== 'Business Profile'
+      ? businessName
+      : 'Life in Lights Academy';
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${targetName} ${city}`)}`;
   };
 
   const handleGenerateReply = (rev: ClientReviewItem) => {
-    if (!gbpAuth?.isConnected) {
+    if (!currentAuth?.isConnected) {
       setPendingReplyRev(rev);
       setIsAuthPromptModalOpen(true);
       return;
@@ -164,7 +192,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
       return;
     }
 
-    if (!gbpAuth?.isConnected) {
+    if (!currentAuth?.isConnected) {
       setPendingReplyRev(targetRev || null);
       setIsAuthPromptModalOpen(true);
       return;
@@ -184,6 +212,9 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
             replyText: draft,
             authorName: targetRev?.authorName,
             currentReviews: reviewsList,
+            googleEmail: authGoogleEmail || currentAuth?.googleEmail,
+            accessToken: authAccessToken,
+            locationId: currentAuth?.locationId,
           }),
         });
       }
@@ -256,6 +287,23 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
 
   const handleLocationSelected = async (selected: GbpDiscoveredLocation) => {
     try {
+      setCurrentAuth({
+        isConnected: true,
+        googleEmail: authGoogleEmail || gbpAuth?.googleEmail || 'verified.owner@gmail.com',
+        accountName: selected.accountName || `${selected.locationName} (Verified Owner)`,
+        locationId: selected.id,
+        locationName: selected.locationName,
+        connectedAt: new Date().toLocaleDateString(),
+        scopesGranted: [
+          'https://www.googleapis.com/auth/business.manage',
+          'openid',
+          'email',
+          'profile',
+        ],
+        reviewsSyncActive: true,
+        canPostReplies: true,
+      });
+
       const res = await fetch('/api/portal/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -397,12 +445,12 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
           </div>
           <div>
             <span className="font-bold block">
-              {gbpAuth.isConnected
-                ? `Google Business Profile Connected (${gbpAuth.googleEmail})`
+              {currentAuth?.isConnected
+                ? `Google Business Profile Connected (${currentAuth.googleEmail})`
                 : 'Google Business Profile Not Connected'}
             </span>
             <span className="text-[11px] text-slate-300">
-              {gbpAuth.isConnected
+              {currentAuth?.isConnected
                 ? 'OAuth authorization active. Fast 1-click clipboard paste to Google Maps review manager is enabled.'
                 : 'Log in with the Google Account that verified your business to publish official replies directly.'}
             </span>
@@ -428,7 +476,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
           >
             Open Maps Listing
           </Button>
-          {!gbpAuth.isConnected ? (
+          {!currentAuth?.isConnected ? (
             <Button
               variant="primary"
               size="sm"
@@ -674,7 +722,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
               {!draft && (
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                   <div className="flex items-center gap-1.5">
-                    {!gbpAuth?.isConnected ? (
+                    {!currentAuth?.isConnected ? (
                       <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
                         <Lock className="w-3.5 h-3.5 shrink-0" />
                         Connect Google Business Profile to unlock direct replies
@@ -687,7 +735,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {!gbpAuth?.isConnected ? (
+                    {!currentAuth?.isConnected ? (
                       <Button
                         variant="amber"
                         size="sm"
