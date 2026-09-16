@@ -171,13 +171,95 @@ export async function POST(request: Request) {
     }
 
     const userId = user?.id || `usr_${Date.now()}`;
+    const finalClientId = clientId || `client_${Date.now()}`;
+
+    // Always ensure client and user records exist in globalStore
+    const storeClientRecord = {
+      id: finalClientId,
+      tenantId: 'tenant_main',
+      businessName: cleanBizName,
+      legalName: cleanBizName,
+      category: 'Local Business',
+      phone: '+91 9800000000',
+      whatsapp: '+91 9800000000',
+      email: cleanEmail,
+      address: 'Main Road, Ranchi, Jharkhand',
+      city: 'Ranchi',
+      state: 'Jharkhand',
+      pincode: '834001',
+      assignedManagerId: 'usr_super_admin',
+      assignedManagerName: 'Gunjan Kumar',
+      packageId: 'pkg_trial_14d',
+      packageName: 'Client 360 Pro (14-Day Free Trial)',
+      healthScore: 'GREEN' as const,
+      healthReason: '14-Day Free Demo client authenticated via Google OAuth',
+      monthlyRevenue: 1500,
+      activeSince: new Date().toISOString(),
+      renewalDate: trialEndsAt.toISOString(),
+      reviewCount: 0,
+      averageRating: 5.0,
+      gbpScore: 80,
+      status: 'ONBOARDING' as const,
+      aiCreditBalance: initialAiCredits,
+      trialEndsAt: trialEndsAt.toISOString(),
+      subscriptionStatus: 'TRIAL',
+      isGbpLinked: true,
+      gbpVerifiedEmail: cleanEmail,
+      gbpLocationId: locationId,
+      createdAt: new Date().toISOString(),
+    };
+
+    const existingClientIdx = globalStore.clients.findIndex(
+      (c) => c.id === finalClientId || c.email.toLowerCase() === cleanEmail
+    );
+    if (existingClientIdx !== -1) {
+      globalStore.clients[existingClientIdx] = {
+        ...globalStore.clients[existingClientIdx],
+        ...storeClientRecord,
+        isGbpLinked: true,
+        gbpVerifiedEmail: cleanEmail,
+        gbpLocationId: locationId,
+      };
+    } else {
+      globalStore.clients.unshift(storeClientRecord);
+    }
+
+    const storeUserRecord = {
+      id: userId,
+      tenantId: 'tenant_main',
+      name: user?.name || cleanAccName,
+      email: cleanEmail,
+      phone: '+91 9800000000',
+      role: 'CLIENT' as const,
+      clientId: finalClientId,
+      department: 'Client Portal',
+      aiCreditBalance: initialAiCredits,
+      trialEndsAt: trialEndsAt.toISOString(),
+      subscriptionStatus: 'TRIAL',
+      createdAt: new Date().toISOString(),
+    };
+
+    const existingUserIdx = globalStore.users.findIndex(
+      (u) => u.email.toLowerCase() === cleanEmail || u.id === userId
+    );
+    if (existingUserIdx !== -1) {
+      globalStore.users[existingUserIdx] = {
+        ...globalStore.users[existingUserIdx],
+        ...storeUserRecord,
+      };
+    } else {
+      globalStore.users.unshift(storeUserRecord);
+    }
+
+    globalStore.saveToFile();
+
     const token = await signAuthToken({
       userId,
       name: user?.name || cleanAccName,
       email: cleanEmail,
       role: 'CLIENT',
       tenantId,
-      clientId: clientId || `cl_${Date.now()}`,
+      clientId: finalClientId,
     });
 
     const response = NextResponse.json({

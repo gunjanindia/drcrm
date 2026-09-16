@@ -148,16 +148,32 @@ export default function ClientsPage() {
     }
   };
 
+  const isDemoClient = (c: Client) => {
+    return (
+      c.subscriptionStatus === 'TRIAL' ||
+      c.subscriptionStatus === 'ONBOARDING' ||
+      c.packageId === 'pkg_trial_14d' ||
+      (c.subscriptionStatus !== 'ACTIVE' && c.status !== 'PAUSED') ||
+      c.packageName?.toLowerCase().includes('trial') ||
+      c.packageName?.toLowerCase().includes('demo') ||
+      !!c.trialEndsAt
+    );
+  };
+
   const filteredClients = clients.filter((c) => {
     const matchesSearch =
       c.businessName.toLowerCase().includes(search.toLowerCase()) ||
       c.category.toLowerCase().includes(search.toLowerCase()) ||
       c.phone.includes(search);
     const matchesHealth = filterHealth === 'ALL' || c.healthScore === filterHealth;
-    const matchesStatus =
-      filterStatus === 'ALL' ||
-      (filterStatus === 'ACTIVE' && c.status !== 'PAUSED') ||
-      (filterStatus === 'PAUSED' && c.status === 'PAUSED');
+    let matchesStatus = true;
+    if (filterStatus === 'DEMO') {
+      matchesStatus = isDemoClient(c);
+    } else if (filterStatus === 'ACTIVE') {
+      matchesStatus = c.status === 'ACTIVE' && c.subscriptionStatus === 'ACTIVE';
+    } else if (filterStatus === 'PAUSED') {
+      matchesStatus = c.status === 'PAUSED' || c.status === 'CHURNED';
+    }
     return matchesSearch && matchesHealth && matchesStatus;
   });
 
@@ -198,7 +214,8 @@ export default function ClientsPage() {
   };
 
   const totalCredits = clients.reduce((acc, c) => acc + (c.aiCreditBalance ?? 20), 0);
-  const totalDemo = clients.filter((c) => c.subscriptionStatus !== 'ACTIVE').length;
+  const totalDemo = clients.filter((c) => isDemoClient(c)).length;
+  const totalActiveSaaS = clients.filter((c) => c.status === 'ACTIVE' && c.subscriptionStatus === 'ACTIVE').length;
   const totalActiveRevenue = clients.reduce((acc, c) => acc + (c.monthlyRevenue || 0), 0);
 
   return (
@@ -237,32 +254,64 @@ export default function ClientsPage() {
 
       {/* Overview Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+        <button
+          type="button"
+          onClick={() => setFilterStatus('ALL')}
+          className={`p-4 rounded-3xl bg-white dark:bg-slate-900 border text-left shadow-xs space-y-1 transition-all hover:scale-[1.01] ${
+            filterStatus === 'ALL'
+              ? 'border-indigo-500 ring-2 ring-indigo-500/30'
+              : 'border-slate-200 dark:border-slate-800'
+          }`}
+        >
           <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block">Total Clients</span>
           <div className="text-2xl font-black text-slate-900 dark:text-white">{clients.length}</div>
           <span className="text-[10px] text-emerald-500 font-bold block">100% Client 360 Ready</span>
-        </div>
+        </button>
 
-        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+        <Link
+          href="/app/ai-logs"
+          className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1 transition-all hover:border-purple-400 block"
+        >
           <span className="text-[10px] text-purple-600 dark:text-purple-400 uppercase font-black tracking-wider block">AI Credits Active</span>
           <div className="text-2xl font-black text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
             <Sparkles className="w-5 h-5" />
             {totalCredits.toLocaleString()}
           </div>
-          <span className="text-[10px] text-slate-400 font-medium block">In client wallet balances</span>
-        </div>
+          <span className="text-[10px] text-slate-400 font-medium block">View AI credit ledger →</span>
+        </Link>
 
-        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-          <span className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-black tracking-wider block">14-Day Free Demos</span>
+        <button
+          type="button"
+          onClick={() => setFilterStatus('DEMO')}
+          className={`p-4 rounded-3xl bg-white dark:bg-slate-900 border text-left shadow-xs space-y-1 transition-all hover:scale-[1.01] ${
+            filterStatus === 'DEMO'
+              ? 'border-amber-500 ring-2 ring-amber-500/40 bg-amber-500/5'
+              : 'border-slate-200 dark:border-slate-800'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-black tracking-wider block">14-Day Free Demos</span>
+            {filterStatus === 'DEMO' && (
+              <span className="text-[9px] bg-amber-500 text-white font-bold px-1.5 py-0.5 rounded-full">Active Filter</span>
+            )}
+          </div>
           <div className="text-2xl font-black text-amber-600 dark:text-amber-400">{totalDemo}</div>
-          <span className="text-[10px] text-slate-400 font-medium block">Demo trials in progress</span>
-        </div>
+          <span className="text-[10px] text-amber-600 dark:text-amber-300 font-medium block">Click to view 14-day trials</span>
+        </button>
 
-        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+        <button
+          type="button"
+          onClick={() => setFilterStatus('ACTIVE')}
+          className={`p-4 rounded-3xl bg-white dark:bg-slate-900 border text-left shadow-xs space-y-1 transition-all hover:scale-[1.01] ${
+            filterStatus === 'ACTIVE'
+              ? 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/5'
+              : 'border-slate-200 dark:border-slate-800'
+          }`}
+        >
           <span className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-black tracking-wider block">Total Monthly MRR</span>
           <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{formatINR(totalActiveRevenue)}</div>
-          <span className="text-[10px] text-slate-400 font-medium block">Retainers & Platform fees</span>
-        </div>
+          <span className="text-[10px] text-slate-400 font-medium block">{totalActiveSaaS} Active Paid Retainers</span>
+        </button>
       </div>
 
       {/* Filter Bar */}
@@ -280,17 +329,35 @@ export default function ClientsPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-            {['ALL', 'ACTIVE', 'PAUSED'].map((st) => (
+            {[
+              { id: 'ALL', label: 'All Accounts' },
+              { id: 'DEMO', label: '14-Day Free Demos', count: totalDemo },
+              { id: 'ACTIVE', label: 'Active SaaS' },
+              { id: 'PAUSED', label: 'Deactivated' },
+            ].map((tab) => (
               <button
-                key={st}
-                onClick={() => setFilterStatus(st)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                  filterStatus === st
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                key={tab.id}
+                onClick={() => setFilterStatus(tab.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  filterStatus === tab.id
+                    ? tab.id === 'DEMO'
+                      ? 'bg-amber-500 text-white shadow-xs font-bold'
+                      : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-bold'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                {st === 'ALL' ? 'All Status' : st === 'ACTIVE' ? 'Active Portals' : 'Deactivated'}
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span
+                    className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
+                      filterStatus === tab.id
+                        ? 'bg-amber-700 text-white'
+                        : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -300,7 +367,7 @@ export default function ClientsPage() {
               <button
                 key={h}
                 onClick={() => setFilterHealth(h)}
-                className={`px-2.5 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                   filterHealth === h
                     ? 'bg-indigo-600 text-white shadow-sm'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
@@ -378,8 +445,8 @@ export default function ClientsPage() {
                     </div>
                     <div className="text-right">
                       <span className="text-[10px] font-bold text-slate-400 block uppercase leading-tight">Platform Tier</span>
-                      <span className="font-bold text-[11px] text-slate-700 dark:text-slate-300">
-                        {client.subscriptionStatus === 'ACTIVE' ? 'Active SaaS' : '14-Day Free Demo'}
+                      <span className={`font-bold text-[11px] ${isDemoClient(client) ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                        {isDemoClient(client) ? '14-Day Free Demo' : 'Active SaaS'}
                       </span>
                     </div>
                   </div>

@@ -709,6 +709,12 @@ export class AppStore {
               averageRating: c.averageRating || 5.0,
               gbpScore: c.gbpScore || 80,
               status: c.status || 'ACTIVE',
+              aiCreditBalance: typeof c.aiCreditBalance === 'number' ? c.aiCreditBalance : 20,
+              trialEndsAt: c.trialEndsAt ? new Date(c.trialEndsAt).toISOString() : undefined,
+              subscriptionStatus: c.subscriptionStatus || 'TRIAL',
+              isGbpLinked: c.isGbpLinked ?? false,
+              gbpVerifiedEmail: c.gbpVerifiedEmail || undefined,
+              gbpLocationId: c.gbpLocationId || undefined,
               createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
             }));
           }

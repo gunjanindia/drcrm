@@ -52,6 +52,11 @@ export async function POST(request: Request) {
     const pkg = globalStore.packages.find((p) => p.id === packageId) || globalStore.packages[1] || { id: 'pkg_growth_999', name: 'Growth Accelerate', price: 999 };
     const manager = globalStore.users.find((u) => u.role === 'ACCOUNT_MANAGER') || globalStore.users[0] || { id: 'usr_super_admin', name: 'Gunjan Kumar' };
 
+    const now = new Date();
+    const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const subscriptionStatus = body.subscriptionStatus || 'TRIAL';
+    const aiCreditBalance = typeof initialCredits === 'number' ? initialCredits : (body.aiCreditBalance ?? 50);
+
     let createdClient: any = null;
 
     if (process.env.DATABASE_URL) {
@@ -82,6 +87,10 @@ export async function POST(request: Request) {
             averageRating: typeof averageRating === 'number' ? averageRating : 4.8,
             gbpScore: typeof gbpScore === 'number' ? gbpScore : 82,
             status: 'ACTIVE',
+            aiCreditBalance,
+            trialEndsAt,
+            subscriptionStatus,
+            isGbpLinked: !!body.isGbpLinked,
           },
         });
 
@@ -94,6 +103,9 @@ export async function POST(request: Request) {
             passwordHash,
             role: 'CLIENT',
             clientId: newClient.id,
+            aiCreditBalance,
+            trialEndsAt,
+            subscriptionStatus,
           },
           create: {
             tenantId: 'tenant_main',
@@ -104,6 +116,9 @@ export async function POST(request: Request) {
             role: 'CLIENT',
             clientId: newClient.id,
             department: 'Client Portal',
+            aiCreditBalance,
+            trialEndsAt,
+            subscriptionStatus,
           },
         });
 
@@ -142,6 +157,10 @@ export async function POST(request: Request) {
       averageRating: typeof averageRating === 'number' ? averageRating : 4.8,
       gbpScore: typeof gbpScore === 'number' ? gbpScore : 82,
       status: 'ACTIVE' as const,
+      aiCreditBalance,
+      trialEndsAt: trialEndsAt.toISOString(),
+      subscriptionStatus,
+      isGbpLinked: !!body.isGbpLinked,
       createdAt: new Date().toISOString(),
     };
 
@@ -167,6 +186,9 @@ export async function POST(request: Request) {
       clientId: finalClientId,
       department: 'Client Portal',
       passwordHash,
+      aiCreditBalance,
+      trialEndsAt: trialEndsAt.toISOString(),
+      subscriptionStatus,
       createdAt: new Date().toISOString(),
     };
 
@@ -217,6 +239,10 @@ export async function PATCH(request: Request) {
       phone,
       email,
       googleMapsUrl,
+      subscriptionStatus,
+      aiCreditBalance,
+      trialEndsAt,
+      isGbpLinked,
     } = body;
 
     if (!id) {
@@ -235,6 +261,10 @@ export async function PATCH(request: Request) {
         if (packageName !== undefined) updateData.packageName = packageName;
         if (packageId !== undefined) updateData.packageId = packageId;
         if (businessName !== undefined) updateData.businessName = businessName;
+        if (subscriptionStatus !== undefined) updateData.subscriptionStatus = subscriptionStatus;
+        if (aiCreditBalance !== undefined) updateData.aiCreditBalance = Number(aiCreditBalance);
+        if (trialEndsAt !== undefined) updateData.trialEndsAt = new Date(trialEndsAt);
+        if (isGbpLinked !== undefined) updateData.isGbpLinked = !!isGbpLinked;
         if (phone !== undefined) {
           updateData.phone = phone;
           updateData.whatsapp = phone;
@@ -266,9 +296,13 @@ export async function PATCH(request: Request) {
         ...(phone !== undefined && { phone, whatsapp: phone }),
         ...(email !== undefined && { email }),
         ...(googleMapsUrl !== undefined && { googleMapsUrl }),
+        ...(subscriptionStatus !== undefined && { subscriptionStatus }),
+        ...(aiCreditBalance !== undefined && { aiCreditBalance: Number(aiCreditBalance) }),
+        ...(trialEndsAt !== undefined && { trialEndsAt }),
+        ...(isGbpLinked !== undefined && { isGbpLinked: !!isGbpLinked }),
       };
-      if (!updatedClient) updatedClient = globalStore.clients[index];
       globalStore.saveToFile();
+      if (!updatedClient) updatedClient = globalStore.clients[index];
     }
 
     return NextResponse.json({

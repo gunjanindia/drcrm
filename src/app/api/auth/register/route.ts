@@ -160,6 +160,82 @@ export async function POST(request: Request) {
       }
     }
 
+    // Always ensure client exists in globalStore and file
+    const storeClientRecord = {
+      id: createdClientId,
+      tenantId: 'tenant_main',
+      businessName: cleanBizName,
+      legalName: cleanBizName,
+      category,
+      phone: cleanPhone,
+      whatsapp: cleanPhone,
+      email: cleanEmail,
+      address: `Main Road, ${cleanCity}, Jharkhand`,
+      city: cleanCity,
+      state: 'Jharkhand',
+      pincode: '834001',
+      assignedManagerId: 'usr_super_admin',
+      assignedManagerName: 'Gunjan Kumar',
+      packageId: 'pkg_trial_14d',
+      packageName: 'Client 360 Pro (14-Day Free Trial)',
+      healthScore: 'GREEN' as const,
+      healthReason: 'New 14-Day Free Demo client registered via web signup',
+      monthlyRevenue: 1500,
+      activeSince: new Date().toISOString(),
+      renewalDate: trialEndsAt.toISOString(),
+      reviewCount: 0,
+      averageRating: 5.0,
+      gbpScore: 80,
+      status: 'ONBOARDING' as const,
+      aiCreditBalance: initialAiCredits,
+      trialEndsAt: trialEndsAt.toISOString(),
+      subscriptionStatus: 'TRIAL',
+      isGbpLinked: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    const existingClientIdx = globalStore.clients.findIndex(
+      (c) => c.id === createdClientId || c.email.toLowerCase() === cleanEmail
+    );
+    if (existingClientIdx !== -1) {
+      globalStore.clients[existingClientIdx] = {
+        ...globalStore.clients[existingClientIdx],
+        ...storeClientRecord,
+      };
+    } else {
+      globalStore.clients.unshift(storeClientRecord);
+    }
+
+    const storeUserRecord = {
+      id: createdUserId,
+      tenantId: 'tenant_main',
+      name: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      role: 'CLIENT' as const,
+      clientId: createdClientId,
+      department: 'Client Portal',
+      passwordHash,
+      aiCreditBalance: initialAiCredits,
+      trialEndsAt: trialEndsAt.toISOString(),
+      subscriptionStatus: 'TRIAL',
+      createdAt: new Date().toISOString(),
+    };
+
+    const existingUserIdx = globalStore.users.findIndex(
+      (u) => u.email.toLowerCase() === cleanEmail || u.id === createdUserId
+    );
+    if (existingUserIdx !== -1) {
+      globalStore.users[existingUserIdx] = {
+        ...globalStore.users[existingUserIdx],
+        ...storeUserRecord,
+      };
+    } else {
+      globalStore.users.unshift(storeUserRecord);
+    }
+
+    globalStore.saveToFile();
+
     // Sign JWT Token
     const token = await signAuthToken({
       userId: createdUserId,
