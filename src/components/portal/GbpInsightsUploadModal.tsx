@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Upload,
   FileSpreadsheet,
@@ -31,6 +31,8 @@ export interface GbpInsightsUploadModalProps {
   onInsightsSaved: (insights: GbpDailyOrMonthlyInsight[]) => void;
   businessName?: string;
   clientId?: string;
+  initialMonth?: number;
+  initialYear?: number;
 }
 
 export const GbpInsightsUploadModal: React.FC<GbpInsightsUploadModalProps> = ({
@@ -39,13 +41,15 @@ export const GbpInsightsUploadModal: React.FC<GbpInsightsUploadModalProps> = ({
   onInsightsSaved,
   businessName = 'Life in Lights Academy',
   clientId,
+  initialMonth,
+  initialYear,
 }) => {
   const [activeMode, setActiveMode] = useState<'upload' | 'paste' | 'google_api'>('upload');
   const [csvText, setCsvText] = useState<string>('');
   
   const now = new Date();
-  const currentMonthNum = now.getMonth() + 1;
-  const currentYearNum = now.getFullYear();
+  const currentMonthNum = initialMonth || now.getMonth() + 1;
+  const currentYearNum = initialYear || now.getFullYear();
 
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonthNum);
   const [selectedYear, setSelectedYear] = useState<number>(currentYearNum);
@@ -60,6 +64,20 @@ export const GbpInsightsUploadModal: React.FC<GbpInsightsUploadModalProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const m = initialMonth || now.getMonth() + 1;
+      const y = initialYear || now.getFullYear();
+      setSelectedMonth(m);
+      setSelectedYear(y);
+      setPeriodLabel(`${MONTH_SHORT_NAMES[m - 1] || 'Sep'} ${y}`);
+      setParsedPreview(null);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      setCsvText('');
+    }
+  }, [isOpen, initialMonth, initialYear]);
 
   if (!isOpen) return null;
 

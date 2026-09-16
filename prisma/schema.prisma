@@ -190,6 +190,7 @@ model Client {
   tickets            Ticket[]
   deliverables       DeliverableItem[]
   gbpProfile         GbpProfile?
+  gbpInsights        GbpMonthlyInsight[]
   recurringRules     RecurringTaskRule[]
   timelineActivities TimelineActivity[]
 
@@ -425,6 +426,47 @@ model GbpProfile {
   lastAuditDate     DateTime @default(now())
 
   client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model GbpMonthlyInsight {
+  id               String   @id @default(cuid())
+  tenantId         String   @default("tenant_main")
+  clientId         String?
+  clientEmail      String?
+  businessName     String
+  period           String   // e.g. "Sep 2026"
+  year             Int      // 2026
+  month            Int      // 9
+  monthName        String   // "September"
+  shopCode         String?
+  address          String?
+  labels           String?
+  searchMobile     Int      @default(0)
+  searchDesktop    Int      @default(0)
+  mapsMobile       Int      @default(0)
+  mapsDesktop      Int      @default(0)
+  calls            Int      @default(0)
+  messages         Int      @default(0)
+  bookings         Int      @default(0)
+  directions       Int      @default(0)
+  websiteClicks    Int      @default(0)
+  foodOrders       Int      @default(0)
+  foodMenuClicks   Int      @default(0)
+  hotelBookings    Int      @default(0)
+  totalSearchViews Int      @default(0)
+  totalMapsViews   Int      @default(0)
+  totalViews       Int      @default(0)
+  totalActions     Int      @default(0)
+  source           String   @default("CSV_UPLOAD") // "CSV_UPLOAD" | "GOOGLE_API" | "MANUAL_ENTRY"
+  importedAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  client           Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([year, month])
+  @@index([businessName])
 }
 
 // ---------------------------------------------------------

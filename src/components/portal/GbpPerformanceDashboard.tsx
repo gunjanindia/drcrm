@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   TrendingUp,
   MapPin,
@@ -27,6 +27,10 @@ import {
   Activity,
   ChevronRight,
   Eye,
+  Trash2,
+  Edit3,
+  Database,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
 import {
@@ -70,6 +74,40 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
 
   const [activeGrowthMetric, setActiveGrowthMetric] = useState<GrowthMetricKey>('directions');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [modalInitialMonth, setModalInitialMonth] = useState<number | undefined>(undefined);
+  const [modalInitialYear, setModalInitialYear] = useState<number | undefined>(undefined);
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [actionNotification, setActionNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Fetch verified insights from PostgreSQL database on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function loadDatabaseInsights() {
+      try {
+        const queryParams = new URLSearchParams();
+        if (clientId) queryParams.set('clientId', clientId);
+        if (businessName) queryParams.set('businessName', businessName);
+
+        const res = await fetch(`/api/portal/insights?${queryParams.toString()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data) && json.data.length > 0 && isMounted) {
+            const sorted = sortInsightsChronologically(json.data);
+            setActiveInsights(sorted);
+            setSelectedPeriodIndex(sorted.length - 1);
+          }
+        }
+      } catch (err) {
+        console.warn('Initial insights fetch error:', err);
+      }
+    }
+
+    loadDatabaseInsights();
+    return () => {
+      isMounted = false;
+    };
+  }, [clientId, businessName]);
 
   // Keep activeInsights chronologically sorted
   const sortedInsights = useMemo(() => {
@@ -78,12 +116,73 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
 
   const currentInsight = sortedInsights[selectedPeriodIndex] || sortedInsights[sortedInsights.length - 1] || null;
 
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setActionNotification({ type, message });
+    setTimeout(() => {
+      setActionNotification(null);
+    }, 4500);
+  };
+
   const handleInsightsSaved = (newInsights: GbpDailyOrMonthlyInsight[]) => {
     const sorted = sortInsightsChronologically(newInsights);
     setActiveInsights(sorted);
     setSelectedPeriodIndex(sorted.length - 1);
+    showNotification('success', 'Monthly insights successfully saved and updated in database!');
     if (onInsightsUpdated) {
       onInsightsUpdated(sorted);
+    }
+  };
+
+  // Open modal pre-configured for a specific month (for re-upload / overwriting)
+  const handleOpenReuploadModal = (month?: number, year?: number) => {
+    setModalInitialMonth(month);
+    setModalInitialYear(year);
+    setIsUploadModalOpen(true);
+  };
+
+  // Delete a specific monthly insight
+  const handleDeleteInsight = async (ins: GbpDailyOrMonthlyInsight, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+
+    const confirmMsg = `Are you sure you want to delete the Google Business Profile insight record for ${ins.period}?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setDeletingId(ins.id || `${ins.year}_${ins.month}`);
+
+    try {
+      const queryParams = new URLSearchParams();
+      if (ins.id) queryParams.set('id', ins.id);
+      if (ins.month) queryParams.set('month', ins.month.toString());
+      if (ins.year) queryParams.set('year', ins.year.toString());
+      if (clientId) queryParams.set('clientId', clientId);
+
+      const res = await fetch(`/api/portal/insights?${queryParams.toString()}`, {
+        method: 'DELETE',
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        const remaining = Array.isArray(json.data) ? sortInsightsChronologically(json.data) : [];
+        if (remaining.length === 0) {
+          // Fallback to baseline
+          setActiveInsights([SEEDED_AUTHENTIC_GBP_INSIGHT]);
+          setSelectedPeriodIndex(0);
+        } else {
+          setActiveInsights(remaining);
+          setSelectedPeriodIndex(Math.max(0, remaining.length - 1));
+        }
+
+        showNotification('success', `Deleted insights for ${ins.period} from database.`);
+        if (onInsightsUpdated) {
+          onInsightsUpdated(remaining);
+        }
+      } else {
+        showNotification('error', json.error || 'Failed to delete insight record.');
+      }
+    } catch (err: any) {
+      showNotification('error', err?.message || 'Network error deleting insight record.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -107,7 +206,7 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
             variant="primary"
             size="sm"
             icon={Upload}
-            onClick={() => setIsUploadModalOpen(true)}
+            onClick={() => handleOpenReuploadModal()}
             className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md font-bold"
           >
             Upload Google Insights CSV
@@ -120,6 +219,8 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
           onInsightsSaved={handleInsightsSaved}
           businessName={businessName}
           clientId={clientId}
+          initialMonth={modalInitialMonth}
+          initialYear={modalInitialYear}
         />
       </div>
     );
@@ -169,7 +270,6 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
   const callsMoM = calculateMoMGrowth((i) => i.calls || 0);
   const messagesMoM = calculateMoMGrowth((i) => i.messages || 0);
   const bookingsMoM = calculateMoMGrowth((i) => i.bookings || 0);
-  const actionsMoM = calculateMoMGrowth((i) => (i.directions || 0) + (i.calls || 0) + (i.websiteClicks || 0) + (i.messages || 0) + (i.bookings || 0));
 
   // Extract chart data points for active metric
   const chartDataPoints = sortedInsights.map((ins, index) => {
@@ -289,6 +389,25 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
 
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      {actionNotification && (
+        <div
+          className={`p-3.5 rounded-2xl text-xs font-bold flex items-center justify-between border shadow-lg transition-all animate-in fade-in slide-in-from-top-3 duration-200 ${
+            actionNotification.type === 'success'
+              ? 'bg-emerald-500 text-white border-emerald-600'
+              : 'bg-rose-500 text-white border-rose-600'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{actionNotification.message}</span>
+          </div>
+          <button onClick={() => setActionNotification(null)} className="text-white/80 hover:text-white text-xs">
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Top Header & Action Ribbon */}
       <div className="p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 text-white shadow-md space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -302,8 +421,8 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
                   {currentInsight.businessName || businessName}
                 </h3>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" />
-                  Authentic Google Business Profile Data
+                  <Database className="w-3 h-3" />
+                  PostgreSQL Verified Data
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-0.5 flex items-center gap-2 flex-wrap">
@@ -317,24 +436,33 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               icon={Upload}
-              onClick={() => setIsUploadModalOpen(true)}
+              onClick={() => handleOpenReuploadModal()}
               className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-bold"
             >
               Upload Month CSV
             </Button>
             <Button
+              variant="outline"
+              size="sm"
+              icon={Edit3}
+              onClick={() => handleOpenReuploadModal(currentInsight.month, currentInsight.year)}
+              className="bg-indigo-900/40 hover:bg-indigo-900/70 text-indigo-200 border-indigo-500/40 text-xs font-bold"
+            >
+              Re-upload {currentInsight.period}
+            </Button>
+            <Button
               variant="primary"
               size="sm"
               icon={RefreshCw}
-              onClick={() => setIsUploadModalOpen(true)}
+              onClick={() => handleOpenReuploadModal()}
               className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm text-xs font-bold"
             >
-              Fetch from Google API
+              Google Maps API
             </Button>
           </div>
         </div>
@@ -343,18 +471,19 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
         <div className="pt-2 border-t border-indigo-500/20 flex items-center gap-2 overflow-x-auto pb-1 text-xs">
           <span className="text-[11px] text-slate-400 font-semibold shrink-0">Select Focal Month:</span>
           {sortedInsights.map((ins, idx) => (
-            <button
-              key={idx}
-              onClick={() => setSelectedPeriodIndex(idx)}
-              className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-                selectedPeriodIndex === idx
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <span>{ins.period}</span>
-              <span className="text-[10px] opacity-75">({ins.totalActions} actions)</span>
-            </button>
+            <div key={idx} className="flex items-center gap-0.5 shrink-0">
+              <button
+                onClick={() => setSelectedPeriodIndex(idx)}
+                className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  selectedPeriodIndex === idx
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                <span>{ins.period}</span>
+                <span className="text-[10px] opacity-75">({ins.totalActions} actions)</span>
+              </button>
+            </div>
           ))}
         </div>
       </div>
@@ -638,7 +767,7 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full" style={{ backgroundColor: activeConfig.strokeColor }} />
               <span className="text-xs font-bold text-slate-200">
-                {activeConfig.label} ({chartDataPoints.length} Month{chartDataPoints.length > 1 ? 's' : ''} Synced)
+                {activeConfig.label} ({chartDataPoints.length} Month{chartDataPoints.length > 1 ? 's' : ''} Synced in Database)
               </span>
             </div>
             {chartDataPoints.length > 1 && (
@@ -749,36 +878,34 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
             </div>
           </div>
 
-          {/* If 1 month exists, show friendly prompt */}
-          {chartDataPoints.length === 1 && (
-            <div className="mt-4 p-3 rounded-2xl bg-indigo-950/40 border border-indigo-800/40 text-xs text-indigo-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
-                <span>
-                  Displaying authentic baseline for <strong>{chartDataPoints[0].period}</strong>. Upload or sync previous/subsequent months to plot full multi-month trajectories!
-                </span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsUploadModalOpen(true)}
-                className="bg-indigo-600 text-white border-0 text-[10px] font-bold py-1 px-2.5 h-auto shrink-0"
-              >
-                + Add Another Month
-              </Button>
+          {/* Prompt banner */}
+          <div className="mt-4 p-3 rounded-2xl bg-indigo-950/40 border border-indigo-800/40 text-xs text-indigo-200 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span>
+                All months are saved directly to your PostgreSQL database. You can upload new months, re-upload/overwrite, or delete any record at any time.
+              </span>
             </div>
-          )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleOpenReuploadModal()}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 text-[10px] font-bold py-1 px-2.5 h-auto shrink-0"
+            >
+              + Add / Upload Month
+            </Button>
+          </div>
         </div>
 
         {/* Month-by-Month Detailed Growth Table */}
         <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h5 className="font-extrabold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <Activity className="w-3.5 h-3.5 text-indigo-500" />
-              Monthly Google Business Profile Performance Log
+              Database Performance Log & Actions
             </h5>
             <span className="text-[11px] font-bold text-slate-500">
-              {sortedInsights.length} reporting period{sortedInsights.length > 1 ? 's' : ''} on record
+              {sortedInsights.length} reporting period{sortedInsights.length > 1 ? 's' : ''} stored
             </span>
           </div>
 
@@ -795,7 +922,7 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
                   <th className="py-3 px-3 text-center">Messages</th>
                   <th className="py-3 px-3 text-center">Bookings</th>
                   <th className="py-3 px-3 text-center">Total Actions</th>
-                  <th className="py-3 px-4 text-right">Focal Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -804,6 +931,7 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
                   const sViews = ins.totalSearchViews || (ins.searchMobile + ins.searchDesktop) || 0;
                   const mViews = ins.totalMapsViews || (ins.mapsMobile + ins.mapsDesktop) || 0;
                   const tActions = (ins.directions || 0) + (ins.calls || 0) + (ins.websiteClicks || 0) + (ins.messages || 0) + (ins.bookings || 0);
+                  const isDeleting = deletingId === ins.id || deletingId === `${ins.year}_${ins.month}`;
 
                   return (
                     <tr
@@ -818,6 +946,11 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
                       <td className="py-3 px-4 font-black text-slate-900 dark:text-white flex items-center gap-2">
                         <Calendar className="w-3.5 h-3.5 text-indigo-500" />
                         <span>{ins.period}</span>
+                        {isCurrent && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] bg-indigo-600 text-white font-bold">
+                            Active
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-3 text-center text-slate-700 dark:text-slate-300 font-semibold">
                         {sViews}
@@ -844,22 +977,26 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
                         {tActions}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        {isCurrent ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white">
-                            Active Focal
-                          </span>
-                        ) : (
+                        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          {/* Re-upload / Overwrite button */}
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedPeriodIndex(idx);
-                            }}
-                            className="text-[10px] font-bold text-slate-400 hover:text-indigo-600 flex items-center justify-end gap-1 ml-auto"
+                            title={`Re-upload or overwrite ${ins.period} CSV`}
+                            onClick={() => handleOpenReuploadModal(ins.month, ins.year)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors"
                           >
-                            <span>Inspect</span>
-                            <ChevronRight className="w-3 h-3" />
+                            <Edit3 className="w-3.5 h-3.5" />
                           </button>
-                        )}
+
+                          {/* Delete button */}
+                          <button
+                            title={`Delete ${ins.period} data`}
+                            disabled={isDeleting}
+                            onClick={(e) => handleDeleteInsight(ins, e)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1046,10 +1183,16 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
       {/* Upload Modal */}
       <GbpInsightsUploadModal
         isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
+        onClose={() => {
+          setIsUploadModalOpen(false);
+          setModalInitialMonth(undefined);
+          setModalInitialYear(undefined);
+        }}
         onInsightsSaved={handleInsightsSaved}
         businessName={businessName}
         clientId={clientId}
+        initialMonth={modalInitialMonth}
+        initialYear={modalInitialYear}
       />
     </div>
   );
