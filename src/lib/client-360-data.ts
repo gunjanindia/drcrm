@@ -233,7 +233,12 @@ export interface MiniSiteConfig {
   headline: string;
   subheadline: string;
   tagline: string;
+  aboutTitle?: string;
   aboutText: string;
+  aboutBadge?: string;
+  aboutBadgeTitle?: string;
+  aboutBadgeDesc?: string;
+  aboutPillars?: string[];
   ownerName: string;
   ownerTitle: string;
   logoUrl?: string;
@@ -249,6 +254,10 @@ export interface MiniSiteConfig {
   themeColor: string;
   bannerGradient: string;
   customSlug: string;
+  ratingOverride?: number;
+  reviewCountOverride?: number;
+  customReviews?: Array<{ authorName: string; rating: number; text: string; relativeTime?: string }>;
+  galleryImages?: Array<{ title: string; category: string; imageUrl?: string; aspect?: string }>;
 }
 
 export interface AIPointsPackage {

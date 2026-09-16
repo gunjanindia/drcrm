@@ -680,12 +680,17 @@ export interface GeneratedWebsiteData {
   workingHours: string;
   headline: string;
   subheadline: string;
+  aboutTitle?: string;
   aboutText: string;
+  aboutBadge?: string;
+  aboutBadgeTitle?: string;
+  aboutBadgeDesc?: string;
+  aboutPillars?: string[];
   logoUrl?: string;
   bannerUrl?: string;
   services: Array<{ title: string; desc: string; price?: string; badge?: string }>;
   faqs: Array<{ q: string; a: string }>;
-  galleryImages: Array<{ title: string; category: string; aspect: string }>;
+  galleryImages: Array<{ title: string; category: string; aspect?: string; imageUrl?: string }>;
   reviews: Array<{ authorName: string; rating: number; text: string; relativeTime: string }>;
   jsonLdSchema: string;
 }
@@ -707,11 +712,17 @@ export function buildGeneratedWebsiteData(params: {
   subheadline?: string;
   customHeadline?: string;
   customSubheadline?: string;
+  customAboutTitle?: string;
   customAbout?: string;
+  customAboutBadge?: string;
+  customAboutBadgeTitle?: string;
+  customAboutBadgeDesc?: string;
+  customAboutPillars?: string[];
   logoUrl?: string;
   bannerUrl?: string;
   customServices?: Array<{ title: string; desc: string; price?: string; badge?: string }>;
   customFaqs?: Array<{ q: string; a: string }>;
+  customGalleryImages?: Array<{ title: string; category: string; aspect?: string; imageUrl?: string }>;
   realReviews?: Array<{ authorName: string; rating: number; text: string; relativeTime?: string }>;
 }): GeneratedWebsiteData {
   const catKey = detectCategoryKeyFromGbp(params.category);
@@ -727,13 +738,26 @@ export function buildGeneratedWebsiteData(params: {
 
   const headline = params.headline || params.customHeadline || theme.headlineTemplate(businessName, city);
   const subheadline = params.subheadline || params.customSubheadline || theme.subheadlineTemplate(params.category || theme.name, city);
+  const aboutTitle = params.customAboutTitle || `Trusted ${params.category || theme.name} in ${city || 'the Region'}`;
   const aboutText =
     params.customAbout ||
     `Welcome to ${businessName}. We are dedicated to providing our clients with exceptional service, uncompromising quality, and fast local support. Get in touch with us directly via phone or WhatsApp.`;
+  const aboutBadge = params.customAboutBadge || '#1';
+  const aboutBadgeTitle = params.customAboutBadgeTitle || 'Committed to Quality Excellence';
+  const aboutBadgeDesc =
+    params.customAboutBadgeDesc ||
+    `Serving customers in ${city || 'the locality'} with unmatched craftsmanship and reliable customer support.`;
+  const aboutPillars =
+    params.customAboutPillars && params.customAboutPillars.length > 0
+      ? params.customAboutPillars
+      : ['Certified Professionals', 'Transparent Pricing', 'Prompt Timelines', '5-Star Client Satisfaction'];
 
   const services = params.customServices && params.customServices.length > 0 ? params.customServices : theme.defaultServices;
   const faqs = params.customFaqs && params.customFaqs.length > 0 ? params.customFaqs : theme.defaultFaqs;
-  const galleryImages = theme.defaultGalleryImages;
+  const galleryImages =
+    params.customGalleryImages && params.customGalleryImages.length > 0
+      ? params.customGalleryImages
+      : theme.defaultGalleryImages;
 
   const reviews =
     params.realReviews && params.realReviews.length > 0
@@ -788,7 +812,12 @@ export function buildGeneratedWebsiteData(params: {
     workingHours,
     headline,
     subheadline,
+    aboutTitle,
     aboutText,
+    aboutBadge,
+    aboutBadgeTitle,
+    aboutBadgeDesc,
+    aboutPillars,
     logoUrl: params.logoUrl,
     bannerUrl: params.bannerUrl,
     services,
@@ -1743,7 +1772,7 @@ function copyAddressToClipboard(text) {
   const galleryHtml = data.galleryImages
     .map(
       (img) => `
-      <div class="gallery-card" style="background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('${data.bannerUrl || 'https://images.unsplash.com/photo-1542744094-3a31f272c490?w=600&auto=format&fit=crop&q=60'}');">
+      <div class="gallery-card" style="background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('${img.imageUrl || data.bannerUrl || 'https://images.unsplash.com/photo-1542744094-3a31f272c490?w=600&auto=format&fit=crop&q=60'}');">
         <div class="gallery-info">
           <div class="gallery-title">${img.title}</div>
           <div class="gallery-cat">${img.category}</div>
@@ -1759,6 +1788,13 @@ function copyAddressToClipboard(text) {
   const heroBannerStyle = data.bannerUrl
     ? `style="background: radial-gradient(circle at 50% 20%, rgba(15, 23, 42, 0.85) 0%, rgba(11, 15, 25, 0.98) 100%), url('${data.bannerUrl}') center/cover no-repeat;"`
     : '';
+
+  const aboutPillarsList = (data.aboutPillars && data.aboutPillars.length > 0
+    ? data.aboutPillars
+    : ['Certified Professionals', 'Transparent Pricing', 'Prompt Timelines', '5-Star Client Satisfaction']
+  )
+    .map((pillar) => `<div class="about-feature-item"><span>✓</span> <span>${pillar}</span></div>`)
+    .join('');
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -1866,20 +1902,17 @@ function copyAddressToClipboard(text) {
       <div class="about-grid">
         <div class="about-text">
           <span class="section-tag">About Our Business</span>
-          <h3>Trusted ${data.category} in ${data.city || 'the Region'}</h3>
+          <h3>${data.aboutTitle || `Trusted ${data.category} in ${data.city || 'the Region'}`}</h3>
           <p>${data.aboutText}</p>
           <div class="about-features-list">
-            <div class="about-feature-item"><span>✓</span> <span>Certified Professionals</span></div>
-            <div class="about-feature-item"><span>✓</span> <span>Transparent Pricing</span></div>
-            <div class="about-feature-item"><span>✓</span> <span>Prompt Timelines</span></div>
-            <div class="about-feature-item"><span>✓</span> <span>5-Star Client Satisfaction</span></div>
+            ${aboutPillarsList}
           </div>
         </div>
         <div class="about-card-banner">
-          <div class="about-badge-big">#1</div>
-          <h4 style="font-size: 1.3rem; color: #fff; margin-bottom: 0.5rem;">Committed to Quality Excellence</h4>
+          <div class="about-badge-big">${data.aboutBadge || '#1'}</div>
+          <h4 style="font-size: 1.3rem; color: #fff; margin-bottom: 0.5rem;">${data.aboutBadgeTitle || 'Committed to Quality Excellence'}</h4>
           <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-            Serving customers in ${data.city || 'the locality'} with unmatched craftsmanship and reliable customer support.
+            ${data.aboutBadgeDesc || `Serving customers in ${data.city || 'the locality'} with unmatched craftsmanship and reliable customer support.`}
           </p>
           <a href="https://wa.me/${data.whatsapp}" class="btn btn-primary" target="_blank" rel="noreferrer">
             💬 Connect with Founder

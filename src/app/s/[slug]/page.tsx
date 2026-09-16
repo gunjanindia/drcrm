@@ -39,12 +39,17 @@ export default function PublicOnePageWebsite() {
       whatsapp: profile.miniSiteConfig?.whatsapp || profile.whatsapp || '919431100000',
       email: profile.email || '',
       googleMapsUrl: profile.googleMapsUrl || '',
-      rating: profile.averageRating || 4.9,
-      reviewCount: profile.reviewCount || 30,
+      rating: profile.miniSiteConfig?.ratingOverride || profile.averageRating || 4.9,
+      reviewCount: profile.miniSiteConfig?.reviewCountOverride || profile.reviewCount || 30,
       workingHours: profile.miniSiteConfig?.workingHours,
       headline: profile.miniSiteConfig?.headline,
       subheadline: profile.miniSiteConfig?.subheadline,
+      customAboutTitle: profile.miniSiteConfig?.aboutTitle,
       customAbout: profile.miniSiteConfig?.aboutText,
+      customAboutBadge: profile.miniSiteConfig?.aboutBadge,
+      customAboutBadgeTitle: profile.miniSiteConfig?.aboutBadgeTitle,
+      customAboutBadgeDesc: profile.miniSiteConfig?.aboutBadgeDesc,
+      customAboutPillars: profile.miniSiteConfig?.aboutPillars,
       logoUrl: profile.miniSiteConfig?.logoUrl,
       bannerUrl: profile.miniSiteConfig?.bannerUrl,
       customServices: profile.miniSiteConfig?.services?.map((s) => ({
@@ -54,12 +59,16 @@ export default function PublicOnePageWebsite() {
         badge: (s as any).badge,
       })),
       customFaqs: profile.miniSiteConfig?.faqs,
-      realReviews: profile.reviews?.map((r) => ({
-        authorName: r.authorName,
-        rating: r.rating,
-        text: r.content,
-        relativeTime: r.date,
-      })),
+      customGalleryImages: profile.miniSiteConfig?.galleryImages,
+      realReviews:
+        profile.miniSiteConfig?.customReviews && profile.miniSiteConfig.customReviews.length > 0
+          ? profile.miniSiteConfig.customReviews
+          : profile.reviews?.map((r) => ({
+              authorName: r.authorName,
+              rating: r.rating,
+              text: r.content,
+              relativeTime: r.date,
+            })),
     });
 
     const bundle = generateStandaloneHtmlBundle(data);

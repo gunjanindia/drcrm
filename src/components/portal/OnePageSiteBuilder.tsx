@@ -31,6 +31,9 @@ import {
   Edit3,
   AlertCircle,
   Wand2,
+  Award,
+  ShieldCheck,
+  MessageSquare,
 } from 'lucide-react';
 import {
   buildGeneratedWebsiteData,
@@ -54,6 +57,20 @@ export interface ServiceItem {
 export interface FaqItem {
   q: string;
   a: string;
+}
+
+export interface ReviewItem {
+  authorName: string;
+  rating: number;
+  text: string;
+  relativeTime?: string;
+}
+
+export interface GalleryItem {
+  title: string;
+  category: string;
+  imageUrl?: string;
+  aspect?: string;
 }
 
 export interface OnePageSiteBuilderProps {
@@ -81,10 +98,32 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
     profile.miniSiteConfig?.subheadline ||
       initialTheme.subheadlineTemplate(profile.category, profile.city || '')
   );
+
+  // About Section Customization
+  const [aboutTitle, setAboutTitle] = useState(
+    profile.miniSiteConfig?.aboutTitle ||
+      `Trusted ${initialTheme.name} in ${profile.city || 'the Region'}`
+  );
   const [aboutText, setAboutText] = useState(
     profile.miniSiteConfig?.aboutText ||
       `Welcome to ${profile.businessName}. We are dedicated to providing our clients with top quality, reliable service, and fast local response.`
   );
+  const [aboutBadge, setAboutBadge] = useState(
+    profile.miniSiteConfig?.aboutBadge || '#1'
+  );
+  const [aboutBadgeTitle, setAboutBadgeTitle] = useState(
+    profile.miniSiteConfig?.aboutBadgeTitle || 'Committed to Quality Excellence'
+  );
+  const [aboutBadgeDesc, setAboutBadgeDesc] = useState(
+    profile.miniSiteConfig?.aboutBadgeDesc ||
+      `Serving customers in ${profile.city || 'the locality'} with unmatched craftsmanship and reliable customer support.`
+  );
+  const [aboutPillars, setAboutPillars] = useState<string[]>(
+    profile.miniSiteConfig?.aboutPillars && profile.miniSiteConfig.aboutPillars.length > 0
+      ? profile.miniSiteConfig.aboutPillars
+      : ['Certified Professionals', 'Transparent Pricing', 'Prompt Timelines', '5-Star Client Satisfaction']
+  );
+
   const [phone, setPhone] = useState(profile.phone || '+91 94311 00000');
   const [whatsapp, setWhatsapp] = useState(profile.whatsapp || '919431100000');
   const [address, setAddress] = useState(profile.address || profile.city || 'Main Commercial Market');
@@ -95,6 +134,50 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
   // Logo & Banner
   const [logoUrl, setLogoUrl] = useState<string>(profile.miniSiteConfig?.logoUrl || '');
   const [bannerUrl, setBannerUrl] = useState<string>(profile.miniSiteConfig?.bannerUrl || '');
+
+  // Ratings & Reviews Dynamic vs Manual Override
+  const [ratingOverride, setRatingOverride] = useState<number | string>(
+    profile.miniSiteConfig?.ratingOverride !== undefined
+      ? profile.miniSiteConfig.ratingOverride
+      : (profile.averageRating || 4.9)
+  );
+  const [reviewCountOverride, setReviewCountOverride] = useState<number | string>(
+    profile.miniSiteConfig?.reviewCountOverride !== undefined
+      ? profile.miniSiteConfig.reviewCountOverride
+      : (profile.reviewCount || 30)
+  );
+  const [customReviews, setCustomReviews] = useState<ReviewItem[]>(
+    profile.miniSiteConfig?.customReviews && profile.miniSiteConfig.customReviews.length > 0
+      ? profile.miniSiteConfig.customReviews
+      : profile.reviews && profile.reviews.length > 0
+      ? profile.reviews.map((r) => ({
+          authorName: r.authorName,
+          rating: r.rating,
+          text: r.content,
+          relativeTime: r.date,
+        }))
+      : [
+          {
+            authorName: 'Verified Google Reviewer',
+            rating: 5,
+            text: `Extremely satisfied with the service and quality of ${profile.businessName}. Highly recommended!`,
+            relativeTime: '2 weeks ago',
+          },
+          {
+            authorName: 'Local Customer',
+            rating: 5,
+            text: 'Prompt response, courteous staff, and transparent pricing. Will definitely visit again.',
+            relativeTime: '1 month ago',
+          },
+        ]
+  );
+
+  // Gallery Showcase Customizer
+  const [galleryImages, setGalleryImages] = useState<GalleryItem[]>(
+    profile.miniSiteConfig?.galleryImages && profile.miniSiteConfig.galleryImages.length > 0
+      ? profile.miniSiteConfig.galleryImages
+      : initialTheme.defaultGalleryImages
+  );
 
   // Fetch all templates (Custom Admin + AI Synthesized + Built-in) from Super Admin API
   useEffect(() => {
@@ -154,7 +237,9 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
   }, [profile.miniSiteConfig?.customHtml]);
 
   const [deviceView, setDeviceView] = useState<'mobile' | 'desktop'>('mobile');
-  const [activeTab, setActiveTab] = useState<'content' | 'images' | 'services' | 'faqs' | 'code'>('content');
+  const [activeTab, setActiveTab] = useState<
+    'content' | 'about' | 'images' | 'services' | 'reviews' | 'gallery' | 'faqs' | 'code'
+  >('content');
   const [isSaved, setIsSaved] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
@@ -203,12 +288,17 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
     whatsapp,
     email: profile.email,
     googleMapsUrl: profile.googleMapsUrl,
-    rating: profile.averageRating || 4.9,
-    reviewCount: profile.reviewCount || 30,
+    rating: Number(ratingOverride) > 0 ? Number(ratingOverride) : profile.averageRating || 4.9,
+    reviewCount: Number(reviewCountOverride) > 0 ? Number(reviewCountOverride) : profile.reviewCount || 30,
     workingHours,
     headline,
     subheadline,
+    customAboutTitle: aboutTitle,
     customAbout: aboutText,
+    customAboutBadge: aboutBadge,
+    customAboutBadgeTitle: aboutBadgeTitle,
+    customAboutBadgeDesc: aboutBadgeDesc,
+    customAboutPillars: aboutPillars,
     logoUrl,
     bannerUrl,
     customServices: services.map((s) => ({
@@ -218,12 +308,16 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
       badge: s.badge,
     })),
     customFaqs: faqs,
-    realReviews: profile.reviews?.map((r) => ({
-      authorName: r.authorName,
-      rating: r.rating,
-      text: r.content,
-      relativeTime: r.date,
-    })),
+    customGalleryImages: galleryImages,
+    realReviews:
+      customReviews && customReviews.length > 0
+        ? customReviews
+        : profile.reviews?.map((r) => ({
+            authorName: r.authorName,
+            rating: r.rating,
+            text: r.content,
+            relativeTime: r.date,
+          })),
   });
 
   const autoGeneratedHtml = generateStandaloneHtmlBundle(generatedData).html;
@@ -370,6 +464,95 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
     setFaqs(currentTheme.defaultFaqs);
   };
 
+  // CRUD for About Pillars
+  const handleUpdatePillar = (index: number, value: string) => {
+    const next = [...aboutPillars];
+    next[index] = value;
+    setAboutPillars(next);
+  };
+
+  const handleAddPillar = () => {
+    if (aboutPillars.length < 6) {
+      setAboutPillars([...aboutPillars, 'Quality Feature / Guarantee']);
+    }
+  };
+
+  const handleDeletePillar = (index: number) => {
+    setAboutPillars(aboutPillars.filter((_, i) => i !== index));
+  };
+
+  // CRUD for Reviews & Testimonials
+  const handleAddReview = () => {
+    setCustomReviews([
+      ...customReviews,
+      {
+        authorName: 'Customer Name',
+        rating: 5,
+        text: 'Great experience! Professional service and prompt delivery.',
+        relativeTime: 'Recently',
+      },
+    ]);
+  };
+
+  const handleUpdateReview = (index: number, field: keyof ReviewItem, value: any) => {
+    const next = [...customReviews];
+    next[index] = { ...next[index], [field]: value };
+    setCustomReviews(next);
+  };
+
+  const handleDeleteReview = (index: number) => {
+    setCustomReviews(customReviews.filter((_, i) => i !== index));
+  };
+
+  const handleResetReviews = () => {
+    if (profile.reviews && profile.reviews.length > 0) {
+      setCustomReviews(
+        profile.reviews.map((r) => ({
+          authorName: r.authorName,
+          rating: r.rating,
+          text: r.content,
+          relativeTime: r.date,
+        }))
+      );
+    } else {
+      setCustomReviews([
+        {
+          authorName: 'Verified Google Reviewer',
+          rating: 5,
+          text: `Extremely satisfied with the service and quality of ${profile.businessName}. Highly recommended!`,
+          relativeTime: '2 weeks ago',
+        },
+      ]);
+    }
+  };
+
+  // CRUD for Gallery / Portfolio Showcase
+  const handleAddGalleryItem = () => {
+    setGalleryImages([
+      ...galleryImages,
+      {
+        title: 'New Project / Product Showcase',
+        category: 'Work Portfolio',
+        imageUrl: '',
+        aspect: 'landscape',
+      },
+    ]);
+  };
+
+  const handleUpdateGalleryItem = (index: number, field: keyof GalleryItem, value: string) => {
+    const next = [...galleryImages];
+    next[index] = { ...next[index], [field]: value };
+    setGalleryImages(next);
+  };
+
+  const handleDeleteGalleryItem = (index: number) => {
+    setGalleryImages(galleryImages.filter((_, i) => i !== index));
+  };
+
+  const handleResetGallery = () => {
+    setGalleryImages(currentTheme.defaultGalleryImages);
+  };
+
   // Save changes to profile & context
   const handleSaveAndPublish = () => {
     const fullSiteUrl =
@@ -385,7 +568,12 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
         headline,
         subheadline,
         tagline: currentTheme.taglineDefault,
+        aboutTitle,
         aboutText,
+        aboutBadge,
+        aboutBadgeTitle,
+        aboutBadgeDesc,
+        aboutPillars,
         ownerName: profile.businessName + ' Team',
         ownerTitle: currentTheme.name,
         logoUrl: logoUrl || undefined,
@@ -406,6 +594,10 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
         themeColor: currentTheme.accentColor,
         bannerGradient: currentTheme.gradient,
         customSlug: siteSlug,
+        ratingOverride: Number(ratingOverride) > 0 ? Number(ratingOverride) : undefined,
+        reviewCountOverride: Number(reviewCountOverride) > 0 ? Number(reviewCountOverride) : undefined,
+        customReviews,
+        galleryImages,
       },
     });
 
@@ -631,67 +823,101 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
         {/* Left Comprehensive Editor Panel */}
         <div className="lg:col-span-6 space-y-4">
           {/* Customizer Navigation Tabs */}
-          <div className="flex rounded-2xl bg-slate-100 dark:bg-slate-800 p-1 text-xs font-bold gap-1 overflow-x-auto">
+          <div className="flex rounded-2xl bg-slate-100 dark:bg-slate-800 p-1 text-xs font-bold gap-1 overflow-x-auto scrollbar-thin">
             <button
               onClick={() => setActiveTab('content')}
-              className={`flex-1 py-1.5 px-2 rounded-xl whitespace-nowrap transition-all ${
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all ${
                 activeTab === 'content'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              1. Content & Info
+              1. Hero & Info
+            </button>
+            <button
+              onClick={() => setActiveTab('about')}
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 ${
+                activeTab === 'about'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Award className="w-3 h-3 text-amber-500" />
+              2. About Story
             </button>
             <button
               onClick={() => setActiveTab('images')}
-              className={`flex-1 py-1.5 px-2 rounded-xl whitespace-nowrap transition-all ${
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all ${
                 activeTab === 'images'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              2. Logo & Banner
+              3. Branding
             </button>
             <button
               onClick={() => setActiveTab('services')}
-              className={`flex-1 py-1.5 px-2 rounded-xl whitespace-nowrap transition-all ${
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all ${
                 activeTab === 'services'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              3. Services ({services.length})
+              4. Services ({services.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('reviews')}
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 ${
+                activeTab === 'reviews'
+                  ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+              5. Reviews ({customReviews.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('gallery')}
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 ${
+                activeTab === 'gallery'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <ImageIcon className="w-3 h-3 text-sky-500" />
+              6. Gallery ({galleryImages.length})
             </button>
             <button
               onClick={() => setActiveTab('faqs')}
-              className={`flex-1 py-1.5 px-2 rounded-xl whitespace-nowrap transition-all ${
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all ${
                 activeTab === 'faqs'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              4. FAQs ({faqs.length})
+              7. FAQs ({faqs.length})
             </button>
             <button
               onClick={() => setActiveTab('code')}
-              className={`flex-1 py-1.5 px-2 rounded-xl whitespace-nowrap transition-all ${
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 ${
                 activeTab === 'code'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              5. HTML Code
+              <Code className="w-3 h-3 text-indigo-500" />
+              8. HTML
             </button>
           </div>
 
-          {/* TAB 1: Core Text & Contact Information */}
+          {/* TAB 1: Hero & Contact Information */}
           {activeTab === 'content' && (
             <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                 <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">
-                  Hero Text & Business Details
+                  Hero Header & Business Details
                 </h4>
-                <span className="text-[10px] text-slate-400">All fields update live in preview</span>
+                <span className="text-[10px] text-slate-400">Updates live in preview</span>
               </div>
 
               <div>
@@ -714,18 +940,6 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
                   value={subheadline}
                   onChange={(e) => setSubheadline(e.target.value)}
                   rows={2}
-                  className="w-full text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  About & Overview Text
-                </label>
-                <textarea
-                  value={aboutText}
-                  onChange={(e) => setAboutText(e.target.value)}
-                  rows={3}
                   className="w-full text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
                 />
               </div>
@@ -782,7 +996,141 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
             </div>
           )}
 
-          {/* TAB 2: Logo and Hero Banner Uploads */}
+          {/* TAB 2: About Our Business Customizer */}
+          {activeTab === 'about' && (
+            <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                <div>
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Award className="w-3.5 h-3.5 text-amber-500" />
+                    About Our Business Customizer
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Customize your company story narrative, trust badge, and key value pillars.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Section Title (H3)
+                </label>
+                <input
+                  type="text"
+                  value={aboutTitle}
+                  onChange={(e) => setAboutTitle(e.target.value)}
+                  placeholder="e.g. Trusted Aluminum & Glass Fabrication in Jamshedpur"
+                  className="w-full text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  About Narrative / Company Story
+                </label>
+                <textarea
+                  value={aboutText}
+                  onChange={(e) => setAboutText(e.target.value)}
+                  rows={4}
+                  placeholder="Describe your business heritage, experience, values, and client focus..."
+                  className="w-full text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white leading-relaxed"
+                />
+              </div>
+
+              {/* Experience Badge & Subtitle */}
+              <div className="p-3.5 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-amber-500" />
+                  <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                    Experience / Award Showcase Box
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="font-bold text-slate-600 dark:text-slate-400 block mb-0.5 text-[10px]">
+                      Badge Text
+                    </label>
+                    <input
+                      type="text"
+                      value={aboutBadge}
+                      onChange={(e) => setAboutBadge(e.target.value)}
+                      placeholder="e.g. #1 or 15+ Yrs"
+                      className="w-full text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-black text-amber-600"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="font-bold text-slate-600 dark:text-slate-400 block mb-0.5 text-[10px]">
+                      Badge Headline
+                    </label>
+                    <input
+                      type="text"
+                      value={aboutBadgeTitle}
+                      onChange={(e) => setAboutBadgeTitle(e.target.value)}
+                      placeholder="e.g. Committed to Quality Excellence"
+                      className="w-full text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-bold text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-600 dark:text-slate-400 block mb-0.5 text-[10px]">
+                    Badge Subtitle / Description
+                  </label>
+                  <input
+                    type="text"
+                    value={aboutBadgeDesc}
+                    onChange={(e) => setAboutBadgeDesc(e.target.value)}
+                    placeholder="Serving clients with verified satisfaction..."
+                    className="w-full text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {/* 4 Value Pillars */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block text-xs">
+                    Key Value Pillars (Checkmark List)
+                  </label>
+                  {aboutPillars.length < 6 && (
+                    <button
+                      onClick={handleAddPillar}
+                      className="text-indigo-600 hover:text-indigo-700 font-bold text-[11px] flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Add Pillar
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {aboutPillars.map((pillar, pIdx) => (
+                    <div key={pIdx} className="flex items-center gap-1.5">
+                      <span className="text-emerald-500 font-bold text-xs shrink-0">✓</span>
+                      <input
+                        type="text"
+                        value={pillar}
+                        onChange={(e) => handleUpdatePillar(pIdx, e.target.value)}
+                        className="w-full text-xs p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                      />
+                      {aboutPillars.length > 2 && (
+                        <button
+                          onClick={() => handleDeletePillar(pIdx)}
+                          className="text-slate-400 hover:text-rose-500 p-1"
+                          title="Remove pillar"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: Logo and Hero Banner Uploads */}
           {activeTab === 'images' && (
             <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 text-xs">
               <div className="border-b border-slate-100 dark:border-slate-800 pb-2">
@@ -912,7 +1260,7 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
             </div>
           )}
 
-          {/* TAB 3: Full CRUD for Services */}
+          {/* TAB 4: Full CRUD for Services */}
           {activeTab === 'services' && (
             <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
@@ -1007,7 +1355,248 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
             </div>
           )}
 
-          {/* TAB 4: Full CRUD for FAQs */}
+          {/* TAB 5: Ratings & Reviews Customizer (Dynamic Sync + Override) */}
+          {activeTab === 'reviews' && (
+            <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                <div>
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                    Ratings & Reviews Customizer
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Live dynamic sync from Google Maps + optional manual override controls.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" icon={RefreshCw} onClick={handleResetReviews}>
+                    Reset
+                  </Button>
+                  <Button variant="primary" size="sm" icon={Plus} onClick={handleAddReview}>
+                    Add Review
+                  </Button>
+                </div>
+              </div>
+
+              {/* Dynamic Google Sync Indicator Box */}
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                      ⚡ Dynamic Google Business Profile Sync
+                    </span>
+                    <span className="px-2 py-0.2 rounded-full bg-emerald-500 text-white text-[9px] font-black">
+                      Active
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                    By default, your one-page site automatically pulls live ratings (
+                    <strong>{profile.averageRating || 4.9}★</strong>) and review counts (
+                    <strong>{profile.reviewCount || 30}+</strong>) directly from Google Maps and injects them into Schema.org SEO metadata.
+                  </p>
+                </div>
+              </div>
+
+              {/* Rating & Review Count Override */}
+              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Displayed Star Rating (1.0 – 5.0)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="1.0"
+                    max="5.0"
+                    value={ratingOverride}
+                    onChange={(e) => setRatingOverride(e.target.value)}
+                    className="w-full text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-bold text-amber-500"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">e.g. 4.9 or 5.0</span>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Displayed Total Reviews Count
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={reviewCountOverride}
+                    onChange={(e) => setReviewCountOverride(e.target.value)}
+                    className="w-full text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-bold text-slate-900 dark:text-white"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">e.g. 35, 50, 100</span>
+                </div>
+              </div>
+
+              {/* Individual Review Cards CRUD */}
+              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                {customReviews.map((rev, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 relative"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-black text-amber-600 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-md text-[10px]">
+                        Review #{idx + 1}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteReview(idx)}
+                        className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
+                        title="Delete Review"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="col-span-2">
+                        <label className="font-bold text-slate-600 dark:text-slate-400 block mb-0.5 text-[10px]">
+                          Reviewer Name
+                        </label>
+                        <input
+                          type="text"
+                          value={rev.authorName}
+                          onChange={(e) => handleUpdateReview(idx, 'authorName', e.target.value)}
+                          className="w-full text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-bold text-slate-900 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-400 block mb-0.5 text-[10px]">
+                          Rating Stars
+                        </label>
+                        <select
+                          value={rev.rating}
+                          onChange={(e) => handleUpdateReview(idx, 'rating', Number(e.target.value))}
+                          className="w-full text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-bold text-amber-500"
+                        >
+                          <option value="5">★★★★★ (5 Stars)</option>
+                          <option value="4">★★★★☆ (4 Stars)</option>
+                          <option value="3">★★★☆☆ (3 Stars)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-600 dark:text-slate-400 block mb-0.5 text-[10px]">
+                        Review Text
+                      </label>
+                      <textarea
+                        value={rev.text}
+                        onChange={(e) => handleUpdateReview(idx, 'text', e.target.value)}
+                        rows={2}
+                        className="w-full text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-600 dark:text-slate-400 block mb-0.5 text-[10px]">
+                        Relative Date / Time
+                      </label>
+                      <input
+                        type="text"
+                        value={rev.relativeTime || ''}
+                        onChange={(e) => handleUpdateReview(idx, 'relativeTime', e.target.value)}
+                        placeholder="e.g. 2 weeks ago or Verified Google Review"
+                        className="w-full text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: Gallery / Showcase Customizer */}
+          {activeTab === 'gallery' && (
+            <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                <div>
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-sky-500" />
+                    Portfolio & Work Showcase ({galleryImages.length})
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Add project photos, category tags, and client deliverable highlights.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" icon={RefreshCw} onClick={handleResetGallery}>
+                    Reset
+                  </Button>
+                  <Button variant="primary" size="sm" icon={Plus} onClick={handleAddGalleryItem}>
+                    Add Item
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+                {galleryImages.map((img, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 relative"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-black text-sky-600 bg-sky-50 dark:bg-sky-950/50 px-2 py-0.5 rounded-md text-[10px]">
+                        Showcase Item #{idx + 1}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteGalleryItem(idx)}
+                        className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
+                        title="Delete Showcase Item"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-400 block mb-0.5 text-[10px]">
+                          Project Title
+                        </label>
+                        <input
+                          type="text"
+                          value={img.title}
+                          onChange={(e) => handleUpdateGalleryItem(idx, 'title', e.target.value)}
+                          placeholder="e.g. Slimline Black Windows"
+                          className="w-full text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-bold text-slate-900 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-400 block mb-0.5 text-[10px]">
+                          Category Tag
+                        </label>
+                        <input
+                          type="text"
+                          value={img.category}
+                          onChange={(e) => handleUpdateGalleryItem(idx, 'category', e.target.value)}
+                          placeholder="e.g. Residential Installation"
+                          className="w-full text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-600 dark:text-slate-400 block mb-0.5 text-[10px]">
+                        Image URL (Optional Override)
+                      </label>
+                      <input
+                        type="text"
+                        value={img.imageUrl || ''}
+                        onChange={(e) => handleUpdateGalleryItem(idx, 'imageUrl', e.target.value)}
+                        placeholder="https://images.unsplash.com/... or custom URL"
+                        className="w-full text-xs p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: Full CRUD for FAQs */}
           {activeTab === 'faqs' && (
             <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
@@ -1075,7 +1664,7 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
             </div>
           )}
 
-          {/* TAB 5: Editable Raw HTML Code */}
+          {/* TAB 8: Editable Raw HTML Code */}
           {activeTab === 'code' && (
             <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3.5 text-xs">
               <div className="flex items-center justify-between">
