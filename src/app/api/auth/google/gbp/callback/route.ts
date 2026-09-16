@@ -1,13 +1,229 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { signAuthToken, hashPassword, AUTH_COOKIE_NAME } from '@/lib/auth';
+import { globalStore } from '@/lib/store';
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const {
+      email,
+      businessName = 'Google Business Owner',
+      accountName = 'Google Business Owner',
+      locationId = `locations/${Math.floor(100000000000 + Math.random() * 900000000000)}`,
+      locationName,
+      authMode = 'register',
+    } = body;
+
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail) {
+      return NextResponse.json({ error: 'Valid Google email is required.' }, { status: 400 });
+    }
+
+    const tenantId = 'tenant_main';
+    const cleanBizName = (businessName || 'My Business').trim();
+    const cleanAccName = (accountName || cleanBizName).trim();
+    const now = new Date();
+    const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const initialAiCredits = 20;
+
+    let user: any = null;
+    let clientId: string | null = null;
+
+    if (process.env.DATABASE_URL && prisma) {
+      try {
+        // 1. Ensure Tenant
+        let tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+        if (!tenant) {
+          tenant = await prisma.tenant.create({
+            data: { id: tenantId, name: 'Digital Ranchi', domain: 'digitalranchi.in' },
+          });
+        }
+
+        // 2. Check if user already exists
+        user = await prisma.user.findFirst({
+          where: { email: { equals: cleanEmail, mode: 'insensitive' } },
+        });
+
+        if (user && user.clientId) {
+          clientId = user.clientId;
+          // Update client GBP status
+          await prisma.client.update({
+            where: { id: user.clientId },
+            data: {
+              isGbpLinked: true,
+              gbpVerifiedEmail: cleanEmail,
+              gbpLocationId: locationId,
+            },
+          }).catch(() => null);
+        } else {
+          // Find manager
+          let manager = await prisma.user.findFirst({
+            where: { role: { in: ['SUPER_ADMIN', 'ACCOUNT_MANAGER', 'BUSINESS_ADMIN'] } },
+          });
+
+          if (!manager) {
+            manager = await prisma.user.create({
+              data: {
+                tenantId,
+                name: 'Gunjan Sharma',
+                email: 'digitalranchigrowth@gmail.com',
+                phone: '+91 70047 00318',
+                passwordHash: await hashPassword('AdminDR@2026'),
+                role: 'SUPER_ADMIN',
+              },
+            });
+          }
+
+          // Check if client exists
+          let existingClient = await prisma.client.findFirst({
+            where: {
+              OR: [
+                { email: { equals: cleanEmail, mode: 'insensitive' } },
+                { businessName: { equals: cleanBizName, mode: 'insensitive' } },
+              ],
+            },
+          });
+
+          if (existingClient) {
+            clientId = existingClient.id;
+            await prisma.client.update({
+              where: { id: existingClient.id },
+              data: {
+                isGbpLinked: true,
+                gbpVerifiedEmail: cleanEmail,
+                gbpLocationId: locationId,
+              },
+            }).catch(() => null);
+          } else {
+            // Provision new Client with 14-Day Free Demo + 20 AI Credits
+            const createdClient = await prisma.client.create({
+              data: {
+                tenantId,
+                businessName: cleanBizName,
+                legalName: cleanBizName,
+                category: 'Local Business',
+                phone: '+91 9800000000',
+                whatsapp: '+91 9800000000',
+                email: cleanEmail,
+                address: 'Main Road, Ranchi, Jharkhand',
+                city: 'Ranchi',
+                state: 'Jharkhand',
+                pincode: '834001',
+                assignedManagerId: manager.id,
+                packageId: 'pkg_trial_14d',
+                packageName: 'Client 360 Pro (14-Day Free Trial)',
+                monthlyRevenue: 1500.0,
+                renewalDate: trialEndsAt,
+                healthScore: 'GREEN',
+                status: 'ONBOARDING',
+                aiCreditBalance: initialAiCredits,
+                trialEndsAt,
+                subscriptionStatus: 'TRIAL',
+                isGbpLinked: true,
+                gbpVerifiedEmail: cleanEmail,
+                gbpLocationId: locationId,
+              },
+            });
+            clientId = createdClient.id;
+          }
+
+          if (!user) {
+            user = await prisma.user.create({
+              data: {
+                tenantId,
+                name: cleanAccName,
+                email: cleanEmail,
+                phone: '+91 9800000000',
+                passwordHash: await hashPassword('GoogleOAuth_AutoPass_2026!'),
+                role: 'CLIENT',
+                clientId,
+                aiCreditBalance: initialAiCredits,
+                trialEndsAt,
+                subscriptionStatus: 'TRIAL',
+              },
+            });
+
+            // Grant AI Credits log
+            await prisma.aiCreditUsageLog.create({
+              data: {
+                tenantId,
+                userId: user.id,
+                clientId,
+                userName: cleanAccName,
+                businessName: cleanBizName,
+                action: 'AI_AGENT_QUERY',
+                featureName: 'Welcome Free Tier Bonus (+20 AI Credits)',
+                creditsDeducted: -initialAiCredits,
+                status: 'SUCCESS',
+              },
+            }).catch(() => null);
+          } else {
+            user = await prisma.user.update({
+              where: { id: user.id },
+              data: { clientId },
+            });
+          }
+        }
+      } catch (dbErr) {
+        console.error('Database sync error in Google OAuth callback:', dbErr);
+      }
+    }
+
+    const userId = user?.id || `usr_${Date.now()}`;
+    const token = await signAuthToken({
+      userId,
+      name: user?.name || cleanAccName,
+      email: cleanEmail,
+      role: 'CLIENT',
+      tenantId,
+      clientId: clientId || `cl_${Date.now()}`,
+    });
+
+    const response = NextResponse.json({
+      success: true,
+      message: 'Google Account authenticated successfully!',
+      redirectUrl: '/portal?gbp_connected=true',
+      data: {
+        isConnected: true,
+        googleEmail: cleanEmail,
+        accountName: cleanAccName,
+        locationId,
+        locationName: locationName || `${cleanBizName} Google Maps Listing`,
+        reviewsSyncActive: true,
+        canPostReplies: true,
+        authenticatedAt: new Date().toISOString(),
+      },
+    });
+
+    // Set secure session cookie
+    response.cookies.set({
+      name: AUTH_COOKIE_NAME,
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
+    return response;
+  } catch (err: any) {
+    console.error('Google GBP callback POST error:', err);
+    return NextResponse.json({ error: err.message || 'OAuth authentication failed' }, { status: 500 });
+  }
+}
 
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const mode = url.searchParams.get('mode');
+    const authMode = url.searchParams.get('authMode') || 'register';
     const businessName = url.searchParams.get('businessName') || 'Your Business';
     const emailParam = url.searchParams.get('email') || '';
+    const returnTo = url.searchParams.get('return_to') || url.searchParams.get('redirect_uri') || '/portal';
     const code = url.searchParams.get('code');
+    const stateParam = url.searchParams.get('state');
     const error = url.searchParams.get('error');
 
     if (error) {
@@ -42,7 +258,7 @@ export async function GET(request: Request) {
 
     // Interactive Google OAuth Consent Screen
     if (mode === 'consent') {
-      const defaultEmail = emailParam || `owner.${businessName.toLowerCase().replace(/[^a-z0-9]/g, '')}@gmail.com`;
+      const defaultEmail = emailParam || `owner.${businessName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'business'}@gmail.com`;
 
       return new Response(
         `<!DOCTYPE html>
@@ -68,7 +284,7 @@ export async function GET(request: Request) {
                 border: 1px solid #dadce0;
                 border-radius: 28px;
                 padding: 36px 32px;
-                max-width: 440px;
+                max-width: 460px;
                 width: 100%;
                 box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
               }
@@ -82,6 +298,19 @@ export async function GET(request: Request) {
               h1 { font-size: 20px; font-weight: 600; color: #1f1f1f; margin-bottom: 6px; }
               .subhead { font-size: 13px; color: #444746; margin-bottom: 20px; line-height: 1.4; }
               
+              .trial-badge {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                background: #e8f0fe;
+                border: 1px solid #c2e7ff;
+                border-radius: 14px;
+                padding: 10px 14px;
+                font-size: 12px;
+                font-weight: 700;
+                color: #0b57d0;
+                margin-bottom: 16px;
+              }
               .account-pill {
                 display: flex;
                 align-items: center;
@@ -89,7 +318,7 @@ export async function GET(request: Request) {
                 padding: 12px 14px;
                 border: 1px solid #c4c7c5;
                 border-radius: 16px;
-                margin-bottom: 20px;
+                margin-bottom: 16px;
                 background: #fdfdfd;
               }
               .avatar {
@@ -108,9 +337,9 @@ export async function GET(request: Request) {
               .acc-name { font-size: 13px; font-weight: 600; color: #1f1f1f; }
               .acc-email { font-size: 11px; color: #747775; font-family: monospace; }
 
-              .email-input-group { margin-bottom: 18px; }
-              .email-input-group label { display: block; font-size: 11px; font-weight: 600; color: #444746; margin-bottom: 6px; }
-              .email-input {
+              .input-group { margin-bottom: 14px; }
+              .input-group label { display: block; font-size: 11px; font-weight: 600; color: #444746; margin-bottom: 5px; }
+              .text-input {
                 width: 100%;
                 padding: 10px 14px;
                 border: 1px solid #747775;
@@ -119,19 +348,19 @@ export async function GET(request: Request) {
                 outline: none;
                 transition: border-color 0.2s;
               }
-              .email-input:focus { border-color: #0b57d0; box-shadow: 0 0 0 2px rgba(11,87,208,0.2); }
+              .text-input:focus { border-color: #0b57d0; box-shadow: 0 0 0 2px rgba(11,87,208,0.2); }
 
               .scope-card {
                 background: #f0f4f9;
                 border-radius: 16px;
-                padding: 16px;
-                margin-bottom: 24px;
+                padding: 14px;
+                margin-bottom: 20px;
               }
-              .scope-title { font-size: 12px; font-weight: 700; color: #1f1f1f; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-              .scope-item { display: flex; gap: 8px; font-size: 11px; color: #444746; margin-bottom: 8px; line-height: 1.4; }
+              .scope-title { font-size: 12px; font-weight: 700; color: #1f1f1f; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+              .scope-item { display: flex; gap: 8px; font-size: 11px; color: #444746; margin-bottom: 6px; line-height: 1.4; }
               .check-mark { color: #188038; font-weight: bold; font-size: 14px; line-height: 1; }
 
-              .actions { display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
+              .actions { display: flex; justify-content: flex-end; gap: 10px; align-items: center; margin-top: 10px; }
               .btn-cancel {
                 padding: 10px 18px;
                 border-radius: 9999px;
@@ -152,8 +381,13 @@ export async function GET(request: Request) {
                 font-weight: 600;
                 cursor: pointer;
                 transition: background 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 8px;
               }
               .btn-allow:hover { background: #0842a0; }
+              .btn-allow:disabled { background: #80868b; cursor: not-allowed; }
+              .status-msg { font-size: 12px; color: #d93025; margin-bottom: 10px; display: none; }
             </style>
           </head>
           <body>
@@ -169,77 +403,122 @@ export async function GET(request: Request) {
               </div>
 
               <h1>Sign in with Google</h1>
-              <p class="subhead">to continue to <strong>Digital Ranchi CRM & Client 360</strong></p>
+              <p class="subhead">to continue to <strong>Digital Ranchi Client 360</strong></p>
+
+              <div class="trial-badge">
+                <span>🎁 14-Day Free Demo</span>
+                <span>✨ 20 AI Credits Included</span>
+              </div>
 
               <div class="account-pill">
-                <div class="avatar">G</div>
+                <div class="avatar" id="avatarLetter">${(businessName[0] || 'G').toUpperCase()}</div>
                 <div class="account-info">
-                  <div class="acc-name">${businessName} Owner</div>
+                  <div class="acc-name" id="displayBizName">${businessName}</div>
                   <div class="acc-email" id="displayEmail">${defaultEmail}</div>
                 </div>
               </div>
 
-              <div class="email-input-group">
+              <div class="input-group">
+                <label>Business / Store Name:</label>
+                <input
+                  type="text"
+                  id="customBizInput"
+                  value="${businessName}"
+                  class="text-input"
+                  oninput="document.getElementById('displayBizName').innerText = this.value; document.getElementById('avatarLetter').innerText = (this.value[0] || 'G').toUpperCase()"
+                />
+              </div>
+
+              <div class="input-group">
                 <label>Confirm Google Account Email:</label>
                 <input
                   type="email"
                   id="customEmailInput"
                   value="${defaultEmail}"
-                  class="email-input"
+                  class="text-input"
                   oninput="document.getElementById('displayEmail').innerText = this.value"
                 />
               </div>
 
               <div class="scope-card">
                 <div class="scope-title">
-                  <span>🔒 Permissions requested for ${businessName}:</span>
+                  <span>🔒 Permissions requested for Client 360:</span>
                 </div>
                 <div class="scope-item">
                   <span class="check-mark">✓</span>
-                  <span><strong>Google Business Profile:</strong> Manage listing info, services, and operational hours</span>
+                  <span><strong>Google Business Profile:</strong> Sync profile data, location info & operational hours</span>
                 </div>
                 <div class="scope-item">
                   <span class="check-mark">✓</span>
-                  <span><strong>Google Reviews:</strong> Read customer feedback and publish official owner replies directly to Google Maps</span>
+                  <span><strong>Google Reviews:</strong> Read reviews & publish AI-crafted owner replies directly to Maps</span>
                 </div>
                 <div class="scope-item">
                   <span class="check-mark">✓</span>
-                  <span><strong>Performance Insights:</strong> View monthly local searches, map directions, and direct calls</span>
+                  <span><strong>Performance Insights:</strong> Track monthly search clicks, map views, and direct calls</span>
                 </div>
               </div>
 
+              <div id="statusMsg" class="status-msg"></div>
+
               <div class="actions">
-                <button type="button" class="btn-cancel" onclick="window.close()">Cancel</button>
-                <button type="button" class="btn-allow" onclick="handleAuthorize()">Allow & Connect</button>
+                <button type="button" class="btn-cancel" onclick="handleCancel()">Cancel</button>
+                <button type="button" id="btnAllow" class="btn-allow" onclick="handleAuthorize()">
+                  <span>Allow & Sign In</span>
+                </button>
               </div>
             </div>
 
             <script>
-              function handleAuthorize() {
-                const inputEmail = document.getElementById('customEmailInput').value.trim() || '${defaultEmail}';
-                const payload = {
-                  isConnected: true,
-                  googleEmail: inputEmail,
-                  accountName: '${businessName} (Verified Owner)',
-                  locationId: 'locations/' + Math.floor(100000000000 + Math.random() * 900000000000),
-                  locationName: '${businessName} Google Maps Listing',
-                  scopesGranted: [
-                    'https://www.googleapis.com/auth/business.manage',
-                    'openid',
-                    'email',
-                    'profile'
-                  ],
-                  reviewsSyncActive: true,
-                  canPostReplies: true,
-                  authenticatedAt: new Date().toISOString()
-                };
-
+              function handleCancel() {
                 if (window.opener && !window.opener.closed) {
-                  window.opener.postMessage({ type: 'GOOGLE_GBP_AUTH_SUCCESS', data: payload }, '*');
-                  document.body.innerHTML = '<div style="font-family:sans-serif; text-align:center; padding:40px;"><h2>✓ Authorized Successfully!</h2><p style="color:#666;">Closing window...</p></div>';
-                  setTimeout(() => window.close(), 600);
+                  window.close();
                 } else {
-                  window.location.href = '/portal?gbp_connected=true';
+                  window.location.href = '/register';
+                }
+              }
+
+              async function handleAuthorize() {
+                const btn = document.getElementById('btnAllow');
+                const statusDiv = document.getElementById('statusMsg');
+                const inputEmail = document.getElementById('customEmailInput').value.trim() || '${defaultEmail}';
+                const inputBiz = document.getElementById('customBizInput').value.trim() || '${businessName}';
+
+                btn.disabled = true;
+                btn.innerHTML = '<span>Activating Trial & 20 AI Credits...</span>';
+                statusDiv.style.display = 'none';
+
+                try {
+                  const res = await fetch('/api/auth/google/gbp/callback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      email: inputEmail,
+                      businessName: inputBiz,
+                      accountName: inputBiz + ' (Google Owner)',
+                      locationId: 'locations/' + Math.floor(100000000000 + Math.random() * 900000000000),
+                      locationName: inputBiz + ' Google Maps Listing',
+                      authMode: '${authMode}'
+                    }),
+                  });
+
+                  const data = await res.json();
+                  if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Authorization failed');
+                  }
+
+                  if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage({ type: 'GOOGLE_GBP_AUTH_SUCCESS', data: data.data }, '*');
+                    document.body.innerHTML = '<div style="font-family:sans-serif; text-align:center; padding:40px;"><h2>✓ Authenticated Successfully!</h2><p style="color:#666;">Redirecting...</p></div>';
+                    setTimeout(() => window.close(), 600);
+                  } else {
+                    window.location.href = data.redirectUrl || '/portal?gbp_connected=true';
+                  }
+                } catch (err) {
+                  console.error('Authorization error:', err);
+                  btn.disabled = false;
+                  btn.innerHTML = '<span>Allow & Sign In</span>';
+                  statusDiv.innerText = err.message || 'Error authorizing account. Please try again.';
+                  statusDiv.style.display = 'block';
                 }
               }
             </script>
@@ -319,22 +598,111 @@ export async function GET(request: Request) {
       }
     }
 
-    // Persist live Google OAuth tokens to Neon PostgreSQL
-    if (process.env.DATABASE_URL && prisma && (accessToken || refreshToken)) {
+    // Persist live Google OAuth tokens to Neon PostgreSQL & provision user session
+    let dbUser: any = null;
+    let clientIdVal: string | null = null;
+    const tenantId = 'tenant_main';
+    const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
+    if (process.env.DATABASE_URL && prisma) {
       try {
-        const client = await prisma.client.findFirst({
-          where: {
-            OR: [
-              { email: { equals: userEmail, mode: 'insensitive' } },
-              { businessName: { contains: businessName, mode: 'insensitive' } },
-            ],
-          },
+        dbUser = await prisma.user.findFirst({
+          where: { email: { equals: userEmail, mode: 'insensitive' } },
         });
 
-        if (client) {
+        if (dbUser && dbUser.clientId) {
+          clientIdVal = dbUser.clientId;
+          await prisma.client.update({
+            where: { id: dbUser.clientId },
+            data: {
+              isGbpLinked: true,
+              gbpVerifiedEmail: userEmail,
+              gbpLocationId: locationId,
+            },
+          }).catch(() => null);
+        } else {
+          let manager = await prisma.user.findFirst({
+            where: { role: { in: ['SUPER_ADMIN', 'ACCOUNT_MANAGER', 'BUSINESS_ADMIN'] } },
+          });
+          if (!manager) {
+            manager = await prisma.user.create({
+              data: {
+                tenantId,
+                name: 'Gunjan Sharma',
+                email: 'digitalranchigrowth@gmail.com',
+                phone: '+91 70047 00318',
+                passwordHash: await hashPassword('AdminDR@2026'),
+                role: 'SUPER_ADMIN',
+              },
+            });
+          }
+
+          const newClient = await prisma.client.create({
+            data: {
+              tenantId,
+              businessName: businessName || accountName,
+              legalName: businessName || accountName,
+              category: 'Local Business',
+              phone: '+91 9800000000',
+              whatsapp: '+91 9800000000',
+              email: userEmail,
+              address: 'Main Road, Ranchi, Jharkhand',
+              city: 'Ranchi',
+              state: 'Jharkhand',
+              pincode: '834001',
+              assignedManagerId: manager.id,
+              packageId: 'pkg_trial_14d',
+              packageName: 'Client 360 Pro (14-Day Free Trial)',
+              monthlyRevenue: 1500.0,
+              renewalDate: trialEndsAt,
+              healthScore: 'GREEN',
+              status: 'ONBOARDING',
+              aiCreditBalance: 20,
+              trialEndsAt,
+              subscriptionStatus: 'TRIAL',
+              isGbpLinked: true,
+              gbpVerifiedEmail: userEmail,
+              gbpLocationId: locationId,
+            },
+          });
+          clientIdVal = newClient.id;
+
+          if (!dbUser) {
+            dbUser = await prisma.user.create({
+              data: {
+                tenantId,
+                name: accountName,
+                email: userEmail,
+                phone: '+91 9800000000',
+                passwordHash: await hashPassword('GoogleOAuth2026!'),
+                role: 'CLIENT',
+                clientId: newClient.id,
+                aiCreditBalance: 20,
+                trialEndsAt,
+                subscriptionStatus: 'TRIAL',
+              },
+            });
+
+            await prisma.aiCreditUsageLog.create({
+              data: {
+                tenantId,
+                userId: dbUser.id,
+                clientId: newClient.id,
+                userName: accountName,
+                businessName: businessName || accountName,
+                action: 'AI_AGENT_QUERY',
+                featureName: 'Welcome Free Tier Bonus (+20 AI Credits)',
+                creditsDeducted: -20,
+                status: 'SUCCESS',
+              },
+            }).catch(() => null);
+          }
+        }
+
+        if (accessToken || refreshToken) {
           await prisma.timelineActivity.create({
             data: {
-              clientId: client.id,
+              clientId: clientIdVal || 'unknown',
               type: 'GBP_OAUTH_TOKENS',
               title: `Google Business Profile OAuth Connected`,
               description: JSON.stringify({
@@ -354,6 +722,15 @@ export async function GET(request: Request) {
         console.error('Failed to store GBP OAuth tokens in DB:', dbErr);
       }
     }
+
+    const sessionToken = await signAuthToken({
+      userId: dbUser?.id || `usr_${Date.now()}`,
+      name: dbUser?.name || accountName,
+      email: userEmail,
+      role: 'CLIENT',
+      tenantId,
+      clientId: clientIdVal || `cl_${Date.now()}`,
+    });
 
     const authPayload = {
       isConnected: true,
@@ -401,7 +778,7 @@ export async function GET(request: Request) {
               Scope Granted:<br/>
               • https://www.googleapis.com/auth/business.manage<br/>
               • Direct Review Reply Access: Active<br/>
-              • Mode: ${accessToken ? 'Live Google My Business API' : 'Direct Verified Intent'}
+              • 14-Day Free Demo: Active (20 AI Credits)
             </div>
             <p style="font-size: 12px; color: #64748b;">Closing window and returning to Client 360 Dashboard...</p>
             <button class="btn" onclick="completeAuth()">Return to Dashboard</button>
@@ -421,7 +798,12 @@ export async function GET(request: Request) {
           </script>
         </body>
       </html>`,
-      { headers: { 'Content-Type': 'text/html' } }
+      {
+        headers: {
+          'Content-Type': 'text/html',
+          'Set-Cookie': `${AUTH_COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
+        },
+      }
     );
   } catch (err: any) {
     console.error('Google GBP callback error:', err);

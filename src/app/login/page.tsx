@@ -134,7 +134,8 @@ export default function LoginPage() {
             type="button"
             onClick={() => {
               const returnUrl = encodeURIComponent(window.location.origin + '/portal');
-              window.location.href = `/api/auth/google/gbp?mode=login&redirect_uri=${returnUrl}`;
+              const emailParam = encodeURIComponent(email.trim().toLowerCase() || '');
+              window.location.href = `/api/auth/google/gbp?mode=login&email=${emailParam}&redirect_uri=${returnUrl}`;
             }}
             className="w-full py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 font-bold text-xs flex items-center justify-center gap-2.5 transition-all shadow-xs"
           >

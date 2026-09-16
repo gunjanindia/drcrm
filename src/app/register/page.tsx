@@ -83,9 +83,12 @@ export default function RegisterPage() {
 
   const handleGoogleAuth = async () => {
     setIsGoogleLoading(true);
+    setErrorMessage(null);
     try {
       const returnUrl = encodeURIComponent(window.location.origin + '/portal');
-      window.location.href = `/api/auth/google/gbp?mode=register&redirect_uri=${returnUrl}`;
+      const bizParam = encodeURIComponent(businessName.trim() || name.trim() || 'My Business');
+      const emailParam = encodeURIComponent(email.trim().toLowerCase() || '');
+      window.location.href = `/api/auth/google/gbp?mode=register&businessName=${bizParam}&email=${emailParam}&redirect_uri=${returnUrl}`;
     } catch (err) {
       console.error('Error initiating Google OAuth:', err);
       setErrorMessage('Could not connect to Google Auth. Please register with email/password.');

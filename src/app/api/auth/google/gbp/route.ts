@@ -19,21 +19,38 @@ export async function GET(request: Request) {
       'profile',
     ].join(' ');
 
+    const mode = url.searchParams.get('mode') || 'portal';
+    const returnUri = url.searchParams.get('return_to') || url.searchParams.get('redirect_uri') || `${origin}/portal`;
+    const wantsJson = url.searchParams.get('format') === 'json' || (!request.headers.get('accept')?.includes('text/html') && request.headers.get('accept')?.includes('application/json'));
+    const isDirectNavigation = !wantsJson || url.searchParams.get('redirect') === 'true' || Boolean(url.searchParams.get('mode'));
     let googleAuthUrl = '';
 
     if (isLiveClientId) {
       // Production live Google OAuth endpoint
+      const state = encodeURIComponent(
+        JSON.stringify({
+          mode,
+          businessName,
+          email,
+          returnUri,
+        })
+      );
       googleAuthUrl =
         `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(configuredClientId)}&` +
-        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `redirect_uri=${encodeURIComponent(`${origin}/api/auth/google/gbp/callback`)}&` +
         `response_type=code&` +
         `scope=${encodeURIComponent(scopes)}&` +
         `access_type=offline&` +
-        `prompt=consent`;
+        `prompt=consent&` +
+        `state=${state}`;
     } else {
       // In-app Google OAuth Consent Flow (avoids Google 401 invalid_client error when live GCP OAuth app is not configured)
-      googleAuthUrl = `${origin}/api/auth/google/gbp/callback?mode=consent&businessName=${encodeURIComponent(businessName)}&email=${encodeURIComponent(email)}`;
+      googleAuthUrl = `${origin}/api/auth/google/gbp/callback?mode=consent&authMode=${encodeURIComponent(mode)}&businessName=${encodeURIComponent(businessName)}&email=${encodeURIComponent(email)}&return_to=${encodeURIComponent(returnUri)}`;
+    }
+
+    if (isDirectNavigation && !url.searchParams.get('json')) {
+      return NextResponse.redirect(googleAuthUrl);
     }
 
     return NextResponse.json({
