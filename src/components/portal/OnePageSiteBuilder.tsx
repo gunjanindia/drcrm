@@ -92,21 +92,21 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
 
   const [headline, setHeadline] = useState(
     profile.miniSiteConfig?.headline ||
-      initialTheme.headlineTemplate(profile.businessName, profile.city || '')
+    initialTheme.headlineTemplate(profile.businessName, profile.city || '')
   );
   const [subheadline, setSubheadline] = useState(
     profile.miniSiteConfig?.subheadline ||
-      initialTheme.subheadlineTemplate(profile.category, profile.city || '')
+    initialTheme.subheadlineTemplate(profile.category, profile.city || '')
   );
 
   // About Section Customization
   const [aboutTitle, setAboutTitle] = useState(
     profile.miniSiteConfig?.aboutTitle ||
-      `Trusted ${initialTheme.name} in ${profile.city || 'the Region'}`
+    `Trusted ${initialTheme.name} in ${profile.city || 'the Region'}`
   );
   const [aboutText, setAboutText] = useState(
     profile.miniSiteConfig?.aboutText ||
-      `Welcome to ${profile.businessName}. We are dedicated to providing our clients with top quality, reliable service, and fast local response.`
+    `Welcome to ${profile.businessName}. We are dedicated to providing our clients with top quality, reliable service, and fast local response.`
   );
   const [aboutBadge, setAboutBadge] = useState(
     profile.miniSiteConfig?.aboutBadge || '#1'
@@ -116,7 +116,7 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
   );
   const [aboutBadgeDesc, setAboutBadgeDesc] = useState(
     profile.miniSiteConfig?.aboutBadgeDesc ||
-      `Serving customers in ${profile.city || 'the locality'} with unmatched craftsmanship and reliable customer support.`
+    `Serving customers in ${profile.city || 'the locality'} with unmatched craftsmanship and reliable customer support.`
   );
   const [aboutPillars, setAboutPillars] = useState<string[]>(
     profile.miniSiteConfig?.aboutPillars && profile.miniSiteConfig.aboutPillars.length > 0
@@ -150,13 +150,13 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
     profile.miniSiteConfig?.customReviews && profile.miniSiteConfig.customReviews.length > 0
       ? profile.miniSiteConfig.customReviews
       : profile.reviews && profile.reviews.length > 0
-      ? profile.reviews.map((r) => ({
+        ? profile.reviews.map((r) => ({
           authorName: r.authorName,
           rating: r.rating,
           text: r.content,
           relativeTime: r.date,
         }))
-      : [
+        : [
           {
             authorName: 'Verified Google Reviewer',
             rating: 5,
@@ -204,19 +204,19 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
   const [services, setServices] = useState<ServiceItem[]>(
     (profile.miniSiteConfig?.services && profile.miniSiteConfig.services.length > 0)
       ? profile.miniSiteConfig.services.map((s) => ({
-          title: s.title,
-          desc: s.desc,
-          price: s.price || 'Standard',
-          badge: (s as any).badge || '',
-          icon: s.icon || 'Sparkles',
-        }))
+        title: s.title,
+        desc: s.desc,
+        price: s.price || 'Standard',
+        badge: (s as any).badge || '',
+        icon: s.icon || 'Sparkles',
+      }))
       : initialTheme.defaultServices.map((s) => ({
-          title: s.title,
-          desc: s.desc,
-          price: s.price || 'Standard',
-          badge: s.badge || '',
-          icon: 'Sparkles',
-        }))
+        title: s.title,
+        desc: s.desc,
+        price: s.price || 'Standard',
+        badge: s.badge || '',
+        icon: 'Sparkles',
+      }))
   );
 
   const [faqs, setFaqs] = useState<FaqItem[]>(
@@ -244,6 +244,8 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [aiMessage, setAiMessage] = useState<string | null>(null);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -255,27 +257,27 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
 
   const currentTheme = selectedTemplate
     ? {
-        name: selectedTemplate.name,
-        categoryKey: selectedTemplate.categoryKey,
-        taglineDefault: selectedTemplate.taglineDefault,
-        headlineTemplate: () => selectedTemplate.headlineTemplate,
-        subheadlineTemplate: () => selectedTemplate.subheadlineTemplate,
-        primaryCtaText: selectedTemplate.primaryCtaText || 'Get Free Quote',
-        primaryCtaType: selectedTemplate.primaryCtaType || 'whatsapp',
-        secondaryCtaText: selectedTemplate.secondaryCtaText || 'Call Directly',
-        secondaryCtaType: selectedTemplate.secondaryCtaType || 'call',
-        accentColor: selectedTemplate.accentColor || '#4f46e5',
-        accentBg: selectedTemplate.accentBg || 'bg-indigo-600',
-        gradient: selectedTemplate.gradient || 'from-slate-950 via-indigo-950 to-slate-950',
-        badgeText: selectedTemplate.badgeText || 'Verified Local Business',
-        servicesTitle: selectedTemplate.servicesTitle || 'Our Professional Services',
-        servicesSubtitle: selectedTemplate.servicesSubtitle || 'Tailored solutions delivered with precision.',
-        galleryTitle: selectedTemplate.galleryTitle || 'Our Work & Showcase',
-        trustTitle: selectedTemplate.trustTitle || 'Why Choose Us',
-        defaultServices: selectedTemplate.defaultServices || [],
-        defaultFaqs: selectedTemplate.defaultFaqs || [],
-        defaultGalleryImages: selectedTemplate.defaultGalleryImages || [],
-      }
+      name: selectedTemplate.name,
+      categoryKey: selectedTemplate.categoryKey,
+      taglineDefault: selectedTemplate.taglineDefault,
+      headlineTemplate: () => selectedTemplate.headlineTemplate,
+      subheadlineTemplate: () => selectedTemplate.subheadlineTemplate,
+      primaryCtaText: selectedTemplate.primaryCtaText || 'Get Free Quote',
+      primaryCtaType: selectedTemplate.primaryCtaType || 'whatsapp',
+      secondaryCtaText: selectedTemplate.secondaryCtaText || 'Call Directly',
+      secondaryCtaType: selectedTemplate.secondaryCtaType || 'call',
+      accentColor: selectedTemplate.accentColor || '#4f46e5',
+      accentBg: selectedTemplate.accentBg || 'bg-indigo-600',
+      gradient: selectedTemplate.gradient || 'from-slate-950 via-indigo-950 to-slate-950',
+      badgeText: selectedTemplate.badgeText || 'Verified Local Business',
+      servicesTitle: selectedTemplate.servicesTitle || 'Our Professional Services',
+      servicesSubtitle: selectedTemplate.servicesSubtitle || 'Tailored solutions delivered with precision.',
+      galleryTitle: selectedTemplate.galleryTitle || 'Our Work & Showcase',
+      trustTitle: selectedTemplate.trustTitle || 'Why Choose Us',
+      defaultServices: selectedTemplate.defaultServices || [],
+      defaultFaqs: selectedTemplate.defaultFaqs || [],
+      defaultGalleryImages: selectedTemplate.defaultGalleryImages || [],
+    }
     : CATEGORY_THEMES[categoryKey as LocalCategoryKey] || CATEGORY_THEMES.GENERAL;
 
   // Build the website data for rendering and bundle export
@@ -313,11 +315,11 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
       customReviews && customReviews.length > 0
         ? customReviews
         : profile.reviews?.map((r) => ({
-            authorName: r.authorName,
-            rating: r.rating,
-            text: r.content,
-            relativeTime: r.date,
-          })),
+          authorName: r.authorName,
+          rating: r.rating,
+          text: r.content,
+          relativeTime: r.date,
+        })),
   });
 
   const autoGeneratedHtml = generateStandaloneHtmlBundle(generatedData).html;
@@ -553,6 +555,90 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
     setGalleryImages(currentTheme.defaultGalleryImages);
   };
 
+  // AI-Powered Data Auto-Fill (Phone, WhatsApp, Address, Story, Services, FAQs, Reviews, etc.)
+  const handleAiAutoFill = async (section: string = 'all') => {
+    setIsAiGenerating(true);
+    setAiMessage('✨ AI is generating verified website content...');
+    try {
+      const res = await fetch('/api/portal/site-builder/ai-fill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: profile.businessName,
+          category: currentTheme.name || profile.category,
+          city: profile.city || 'India',
+          currentAddress: address,
+          currentPhone: phone,
+          currentWhatsapp: whatsapp,
+          currentWorkingHours: workingHours,
+          section,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success && json.data) {
+        const d = json.data;
+        if (section === 'all' || section === 'contact') {
+          if (d.phone) setPhone(d.phone);
+          if (d.whatsapp) setWhatsapp(d.whatsapp);
+          if (d.address) setAddress(d.address);
+          if (d.workingHours) setWorkingHours(d.workingHours);
+          if (d.headline) setHeadline(d.headline);
+          if (d.subheadline) setSubheadline(d.subheadline);
+        }
+        if (section === 'all' || section === 'about') {
+          if (d.aboutTitle) setAboutTitle(d.aboutTitle);
+          if (d.aboutText) setAboutText(d.aboutText);
+          if (d.aboutBadge) setAboutBadge(d.aboutBadge);
+          if (d.aboutBadgeTitle) setAboutBadgeTitle(d.aboutBadgeTitle);
+          if (d.aboutBadgeDesc) setAboutBadgeDesc(d.aboutBadgeDesc);
+          if (Array.isArray(d.aboutPillars) && d.aboutPillars.length > 0) {
+            setAboutPillars(d.aboutPillars);
+          }
+        }
+        if (section === 'all' || section === 'services') {
+          if (Array.isArray(d.services) && d.services.length > 0) {
+            setServices(
+              d.services.map((s: any) => ({
+                title: s.title,
+                desc: s.desc,
+                price: s.price || 'Standard',
+                badge: s.badge || '',
+                icon: s.icon || 'Sparkles',
+              }))
+            );
+          }
+        }
+        if (section === 'all' || section === 'reviews') {
+          if (Array.isArray(d.reviews) && d.reviews.length > 0) {
+            setCustomReviews(d.reviews);
+          }
+          if (d.ratingOverride) setRatingOverride(String(d.ratingOverride));
+          if (d.reviewCountOverride) setReviewCountOverride(String(d.reviewCountOverride));
+        }
+        if (section === 'all' || section === 'faqs') {
+          if (Array.isArray(d.faqs) && d.faqs.length > 0) {
+            setFaqs(d.faqs);
+          }
+        }
+        if (section === 'all' || section === 'gallery') {
+          if (Array.isArray(d.galleryImages) && d.galleryImages.length > 0) {
+            setGalleryImages(d.galleryImages);
+          }
+        }
+        setAiMessage('✨ Website data populated successfully with AI!');
+        setTimeout(() => setAiMessage(null), 4000);
+      } else {
+        alert(json.error || 'Failed to auto-fill website data.');
+      }
+    } catch (err: any) {
+      console.error('Error auto-filling website data:', err);
+      alert(err.message || 'Error auto-filling website data.');
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
   // Save changes to profile & context
   const handleSaveAndPublish = () => {
     const fullSiteUrl =
@@ -668,6 +754,17 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
             <ExternalLink className="w-3 h-3 text-slate-400" />
           </a>
 
+          <Button
+            variant="outline"
+            size="sm"
+            icon={Sparkles}
+            onClick={() => handleAiAutoFill('all')}
+            disabled={isAiGenerating}
+            className="bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 font-bold shadow-xs transition-all"
+          >
+            {isAiGenerating ? '✨ AI Synthesizing...' : '✨ AI Auto-Fill Site'}
+          </Button>
+
           <Button variant="outline" size="sm" icon={copiedUrl ? Check : Copy} onClick={handleCopyLink}>
             {copiedUrl ? 'Copied Link!' : 'Copy Site URL'}
           </Button>
@@ -683,6 +780,22 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
           </Button>
         </div>
       </div>
+
+      {/* AI Fill Feedback Banner */}
+      {aiMessage && (
+        <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center justify-between animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            <span>{aiMessage}</span>
+          </div>
+          <button
+            onClick={() => setAiMessage(null)}
+            className="text-purple-500 hover:text-purple-700 text-xs"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Category & Template Architecture Switcher (Custom Admin, AI-Synthesized, Built-in) */}
       <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
@@ -719,42 +832,38 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
           <div className="flex rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 text-[11px] font-semibold">
             <button
               onClick={() => setTemplateFilter('all')}
-              className={`px-2.5 py-1 rounded-lg transition-all ${
-                templateFilter === 'all'
+              className={`px-2.5 py-1 rounded-lg transition-all ${templateFilter === 'all'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-bold'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               All ({availableTemplates.length || Object.keys(CATEGORY_THEMES).length})
             </button>
             <button
               onClick={() => setTemplateFilter('custom')}
-              className={`px-2.5 py-1 rounded-lg transition-all ${
-                templateFilter === 'custom'
+              className={`px-2.5 py-1 rounded-lg transition-all ${templateFilter === 'custom'
                   ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               Custom Admin ({availableTemplates.filter((t) => t.isCustom && !t.isAiGenerated).length})
             </button>
             <button
               onClick={() => setTemplateFilter('ai')}
-              className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
-                templateFilter === 'ai'
+              className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${templateFilter === 'ai'
                   ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs font-bold'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               <Sparkles className="w-3 h-3 text-purple-500" />
               AI Synthesized ({availableTemplates.filter((t) => t.isAiGenerated).length})
             </button>
             <button
               onClick={() => setTemplateFilter('builtin')}
-              className={`px-2.5 py-1 rounded-lg transition-all ${
-                templateFilter === 'builtin'
+              className={`px-2.5 py-1 rounded-lg transition-all ${templateFilter === 'builtin'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-bold'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               Built-in ({availableTemplates.length > 0 ? availableTemplates.filter((t) => !t.isCustom && !t.isAiGenerated).length : Object.keys(CATEGORY_THEMES).length})
             </button>
@@ -765,21 +874,21 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
         <div className="flex gap-2.5 overflow-x-auto pb-1.5 scrollbar-thin">
           {(availableTemplates.length > 0
             ? availableTemplates.filter((t) => {
-                if (templateFilter === 'custom') return t.isCustom && !t.isAiGenerated;
-                if (templateFilter === 'ai') return t.isAiGenerated;
-                if (templateFilter === 'builtin') return !t.isCustom && !t.isAiGenerated;
-                return true;
-              })
+              if (templateFilter === 'custom') return t.isCustom && !t.isAiGenerated;
+              if (templateFilter === 'ai') return t.isAiGenerated;
+              if (templateFilter === 'builtin') return !t.isCustom && !t.isAiGenerated;
+              return true;
+            })
             : (Object.keys(CATEGORY_THEMES) as LocalCategoryKey[]).map((key) => {
-                const th = CATEGORY_THEMES[key];
-                return {
-                  ...th,
-                  id: key,
-                  categoryKey: key,
-                  isCustom: false,
-                  isAiGenerated: false,
-                };
-              })
+              const th = CATEGORY_THEMES[key];
+              return {
+                ...th,
+                id: key,
+                categoryKey: key,
+                isCustom: false,
+                isAiGenerated: false,
+              };
+            })
           ).map((tpl: any) => {
             const isSelected = selectedTemplate?.id
               ? selectedTemplate.id === tpl.id
@@ -789,11 +898,10 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
               <button
                 key={tpl.id || tpl.categoryKey}
                 onClick={() => handleSelectTemplate(tpl)}
-                className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 border text-left shrink-0 ${
-                  isSelected
+                className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 border text-left shrink-0 ${isSelected
                     ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-slate-900 dark:border-white shadow-md scale-102 ring-2 ring-indigo-500/30'
                     : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 hover:border-slate-300 dark:hover:bg-slate-700'
-                }`}
+                  }`}
               >
                 <span
                   className="w-3 h-3 rounded-full shrink-0 shadow-xs border border-white/20"
@@ -805,9 +913,8 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
                     {isSelected && <Check className="w-3 h-3 text-emerald-400 shrink-0" />}
                   </div>
                   <span
-                    className={`text-[9px] font-normal ${
-                      isSelected ? 'text-slate-300 dark:text-slate-600' : 'text-slate-400'
-                    }`}
+                    className={`text-[9px] font-normal ${isSelected ? 'text-slate-300 dark:text-slate-600' : 'text-slate-400'
+                      }`}
                   >
                     {tpl.isAiGenerated ? '✨ AI Synth' : tpl.isCustom ? 'Custom Admin' : 'Preset'}
                   </span>
@@ -826,84 +933,76 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
           <div className="flex rounded-2xl bg-slate-100 dark:bg-slate-800 p-1 text-xs font-bold gap-1 overflow-x-auto scrollbar-thin">
             <button
               onClick={() => setActiveTab('content')}
-              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all ${
-                activeTab === 'content'
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all ${activeTab === 'content'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               1. Hero & Info
             </button>
             <button
               onClick={() => setActiveTab('about')}
-              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 ${
-                activeTab === 'about'
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 ${activeTab === 'about'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               <Award className="w-3 h-3 text-amber-500" />
               2. About Story
             </button>
             <button
               onClick={() => setActiveTab('images')}
-              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all ${
-                activeTab === 'images'
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all ${activeTab === 'images'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               3. Branding
             </button>
             <button
               onClick={() => setActiveTab('services')}
-              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all ${
-                activeTab === 'services'
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all ${activeTab === 'services'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               4. Services ({services.length})
             </button>
             <button
               onClick={() => setActiveTab('reviews')}
-              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 ${
-                activeTab === 'reviews'
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 ${activeTab === 'reviews'
                   ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
               5. Reviews ({customReviews.length})
             </button>
             <button
               onClick={() => setActiveTab('gallery')}
-              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 ${
-                activeTab === 'gallery'
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 ${activeTab === 'gallery'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               <ImageIcon className="w-3 h-3 text-sky-500" />
               6. Gallery ({galleryImages.length})
             </button>
             <button
               onClick={() => setActiveTab('faqs')}
-              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all ${
-                activeTab === 'faqs'
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all ${activeTab === 'faqs'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               7. FAQs ({faqs.length})
             </button>
             <button
               onClick={() => setActiveTab('code')}
-              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 ${
-                activeTab === 'code'
+              className={`py-1.5 px-2.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 ${activeTab === 'code'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               <Code className="w-3 h-3 text-indigo-500" />
               8. HTML
@@ -913,11 +1012,23 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
           {/* TAB 1: Hero & Contact Information */}
           {activeTab === 'content' && (
             <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">
-                  Hero Header & Business Details
-                </h4>
-                <span className="text-[10px] text-slate-400">Updates live in preview</span>
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 flex-wrap gap-2">
+                <div>
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">
+                    Hero Header & Business Details
+                  </h4>
+                  <span className="text-[10px] text-slate-400">Updates live in preview</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={Sparkles}
+                  onClick={() => handleAiAutoFill('contact')}
+                  disabled={isAiGenerating}
+                  className="text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 hover:bg-purple-100"
+                >
+                  {isAiGenerating ? '✨ Generating...' : '✨ AI Fill Contact & Hero'}
+                </Button>
               </div>
 
               <div>
@@ -999,7 +1110,7 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
           {/* TAB 2: About Our Business Customizer */}
           {activeTab === 'about' && (
             <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 flex-wrap gap-2">
                 <div>
                   <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                     <Award className="w-3.5 h-3.5 text-amber-500" />
@@ -1009,6 +1120,16 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
                     Customize your company story narrative, trust badge, and key value pillars.
                   </p>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={Sparkles}
+                  onClick={() => handleAiAutoFill('about')}
+                  disabled={isAiGenerating}
+                  className="text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 hover:bg-purple-100"
+                >
+                  {isAiGenerating ? '✨ Writing...' : '✨ AI Write Story & Pillars'}
+                </Button>
               </div>
 
               <div>
@@ -1263,14 +1384,24 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
           {/* TAB 4: Full CRUD for Services */}
           {activeTab === 'services' && (
             <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 flex-wrap gap-2">
                 <div>
                   <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">
                     Services & Products ({services.length})
                   </h4>
                   <p className="text-[11px] text-slate-500">Add, edit pricing, or remove offerings.</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={Sparkles}
+                    onClick={() => handleAiAutoFill('services')}
+                    disabled={isAiGenerating}
+                    className="text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 hover:bg-purple-100"
+                  >
+                    {isAiGenerating ? '✨ Generating...' : '✨ AI Generate Services'}
+                  </Button>
                   <Button variant="outline" size="sm" icon={RefreshCw} onClick={handleResetServices}>
                     Reset
                   </Button>
@@ -1358,7 +1489,7 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
           {/* TAB 5: Ratings & Reviews Customizer (Dynamic Sync + Override) */}
           {activeTab === 'reviews' && (
             <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 flex-wrap gap-2">
                 <div>
                   <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -1368,7 +1499,17 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
                     Live dynamic sync from Google Maps + optional manual override controls.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={Sparkles}
+                    onClick={() => handleAiAutoFill('reviews')}
+                    disabled={isAiGenerating}
+                    className="text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 hover:bg-purple-100"
+                  >
+                    {isAiGenerating ? '✨ Generating...' : '✨ AI Generate Reviews'}
+                  </Button>
                   <Button variant="outline" size="sm" icon={RefreshCw} onClick={handleResetReviews}>
                     Reset
                   </Button>
@@ -1512,7 +1653,7 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
           {/* TAB 6: Gallery / Showcase Customizer */}
           {activeTab === 'gallery' && (
             <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 flex-wrap gap-2">
                 <div>
                   <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                     <ImageIcon className="w-3.5 h-3.5 text-sky-500" />
@@ -1522,7 +1663,17 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
                     Add project photos, category tags, and client deliverable highlights.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={Sparkles}
+                    onClick={() => handleAiAutoFill('gallery')}
+                    disabled={isAiGenerating}
+                    className="text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 hover:bg-purple-100"
+                  >
+                    {isAiGenerating ? '✨ Generating...' : '✨ AI Generate Showcase'}
+                  </Button>
                   <Button variant="outline" size="sm" icon={RefreshCw} onClick={handleResetGallery}>
                     Reset
                   </Button>
@@ -1599,14 +1750,24 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
           {/* TAB 7: Full CRUD for FAQs */}
           {activeTab === 'faqs' && (
             <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 flex-wrap gap-2">
                 <div>
                   <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">
                     Frequently Asked Questions ({faqs.length})
                   </h4>
                   <p className="text-[11px] text-slate-500">Edit or add customer FAQs.</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={Sparkles}
+                    onClick={() => handleAiAutoFill('faqs')}
+                    disabled={isAiGenerating}
+                    className="text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 hover:bg-purple-100"
+                  >
+                    {isAiGenerating ? '✨ Generating...' : '✨ AI Generate FAQs'}
+                  </Button>
                   <Button variant="outline" size="sm" icon={RefreshCw} onClick={handleResetFaqs}>
                     Reset
                   </Button>
@@ -1761,22 +1922,20 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
             <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold">
               <button
                 onClick={() => setDeviceView('mobile')}
-                className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
-                  deviceView === 'mobile'
+                className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${deviceView === 'mobile'
                     ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                     : 'text-slate-500'
-                }`}
+                  }`}
               >
                 <Smartphone className="w-3.5 h-3.5" />
                 Mobile (375px)
               </button>
               <button
                 onClick={() => setDeviceView('desktop')}
-                className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
-                  deviceView === 'desktop'
+                className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${deviceView === 'desktop'
                     ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                     : 'text-slate-500'
-                }`}
+                  }`}
               >
                 <Monitor className="w-3.5 h-3.5" />
                 Desktop View
@@ -1798,9 +1957,8 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
 
           {/* Live Preview Container Frame */}
           <div
-            className={`w-full transition-all duration-300 ${
-              deviceView === 'mobile' ? 'max-w-[390px]' : 'max-w-full'
-            }`}
+            className={`w-full transition-all duration-300 ${deviceView === 'mobile' ? 'max-w-[390px]' : 'max-w-full'
+              }`}
           >
             <div className="rounded-3xl border-8 border-slate-900 bg-white shadow-2xl overflow-hidden text-xs">
               <div className="relative w-full h-[680px] bg-white">
