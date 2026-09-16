@@ -16,6 +16,7 @@ import {
   Settings,
   Sparkles,
   Layers,
+  Cpu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -70,6 +71,7 @@ export const AppSidebar: React.FC = () => {
     { name: 'Billing & Invoices', href: '/app/billing', icon: FileText },
     { name: 'Website Templates', href: '/app/templates', icon: Layers, badge: 'AI Engine' },
     { name: 'AI Operations Agent', href: '/app/ai', icon: Sparkles, badge: 'Gemini' },
+    { name: 'AI Usage & GCP Logs', href: '/app/ai-logs', icon: Cpu, badge: 'GCP Cost' },
     { name: 'System & Tax Settings', href: '/app/settings', icon: Settings },
   ];
 

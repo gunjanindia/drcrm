@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUserSession } from '@/lib/auth';
+import { checkAndDeductAiCredits } from '@/lib/ai-credits';
 
 export async function POST(request: Request) {
   try {
@@ -94,6 +95,18 @@ Generate a valid, pure JSON object (NO markdown backticks, NO markdown formattin
           const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
           const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
           aiGeneratedJson = JSON.parse(cleanedText);
+
+          // Log AI template synthesis token consumption and GCP cost
+          await checkAndDeductAiCredits({
+            userId: session?.userId,
+            userName: session?.name || 'Super Admin',
+            businessName: businessName || category,
+            action: 'AI_TEMPLATE_SYNTHESIS',
+            featureName: `Gemini Template Synthesizer (${category})`,
+            creditsToDeduct: 1,
+            promptText: prompt,
+            completionText: rawText,
+          }).catch((e) => console.warn('Could not log AI template tokens:', e));
         }
       } catch (geminiErr) {
         console.warn('Gemini API online call error, falling back to intelligent synthesis engine:', geminiErr);

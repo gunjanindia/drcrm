@@ -150,33 +150,64 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${targetName}${citySuffix}`)}`;
   };
 
-  const handleGenerateReply = (rev: ClientReviewItem) => {
+  const handleGenerateReply = async (rev: ClientReviewItem) => {
     if (!currentAuth?.isConnected) {
       setPendingReplyRev(rev);
       setIsAuthPromptModalOpen(true);
       return;
     }
 
-    if (onDeductPoints) {
-      const ok = onDeductPoints(1);
-      if (!ok) {
-        if (onOpenRechargeModal) onOpenRechargeModal();
+    setIsGenerating(rev.id);
+    try {
+      const res = await fetch('/api/portal/reviews/generate-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reviewText: rev.content,
+          authorName: rev.authorName,
+          rating: rev.rating,
+          businessName: businessName || 'Our Business',
+          tone: activeTone,
+          city,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.status === 402 || data.error === 'AI_CREDITS_EXHAUSTED') {
+        if (onOpenRechargeModal) {
+          onOpenRechargeModal();
+        } else {
+          alert(data.message || 'You have used all 20 free AI credits. Please recharge your AI Wallet.');
+        }
+        setIsGenerating(null);
         return;
       }
-    }
 
-    setIsGenerating(rev.id);
-    setTimeout(() => {
-      const generated = aiAssistantEngine.generateReviewResponse(
+      if (data.success && data.replyText) {
+        setDraftResponses((prev) => ({ ...prev, [rev.id]: data.replyText }));
+        if (onDeductPoints) onDeductPoints(1);
+      } else {
+        const fallback = aiAssistantEngine.generateReviewResponse(
+          rev.content,
+          rev.authorName,
+          rev.rating,
+          businessName,
+          activeTone
+        );
+        setDraftResponses((prev) => ({ ...prev, [rev.id]: fallback }));
+      }
+    } catch (e) {
+      const fallback = aiAssistantEngine.generateReviewResponse(
         rev.content,
         rev.authorName,
         rev.rating,
         businessName,
         activeTone
       );
-      setDraftResponses((prev) => ({ ...prev, [rev.id]: generated }));
+      setDraftResponses((prev) => ({ ...prev, [rev.id]: fallback }));
+    } finally {
       setIsGenerating(null);
-    }, 600);
+    }
   };
 
   const handleCopy = (id: string, text: string) => {

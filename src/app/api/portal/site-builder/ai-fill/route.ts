@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUserSession } from '@/lib/auth';
+import { checkAndDeductAiCredits } from '@/lib/ai-credits';
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +21,29 @@ export async function POST(request: Request) {
       currentWorkingHours = '',
       section = 'all', // 'all' | 'contact' | 'about' | 'services' | 'reviews' | 'gallery' | 'faqs'
     } = body;
+
+    // AI Credit Gating & Deduction
+    const creditCheck = await checkAndDeductAiCredits({
+      userId: session?.userId,
+      clientId: session?.clientId,
+      userName: session?.name || 'Portal User',
+      businessName: businessName || 'Client Business',
+      action: 'SITE_BUILDER_AI_FILL',
+      featureName: `Site Builder AI Auto-Fill (${section.toUpperCase()})`,
+      creditsToDeduct: 1,
+      promptText: `${businessName} ${category} ${city} ${section}`,
+    });
+
+    if (!creditCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: creditCheck.error || 'AI_CREDITS_EXHAUSTED',
+          message: creditCheck.message || 'You have used all available AI credits. Please recharge your AI Wallet.',
+          creditsRemaining: creditCheck.remainingCredits,
+        },
+        { status: 402 }
+      );
+    }
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 

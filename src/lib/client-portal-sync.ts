@@ -41,6 +41,10 @@ export interface SyncedBusinessProfile {
   performanceInsights?: GbpDailyOrMonthlyInsight[];
   auditFactors?: AuditFactor[];
   miniSiteConfig?: MiniSiteConfig;
+  aiCreditBalance?: number;
+  trialEndsAt?: string;
+  subscriptionStatus?: string;
+  isGbpLinked?: boolean;
 }
 
 export const DEMO_BUSINESS_PROFILE: SyncedBusinessProfile = {

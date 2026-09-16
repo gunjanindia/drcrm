@@ -302,6 +302,12 @@ export async function GET(request: Request) {
         whatsapp: (clientRecord.whatsapp || clientRecord.phone).replace(/[^0-9]/g, ''),
         customSlug: clientRecord.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
       },
+      aiCreditBalance: clientRecord.aiCreditBalance ?? 20,
+      trialEndsAt: clientRecord.trialEndsAt
+        ? new Date(clientRecord.trialEndsAt).toISOString()
+        : new Date(Date.now() + 14 * 86400000).toISOString(),
+      subscriptionStatus: clientRecord.subscriptionStatus || 'TRIAL',
+      isGbpLinked: clientRecord.isGbpLinked ?? false,
     };
 
     return NextResponse.json({
@@ -309,6 +315,7 @@ export async function GET(request: Request) {
       authenticated: !!session,
       user: session,
       data: profile,
+      profile: profile,
       source: 'DATABASE_STORED_RECORDS',
     });
   } catch (error: any) {
