@@ -54,19 +54,29 @@ export const Navbar: React.FC = () => {
         </nav>
 
         {/* Action CTAs & Portal Switchers */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <Link href="/register">
+            <Button
+              variant="primary"
+              size="sm"
+              icon={Sparkles}
+              className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30 hover:scale-[1.02] transition-all"
+            >
+              Start Free Trial (20 Credits)
+            </Button>
+          </Link>
           <Link href="/login">
-            <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <Button variant="ghost" size="sm" className="hidden sm:inline-flex text-xs font-semibold">
               Sign In
             </Button>
           </Link>
           <Link href="/portal">
-            <Button variant="outline" size="sm" icon={UserCheck} className="hidden sm:inline-flex">
+            <Button variant="outline" size="sm" icon={UserCheck} className="hidden lg:inline-flex text-xs font-semibold">
               Client Portal
             </Button>
           </Link>
           <Link href="/app">
-            <Button variant="primary" size="sm" icon={LayoutDashboard}>
+            <Button variant="outline" size="sm" icon={LayoutDashboard} className="hidden md:inline-flex text-xs">
               Agency CRM
             </Button>
           </Link>
