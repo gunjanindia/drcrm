@@ -15,9 +15,15 @@ import {
   Phone,
   Globe,
   Navigation,
+  Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
-import { GbpDailyOrMonthlyInsight, parseGbpInsightsCsv } from '@/lib/gbp-insights-engine';
+import {
+  GbpDailyOrMonthlyInsight,
+  parseGbpInsightsCsv,
+  MONTH_NAMES,
+  MONTH_SHORT_NAMES,
+} from '@/lib/gbp-insights-engine';
 
 export interface GbpInsightsUploadModalProps {
   isOpen: boolean;
@@ -36,7 +42,16 @@ export const GbpInsightsUploadModal: React.FC<GbpInsightsUploadModalProps> = ({
 }) => {
   const [activeMode, setActiveMode] = useState<'upload' | 'paste' | 'google_api'>('upload');
   const [csvText, setCsvText] = useState<string>('');
-  const [periodLabel, setPeriodLabel] = useState<string>('Recent 30 Days');
+  
+  const now = new Date();
+  const currentMonthNum = now.getMonth() + 1;
+  const currentYearNum = now.getFullYear();
+
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentMonthNum);
+  const [selectedYear, setSelectedYear] = useState<number>(currentYearNum);
+  const [periodLabel, setPeriodLabel] = useState<string>(
+    `${MONTH_SHORT_NAMES[currentMonthNum - 1] || 'Sep'} ${currentYearNum}`
+  );
   const [parsedPreview, setParsedPreview] = useState<GbpDailyOrMonthlyInsight[] | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,6 +62,25 @@ export const GbpInsightsUploadModal: React.FC<GbpInsightsUploadModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
+
+  const handleMonthOrYearChange = (m: number, y: number) => {
+    setSelectedMonth(m);
+    setSelectedYear(y);
+    const label = `${MONTH_SHORT_NAMES[m - 1] || 'Sep'} ${y}`;
+    setPeriodLabel(label);
+
+    // If preview already exists, update its period, month, and year
+    if (parsedPreview && parsedPreview.length > 0) {
+      const updated = parsedPreview.map((item) => ({
+        ...item,
+        month: m,
+        year: y,
+        monthName: MONTH_NAMES[m - 1],
+        period: label,
+      }));
+      setParsedPreview(updated);
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,13 +94,17 @@ export const GbpInsightsUploadModal: React.FC<GbpInsightsUploadModalProps> = ({
       try {
         const text = event.target?.result as string;
         setCsvText(text);
-        const parsed = parseGbpInsightsCsv(text, periodLabel || file.name.replace(/\.[^/.]+$/, ''));
+        const parsed = parseGbpInsightsCsv(text, {
+          month: selectedMonth,
+          year: selectedYear,
+          periodLabel,
+        });
         if (parsed.length === 0) {
           setErrorMessage('Could not extract valid data rows from the CSV file. Please verify it is a Google Business Profile Insights export.');
           setParsedPreview(null);
         } else {
           setParsedPreview(parsed);
-          setSuccessMessage(`Parsed ${parsed.length} insight row(s) successfully!`);
+          setSuccessMessage(`Parsed ${parsed.length} insight row(s) for ${MONTH_NAMES[selectedMonth - 1]} ${selectedYear} successfully!`);
         }
       } catch (err: any) {
         setErrorMessage(err?.message || 'Failed to parse CSV file.');
@@ -92,13 +130,17 @@ export const GbpInsightsUploadModal: React.FC<GbpInsightsUploadModalProps> = ({
 
     setErrorMessage(null);
     try {
-      const parsed = parseGbpInsightsCsv(csvText, periodLabel || 'Pasted CSV Insight');
+      const parsed = parseGbpInsightsCsv(csvText, {
+        month: selectedMonth,
+        year: selectedYear,
+        periodLabel,
+      });
       if (parsed.length === 0) {
         setErrorMessage('No valid insight rows found. Please make sure to include the header row.');
         setParsedPreview(null);
       } else {
         setParsedPreview(parsed);
-        setSuccessMessage(`Parsed ${parsed.length} insight row(s) successfully!`);
+        setSuccessMessage(`Parsed ${parsed.length} insight row(s) for ${MONTH_NAMES[selectedMonth - 1]} ${selectedYear} successfully!`);
       }
     } catch (err: any) {
       setErrorMessage(err?.message || 'Failed to parse pasted text.');
@@ -118,13 +160,16 @@ export const GbpInsightsUploadModal: React.FC<GbpInsightsUploadModalProps> = ({
         body: JSON.stringify({
           businessName,
           clientId,
+          month: selectedMonth,
+          year: selectedYear,
+          periodLabel,
         }),
       });
 
       const data = await res.json();
       if (res.ok && data.success && Array.isArray(data.data)) {
         setParsedPreview(data.data);
-        setSuccessMessage(data.message || 'Retrieved Google Business Profile insights successfully!');
+        setSuccessMessage(data.message || `Retrieved Google Business Profile insights for ${MONTH_NAMES[selectedMonth - 1]} ${selectedYear} successfully!`);
       } else {
         setErrorMessage(data.error || 'Failed to fetch insights from Google.');
       }
@@ -144,27 +189,37 @@ export const GbpInsightsUploadModal: React.FC<GbpInsightsUploadModalProps> = ({
     setIsSaving(true);
     setErrorMessage(null);
 
+    const recordToSave = {
+      ...parsedPreview[0],
+      month: selectedMonth,
+      year: selectedYear,
+      monthName: MONTH_NAMES[selectedMonth - 1],
+      period: periodLabel,
+    };
+
     try {
       const res = await fetch('/api/portal/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId,
-          insightRecord: parsedPreview[0],
+          insightRecord: recordToSave,
+          month: selectedMonth,
+          year: selectedYear,
           periodLabel,
         }),
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
-        onInsightsSaved(parsedPreview);
+        onInsightsSaved(data.data || [recordToSave]);
         onClose();
       } else {
         setErrorMessage(data.error || 'Failed to save insights to CRM profile.');
       }
     } catch (err: any) {
       // Fallback save in memory / context
-      onInsightsSaved(parsedPreview);
+      onInsightsSaved([recordToSave]);
       onClose();
     } finally {
       setIsSaving(false);
@@ -235,18 +290,53 @@ export const GbpInsightsUploadModal: React.FC<GbpInsightsUploadModalProps> = ({
             </button>
           </div>
 
-          {/* Period Label Input */}
-          <div className="space-y-1.5">
-            <label className="font-bold text-slate-700 dark:text-slate-300">
-              Insight Period Label:
-            </label>
-            <input
-              type="text"
-              value={periodLabel}
-              onChange={(e) => setPeriodLabel(e.target.value)}
-              placeholder="e.g. August 2026, Recent 30 Days, Q3 Performance"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 font-medium text-xs focus:ring-2 focus:ring-indigo-500"
-            />
+          {/* Month & Year Selection Controls */}
+          <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-800 dark:text-slate-200 text-xs flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                Select Reporting Month & Year:
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">
+                {periodLabel}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
+                  Reporting Month:
+                </label>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => handleMonthOrYearChange(parseInt(e.target.value, 10), selectedYear)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                >
+                  {MONTH_NAMES.map((mName, idx) => (
+                    <option key={idx} value={idx + 1}>
+                      {mName} ({MONTH_SHORT_NAMES[idx]})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
+                  Reporting Year:
+                </label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => handleMonthOrYearChange(selectedMonth, parseInt(e.target.value, 10))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                >
+                  {[2024, 2025, 2026, 2027].map((yr) => (
+                    <option key={yr} value={yr}>
+                      {yr}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
 
           {/* MODE: Upload CSV File */}

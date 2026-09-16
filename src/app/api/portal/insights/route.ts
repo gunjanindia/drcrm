@@ -6,6 +6,9 @@ import {
   GbpDailyOrMonthlyInsight,
   SEEDED_AUTHENTIC_GBP_INSIGHT,
   parseGbpInsightsCsv,
+  sortInsightsChronologically,
+  MONTH_NAMES,
+  MONTH_SHORT_NAMES,
 } from '@/lib/gbp-insights-engine';
 import { getSyncedBusinessProfile, saveSyncedBusinessProfile } from '@/lib/client-portal-sync';
 
@@ -21,13 +24,15 @@ export async function GET(request: Request) {
     const session = await getCurrentUserSession();
 
     const clientKey = requestedClientId || session?.clientId || session?.email || 'default';
-    const insights = memoryInsightsStore[clientKey] || memoryInsightsStore['default'] || [];
+    const insights = sortInsightsChronologically(
+      memoryInsightsStore[clientKey] || memoryInsightsStore['default'] || []
+    );
 
     return NextResponse.json({
       success: true,
       data: insights,
       count: insights.length,
-      latest: insights[0] || null,
+      latest: insights[insights.length - 1] || null,
     });
   } catch (error: any) {
     console.error('GET /api/portal/insights error:', error);
@@ -39,15 +44,32 @@ export async function POST(request: Request) {
   try {
     const session = await getCurrentUserSession();
     const body = await request.json();
-    const { clientId, csvContent, insightRecord, periodLabel } = body;
+    const { clientId, csvContent, insightRecord, month, year, periodLabel } = body;
 
     const clientKey = clientId || session?.clientId || session?.email || 'default';
     let newInsights: GbpDailyOrMonthlyInsight[] = [];
 
+    const monthNum = month || (insightRecord?.month ? parseInt(insightRecord.month, 10) : undefined);
+    const yearNum = year || (insightRecord?.year ? parseInt(insightRecord.year, 10) : undefined);
+
     if (csvContent && typeof csvContent === 'string') {
-      newInsights = parseGbpInsightsCsv(csvContent, periodLabel);
+      newInsights = parseGbpInsightsCsv(csvContent, {
+        month: monthNum,
+        year: yearNum,
+        periodLabel,
+      });
     } else if (insightRecord && typeof insightRecord === 'object') {
-      newInsights = [insightRecord];
+      const formattedMonth = monthNum || new Date().getMonth() + 1;
+      const formattedYear = yearNum || new Date().getFullYear();
+      newInsights = [
+        {
+          ...insightRecord,
+          month: formattedMonth,
+          year: formattedYear,
+          monthName: MONTH_NAMES[formattedMonth - 1] || 'September',
+          period: periodLabel || `${MONTH_SHORT_NAMES[formattedMonth - 1] || 'Sep'} ${formattedYear}`,
+        },
+      ];
     }
 
     if (newInsights.length === 0) {
@@ -57,14 +79,28 @@ export async function POST(request: Request) {
       );
     }
 
-    // Merge with existing
-    const existing = memoryInsightsStore[clientKey] || [];
-    const merged = [...newInsights, ...existing];
+    // Merge by (year, month) key to prevent duplicate entries for the same reporting month
+    const existing = memoryInsightsStore[clientKey] || [SEEDED_AUTHENTIC_GBP_INSIGHT];
+    const map = new Map<string, GbpDailyOrMonthlyInsight>();
+
+    // Put existing in map
+    for (const item of existing) {
+      const key = `${item.year || 2026}_${item.month || 9}`;
+      map.set(key, item);
+    }
+
+    // Upsert new insights
+    for (const item of newInsights) {
+      const key = `${item.year || 2026}_${item.month || 9}`;
+      map.set(key, item);
+    }
+
+    const merged = sortInsightsChronologically(Array.from(map.values()));
     memoryInsightsStore[clientKey] = merged;
 
     return NextResponse.json({
       success: true,
-      message: `Successfully stored ${newInsights.length} authentic Google Business Profile insight record(s).`,
+      message: `Successfully saved authentic insight for ${newInsights[0].period}. Total tracked months: ${merged.length}.`,
       data: merged,
       latest: newInsights[0],
     });

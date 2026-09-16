@@ -1,9 +1,12 @@
 // GOOGLE BUSINESS PROFILE INSIGHTS ENGINE & CSV PARSER
-// Supports authentic Google Business Profile exported CSVs, Performance API data, and KPI calculations
+// Supports authentic Google Business Profile exported CSVs, Performance API data, and Monthly Growth Charts
 
 export interface GbpDailyOrMonthlyInsight {
   id?: string;
-  period: string; // e.g., 'Recent 30 Days', 'August 2026', '2026-09-01 - 2026-09-15'
+  period: string; // e.g., 'Sep 2026', 'Aug 2026', 'Jul 2026'
+  year?: number; // e.g., 2026
+  month?: number; // 1 - 12
+  monthName?: string; // e.g., 'September'
   shopCode?: string;
   businessName: string;
   address?: string;
@@ -28,9 +31,42 @@ export interface GbpDailyOrMonthlyInsight {
   source: 'CSV_UPLOAD' | 'GOOGLE_API' | 'MANUAL_ENTRY';
 }
 
+export const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+export const MONTH_SHORT_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
 export const SEEDED_AUTHENTIC_GBP_INSIGHT: GbpDailyOrMonthlyInsight = {
-  id: 'insight_seeded_1',
-  period: 'Official Google Maps Insight Export',
+  id: 'insight_seeded_sep_2026',
+  period: 'Sep 2026',
+  year: 2026,
+  month: 9,
+  monthName: 'September',
   shopCode: '03393595767821993654',
   businessName: 'Life in Lights Academy',
   address: 'Near De Nobili School Parking, Jai Prakash Nagar, Dhanbad, Jharkhand 826001',
@@ -82,7 +118,10 @@ export function splitCsvLine(line: string): string[] {
  * Parses raw CSV text exported from Google Business Profile Insights manager.
  * Handles both the 2-row header standard format (with description row) and single header format.
  */
-export function parseGbpInsightsCsv(csvText: string, periodLabel?: string): GbpDailyOrMonthlyInsight[] {
+export function parseGbpInsightsCsv(
+  csvText: string,
+  options?: { month?: number; year?: number; periodLabel?: string }
+): GbpDailyOrMonthlyInsight[] {
   if (!csvText || !csvText.trim()) return [];
 
   const rawLines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
@@ -104,6 +143,12 @@ export function parseGbpInsightsCsv(csvText: string, periodLabel?: string): GbpD
 
   const headers = splitCsvLine(rawLines[headerIndex]).map((h) => h.toLowerCase().trim());
   const results: GbpDailyOrMonthlyInsight[] = [];
+
+  const now = new Date();
+  const selectedYear = options?.year || now.getFullYear();
+  const selectedMonth = options?.month || now.getMonth() + 1;
+  const monthName = MONTH_NAMES[selectedMonth - 1] || 'September';
+  const periodLabel = options?.periodLabel || `${MONTH_SHORT_NAMES[selectedMonth - 1] || 'Sep'} ${selectedYear}`;
 
   // Data rows start after header row (and skip description sub-header row if present)
   for (let i = headerIndex + 1; i < rawLines.length; i++) {
@@ -162,8 +207,11 @@ export function parseGbpInsightsCsv(csvText: string, periodLabel?: string): GbpD
     const totalActions = calls + messages + bookings + directions + websiteClicks + foodOrders;
 
     results.push({
-      id: `insight_${Date.now()}_${i}`,
-      period: periodLabel || `Uploaded Report (${new Date().toLocaleDateString()})`,
+      id: `insight_${selectedYear}_${selectedMonth}_${Date.now()}_${i}`,
+      period: periodLabel,
+      year: selectedYear,
+      month: selectedMonth,
+      monthName,
       shopCode,
       businessName,
       address,
@@ -190,4 +238,18 @@ export function parseGbpInsightsCsv(csvText: string, periodLabel?: string): GbpD
   }
 
   return results;
+}
+
+/**
+ * Sorts insight records chronologically by year and month.
+ */
+export function sortInsightsChronologically(insights: GbpDailyOrMonthlyInsight[]): GbpDailyOrMonthlyInsight[] {
+  return [...insights].sort((a, b) => {
+    const yearA = a.year || 2026;
+    const yearB = b.year || 2026;
+    if (yearA !== yearB) return yearA - yearB;
+    const monthA = a.month || 1;
+    const monthB = b.month || 1;
+    return monthA - monthB;
+  });
 }
