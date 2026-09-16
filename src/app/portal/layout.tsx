@@ -174,18 +174,6 @@ function PortalLayoutInner({ children }: { children: React.ReactNode }) {
               }
             />
 
-            {!isPaused && (
-              <Button
-                variant="outline"
-                size="sm"
-                icon={RefreshCw}
-                onClick={() => setIsWizardOpen(true)}
-                className="hidden md:inline-flex text-xs"
-              >
-                {profile.isLiveSynced ? 'Update GBP Sync' : 'Sync Live GBP'}
-              </Button>
-            )}
-
             <a
               href={`https://wa.me/917004700318?text=${encodeURIComponent(
                 `Hi Digital Ranchi, I have a question about Client 360 portal for ${profile.businessName}.`

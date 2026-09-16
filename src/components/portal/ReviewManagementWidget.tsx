@@ -151,12 +151,6 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   };
 
   const handleGenerateReply = async (rev: ClientReviewItem) => {
-    if (!currentAuth?.isConnected) {
-      setPendingReplyRev(rev);
-      setIsAuthPromptModalOpen(true);
-      return;
-    }
-
     setIsGenerating(rev.id);
     try {
       const res = await fetch('/api/portal/reviews/generate-ai', {
@@ -499,67 +493,6 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
         </div>
       )}
 
-      {/* GBP Auth Live Status Alert Bar */}
-      <div className="p-4 rounded-3xl bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border border-blue-500/30 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-white">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0">
-            <Globe className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="font-bold block">
-              {currentAuth?.isConnected
-                ? `Google Business Profile Connected (${currentAuth.googleEmail})`
-                : 'Google Business Profile Not Connected'}
-            </span>
-            <span className="text-[11px] text-slate-300">
-              {currentAuth?.isConnected
-                ? 'OAuth authorization active. Official owner responses publish directly to Google Maps customer reviews.'
-                : 'Log in with the Google Account that verified your business to publish official replies directly.'}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {discoveredLocations.length > 0 && (
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={Building2}
-              onClick={() => setIsLocationModalOpen(true)}
-            >
-              Select Location ({discoveredLocations.length})
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            icon={Globe}
-            onClick={() => handleOpenGoogleMapsListing()}
-          >
-            Open Maps Listing
-          </Button>
-          {!currentAuth?.isConnected ? (
-            <Button
-              variant="primary"
-              size="sm"
-              icon={KeyRound}
-              onClick={() => (onConnectGbp ? onConnectGbp() : handleLaunchOAuth())}
-            >
-              Authorize Owner Account
-            </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={KeyRound}
-              onClick={() => (onConnectGbp ? onConnectGbp() : handleLaunchOAuth())}
-            >
-              Re-Authorize
-            </Button>
-          )}
-        </div>
-      </div>
-
       {/* Header & Stats Banner */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
@@ -575,53 +508,44 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
             )}
           </div>
           <p className="text-xs text-slate-500">
-            Generate customized, professional owner replies in seconds. Replies are tracked in your CRM and can be published straight to Google Maps.
+            Generate customized, professional owner replies in seconds using AI credits and publish directly to Google Maps.
           </p>
         </div>
 
-        {/* Tone Selector & Refresh Controls */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            icon={RefreshCw}
-            isLoading={isRefreshingReviews}
-            disabled={isRefreshingReviews}
-            onClick={handleRefreshLiveReviews}
-            className="text-xs"
-          >
-            {isRefreshingReviews ? 'Fetching from Google Maps...' : 'Sync Live Google Reviews'}
-          </Button>
-
-          <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-800">
+        {/* Tone Selector */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="text-[11px] font-semibold text-slate-400">Response Tone:</span>
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold">
               <button
+                type="button"
                 onClick={() => setActiveTone('WARM')}
                 className={`px-2.5 py-1 rounded-lg transition-all ${
                   activeTone === 'WARM'
                     ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-xs'
-                    : 'text-slate-500'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 Warm
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTone('PROFESSIONAL')}
                 className={`px-2.5 py-1 rounded-lg transition-all ${
                   activeTone === 'PROFESSIONAL'
                     ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-xs'
-                    : 'text-slate-500'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 Professional
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTone('HINGLISH')}
                 className={`px-2.5 py-1 rounded-lg transition-all ${
                   activeTone === 'HINGLISH'
                     ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-xs'
-                    : 'text-slate-500'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 Hinglish
@@ -842,42 +766,23 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
               {!draft && (
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                   <div className="flex items-center gap-1.5">
-                    {!currentAuth?.isConnected ? (
-                      <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                        <Lock className="w-3.5 h-3.5 shrink-0" />
-                        Connect Google Business Profile to unlock direct replies
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-slate-400">
-                        {hasReplied ? 'Want to change or improve response?' : 'Draft official reply with 1 click:'}
-                      </span>
-                    )}
+                    <span className="text-[11px] text-slate-500">
+                      {hasReplied
+                        ? 'Official response posted. Generate alternative reply anytime:'
+                        : 'Draft customized owner reply with 1 AI credit:'}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {!currentAuth?.isConnected ? (
-                      <Button
-                        variant="amber"
-                        size="sm"
-                        icon={KeyRound}
-                        onClick={() => {
-                          setPendingReplyRev(rev);
-                          setIsAuthPromptModalOpen(true);
-                        }}
-                      >
-                        Connect GBP to Reply
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        icon={Sparkles}
-                        isLoading={isGenerating === rev.id}
-                        onClick={() => handleGenerateReply(rev)}
-                      >
-                        Generate AI Reply (1 Credit)
-                      </Button>
-                    )}
+                    <Button
+                      variant={hasReplied ? 'outline' : 'primary'}
+                      size="sm"
+                      icon={Sparkles}
+                      isLoading={isGenerating === rev.id}
+                      onClick={() => handleGenerateReply(rev)}
+                    >
+                      {hasReplied ? 'Re-Generate AI Reply' : 'Generate AI Reply (1 Credit)'}
+                    </Button>
                   </div>
                 </div>
               )}

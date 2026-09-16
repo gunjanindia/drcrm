@@ -133,16 +133,16 @@ export default function ClientPortalDashboard() {
         </div>
 
         {/* Quick Sync & GBP Actions */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <Button
             variant="outline"
             size="sm"
             icon={RefreshCw}
             isLoading={isSyncing}
             onClick={handleQuickSync}
-            className="bg-white/10 text-white hover:bg-white/20 border-white/20 text-xs py-2 px-3.5"
+            className="bg-white/10 text-white hover:bg-white/20 border-white/20 text-xs py-2 px-3.5 font-bold shadow-xs"
           >
-            {isSyncing ? 'Syncing GBP...' : 'Sync Google Data'}
+            {isSyncing ? 'Syncing Profile...' : 'Sync Google Data'}
           </Button>
 
           {client.googleMapsUrl && (
@@ -150,7 +150,7 @@ export default function ClientPortalDashboard() {
               href={client.googleMapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition-all flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow-xs"
             >
               <ExternalLink className="w-3.5 h-3.5 text-sky-300" />
               <span>View On Maps</span>
