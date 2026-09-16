@@ -32,6 +32,7 @@ import { formatINR, formatDate, getHealthScoreColor, getStatusBadgeClass } from 
 import { aiAssistantEngine } from '@/lib/ai-engine';
 import { DigitalHealthAuditCard } from '@/components/portal/DigitalHealthAuditCard';
 import { MonthlyGrowthChart } from '@/components/portal/MonthlyGrowthChart';
+import { GbpPerformanceDashboard } from '@/components/portal/GbpPerformanceDashboard';
 import { ReviewManagementWidget } from '@/components/portal/ReviewManagementWidget';
 import { FestivalCreativeStudio } from '@/components/portal/FestivalCreativeStudio';
 import { PrintableReviewQRGenerator } from '@/components/portal/PrintableReviewQRGenerator';
@@ -514,14 +515,15 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
         />
       )}
 
-      {/* Tab: Monthly Growth & Rank Rise */}
+      {/* Tab: Google Business Profile Performance & Growth */}
       {activeTab === 'growth' && (
-        <MonthlyGrowthChart
+        <GbpPerformanceDashboard
           businessName={syncedProfile?.businessName || client.businessName}
-          metrics={syncedProfile?.growthMetrics}
+          insights={syncedProfile?.performanceInsights}
           syncedAt={syncedProfile?.syncedAt}
           isLiveSynced={syncedProfile?.isLiveSynced}
           city={syncedProfile?.city || client.city}
+          clientId={client.id}
         />
       )}
 

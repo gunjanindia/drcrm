@@ -8,6 +8,7 @@ import {
   BUSINESS_CATEGORIES,
   BusinessCategoryType,
 } from './client-360-data';
+import { GbpDailyOrMonthlyInsight, SEEDED_AUTHENTIC_GBP_INSIGHT } from './gbp-insights-engine';
 
 export interface SyncedBusinessProfile {
   clientId?: string;
@@ -37,6 +38,7 @@ export interface SyncedBusinessProfile {
   isOperational?: boolean;
   reviews?: ClientReviewItem[];
   growthMetrics?: MonthlyGrowthMetric[];
+  performanceInsights?: GbpDailyOrMonthlyInsight[];
   auditFactors?: AuditFactor[];
   miniSiteConfig?: MiniSiteConfig;
 }
@@ -65,6 +67,7 @@ export const DEMO_BUSINESS_PROFILE: SyncedBusinessProfile = {
   isOperational: true,
   reviews: [],
   growthMetrics: [],
+  performanceInsights: [SEEDED_AUTHENTIC_GBP_INSIGHT],
 };
 
 const STORAGE_KEY = 'drcrm_synced_gbp_profile_v2';
@@ -119,32 +122,8 @@ export function generateDynamicGrowthForBusiness(
   rating: number = 5.0,
   gbpScore: number = 0
 ): MonthlyGrowthMetric[] {
-  if (reviewCount === 0 && gbpScore === 0) {
-    return [];
-  }
-  const currentCalls = Math.max(0, Math.round(reviewCount * 6.5 + (gbpScore / 100) * 45));
-  const currentVisits = Math.max(0, Math.round(reviewCount * 120 + (gbpScore / 100) * 850));
-  const currentAppts = Math.max(0, Math.round(reviewCount * 2.2 + (gbpScore / 100) * 18));
-
-  const now = new Date();
-  const months: string[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const mName = d.toLocaleString('en-US', { month: 'short' });
-    months.push(i === 0 ? `${mName} (Current)` : mName);
-  }
-
-  const finalRank = gbpScore >= 85 ? 1 : gbpScore >= 70 ? 2 : 3;
-  const initialRank = Math.min(8, finalRank + 5);
-
-  return [
-    { month: months[0], rank: initialRank, calls: Math.max(0, Math.round(currentCalls * 0.22)), visits: Math.max(0, Math.round(currentVisits * 0.20)), appointments: Math.max(0, Math.round(currentAppts * 0.24)) },
-    { month: months[1], rank: Math.max(finalRank + 3, initialRank - 1), calls: Math.max(0, Math.round(currentCalls * 0.38)), visits: Math.max(0, Math.round(currentVisits * 0.35)), appointments: Math.max(0, Math.round(currentAppts * 0.40)) },
-    { month: months[2], rank: Math.max(finalRank + 2, initialRank - 2), calls: Math.max(0, Math.round(currentCalls * 0.54)), visits: Math.max(0, Math.round(currentVisits * 0.50)), appointments: Math.max(0, Math.round(currentAppts * 0.56)) },
-    { month: months[3], rank: Math.max(finalRank + 1, initialRank - 3), calls: Math.max(0, Math.round(currentCalls * 0.70)), visits: Math.max(0, Math.round(currentVisits * 0.68)), appointments: Math.max(0, Math.round(currentAppts * 0.72)) },
-    { month: months[4], rank: finalRank + 1, calls: Math.max(0, Math.round(currentCalls * 0.86)), visits: Math.max(0, Math.round(currentVisits * 0.84)), appointments: Math.max(0, Math.round(currentAppts * 0.88)) },
-    { month: months[5], rank: finalRank, calls: currentCalls, visits: currentVisits, appointments: currentAppts },
-  ];
+  // Never fabricate demo progression data
+  return [];
 }
 
 export function generateDynamicAuditFactorsForBusiness(
@@ -254,6 +233,7 @@ export function saveSyncedBusinessProfile(profile: SyncedBusinessProfile): void 
       isLiveSynced: profile.isLiveSynced ?? true,
       reviews: profile.reviews || [],
       growthMetrics: profile.growthMetrics || [],
+      performanceInsights: profile.performanceInsights || [SEEDED_AUTHENTIC_GBP_INSIGHT],
       auditFactors: profile.auditFactors || generateDynamicAuditFactorsForBusiness(
         profile.businessName,
         profile.category,
