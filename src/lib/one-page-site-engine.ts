@@ -806,145 +806,1274 @@ export function generateStandaloneHtmlBundle(data: GeneratedWebsiteData): {
   js: string;
 } {
   const css = `
-/* Modern Mobile-First CSS Reset & Theme Styles */
+/* ==========================================================================
+   ULTRA-MODERN LOCAL BUSINESS ONE-PAGE WEBSITE DESIGN SYSTEM
+   ========================================================================== */
 :root {
-  --primary: ${data.theme.accentColor};
-  --primary-dark: #0f172a;
-  --bg-light: #f8fafc;
-  --text-dark: #0f172a;
-  --text-muted: #64748b;
-  --card-bg: #ffffff;
-  --border-color: #e2e8f0;
+  --primary: ${data.theme.accentColor || '#4f46e5'};
+  --primary-rgb: 79, 70, 229;
+  --primary-hover: #4338ca;
+  --accent-gold: #f59e0b;
+  --accent-green: #10b981;
+  --bg-main: #0b0f19;
+  --bg-surface: #111827;
+  --bg-card: rgba(17, 24, 39, 0.75);
+  --bg-card-hover: rgba(31, 41, 55, 0.85);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --border-glass-hover: rgba(255, 255, 255, 0.18);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-sub: #cbd5e1;
+  --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+  --shadow-glow: 0 0 40px -10px ${data.theme.accentColor || '#4f46e5'}40;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: var(--text-dark);
-  background-color: var(--bg-light);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-a { text-decoration: none; color: inherit; }
-.container { max-width: 1140px; margin: 0 auto; padding: 0 1.25rem; }
 
-/* Sticky Header */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text-main);
+  background-color: var(--bg-main);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, .brand-font {
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* ----------------- Sticky Header ----------------- */
 header {
-  position: sticky; top: 0; z-index: 50;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(11, 15, 25, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-glass);
   padding: 0.85rem 0;
 }
-.header-wrap { display: flex; align-items: center; justify-content: space-between; }
-.logo-title { font-size: 1.15rem; font-weight: 800; color: var(--text-dark); }
-.header-actions { display: flex; gap: 0.5rem; }
+
+.header-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo-block {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  text-transform: uppercase;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.nav-links a:hover {
+  color: #ffffff;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ----------------- Button System ----------------- */
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-  padding: 0.6rem 1.1rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 700;
-  cursor: pointer; transition: all 0.2s ease; border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid transparent;
 }
-.btn-primary { background: var(--primary); color: #fff; }
-.btn-whatsapp { background: #25d366; color: #fff; }
-.btn-outline { background: transparent; border: 1.5px solid var(--border-color); color: var(--text-dark); }
-.btn-white { background: #ffffff; color: var(--text-dark); }
 
-/* Hero */
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 4px 15px ${data.theme.accentColor || '#4f46e5'}40;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 8px 25px ${data.theme.accentColor || '#4f46e5'}60;
+}
+
+.btn-whatsapp {
+  background: #25d366;
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+}
+
+.btn-whatsapp:hover {
+  background: #20ba5a;
+  box-shadow: 0 8px 25px rgba(37, 211, 102, 0.45);
+}
+
+.btn-outline {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-glass-hover);
+  color: var(--text-main);
+  backdrop-filter: blur(8px);
+}
+
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-white {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
+}
+
+.btn-white:hover {
+  background: #f8fafc;
+}
+
+.btn-lg {
+  padding: 0.85rem 1.75rem;
+  font-size: 0.95rem;
+}
+
+/* ----------------- Hero Section ----------------- */
 .hero {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  color: #ffffff; padding: 4.5rem 0 3.5rem 0; text-align: center;
+  position: relative;
+  padding: 5.5rem 0 4.5rem 0;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 0%, ${data.theme.accentColor || '#4f46e5'}25 0%, transparent 70%),
+              linear-gradient(180deg, var(--bg-main) 0%, var(--bg-surface) 100%);
 }
-.hero-badge {
-  display: inline-block; padding: 0.35rem 0.85rem; border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1.25rem;
+
+.hero-glow {
+  position: absolute;
+  top: -150px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 400px;
+  background: ${data.theme.accentColor || '#4f46e5'}30;
+  filter: blur(120px);
+  border-radius: 50%;
+  pointer-events: none;
 }
-.hero h1 { font-size: 2.2rem; font-weight: 900; line-height: 1.2; margin-bottom: 1rem; }
-.hero p { font-size: 1.05rem; color: #cbd5e1; max-width: 680px; margin: 0 auto 2rem auto; }
-.hero-btns { display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; }
 
-/* Trust Strip */
-.trust-strip { background: #ffffff; border-bottom: 1px solid var(--border-color); padding: 1.25rem 0; }
-.trust-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; text-align: center; }
-.trust-item strong { display: block; font-size: 1.25rem; color: var(--primary); }
-.trust-item span { font-size: 0.8rem; color: var(--text-muted); }
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 850px;
+  margin: 0 auto;
+}
 
-/* Sections */
-section { padding: 3.5rem 0; }
-.section-head { text-align: center; max-width: 680px; margin: 0 auto 2.5rem auto; }
-.section-head h2 { font-size: 1.75rem; font-weight: 800; margin-bottom: 0.5rem; }
-.section-head p { color: var(--text-muted); font-size: 0.95rem; }
+.verified-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass-hover);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 1.5rem;
+  backdrop-filter: blur(10px);
+}
 
-/* Services Grid */
-.services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
+.pulsing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 10px var(--accent-green);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.hero h1 {
+  font-size: 2.85rem;
+  font-weight: 900;
+  line-height: 1.15;
+  color: #ffffff;
+  margin-bottom: 1.25rem;
+  background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero p {
+  font-size: 1.15rem;
+  color: var(--text-sub);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.hero-btns {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin-bottom: 2.5rem;
+}
+
+.hero-highlights {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.highlight-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ----------------- Trust & Stats Strip ----------------- */
+.trust-strip {
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-glass);
+  border-bottom: 1px solid var(--border-glass);
+  padding: 1.75rem 0;
+}
+
+.trust-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.trust-card {
+  padding: 0.5rem;
+}
+
+.trust-card strong {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.15rem;
+}
+
+.trust-card span {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ----------------- Section Layouts ----------------- */
+section {
+  padding: 5rem 0;
+  position: relative;
+}
+
+.section-head {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto 3.5rem auto;
+}
+
+.section-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.section-head h2 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.75rem;
+}
+
+.section-head p {
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+/* ----------------- About Section ----------------- */
+.about-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+.about-text h3 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 1rem;
+}
+
+.about-text p {
+  color: var(--text-sub);
+  margin-bottom: 1.25rem;
+  font-size: 0.98rem;
+  line-height: 1.7;
+}
+
+.about-features-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.about-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.about-card-banner {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 1.75rem;
+  padding: 2.5rem;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.about-card-banner::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 150px; height: 150px;
+  background: var(--primary);
+  opacity: 0.15;
+  filter: blur(50px);
+  border-radius: 50%;
+}
+
+.about-badge-big {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--primary);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+/* ----------------- Services Grid ----------------- */
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
 .service-card {
-  background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1rem;
-  padding: 1.5rem; transition: transform 0.2s, box-shadow 0.2s; position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
-.service-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }
-.service-badge { position: absolute; top: 1rem; right: 1rem; font-size: 0.7rem; font-weight: 700; background: #f1f5f9; padding: 0.2rem 0.6rem; border-radius: 9999px; }
-.service-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
-.service-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; }
-.service-price { font-size: 0.9rem; font-weight: 700; color: var(--primary); }
 
-/* Reviews */
-.reviews-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; }
-.review-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1rem; padding: 1.5rem; }
-.review-stars { color: #f59e0b; margin-bottom: 0.5rem; }
-.review-card p { font-size: 0.9rem; color: #334155; font-style: italic; margin-bottom: 1rem; }
-.review-author { font-size: 0.85rem; font-weight: 700; color: var(--text-dark); }
-.review-time { font-size: 0.75rem; color: var(--text-muted); }
-
-/* FAQ */
-.faq-wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.75rem; }
-.faq-item { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 0.75rem; overflow: hidden; }
-.faq-question { padding: 1.1rem; font-weight: 700; font-size: 0.95rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-.faq-answer { padding: 0 1.1rem 1.1rem 1.1rem; font-size: 0.88rem; color: var(--text-muted); display: none; }
-.faq-item.active .faq-answer { display: block; }
-.faq-item.active .faq-toggle { transform: rotate(180deg); }
-.faq-toggle { transition: transform 0.2s; }
-
-/* Location & Hours */
-.location-card {
-  background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1.25rem;
-  padding: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;
+.service-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-glass-hover);
+  box-shadow: var(--shadow-card), var(--shadow-glow);
+  background: var(--bg-card-hover);
 }
-.info-block h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; }
-.info-block p { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem; }
 
-/* CTA Footer */
-.cta-banner { background: var(--text-dark); color: #ffffff; padding: 3.5rem 0; text-align: center; }
-.cta-banner h2 { font-size: 1.85rem; font-weight: 800; margin-bottom: 0.75rem; }
-.cta-banner p { color: #94a3b8; margin-bottom: 1.75rem; }
+.service-card-top {
+  margin-bottom: 1.5rem;
+}
 
-/* Mobile Float Bar */
+.service-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: rgba(var(--primary-rgb), 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(var(--primary-rgb), 0.3);
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  margin-bottom: 0.85rem;
+  text-transform: uppercase;
+}
+
+.service-card h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.6rem;
+}
+
+.service-card p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.service-card-bottom {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-glass);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.service-price {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+/* ----------------- Interactive Lead Form ----------------- */
+.lead-form-section {
+  background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-main) 100%);
+  border-top: 1px solid var(--border-glass);
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.lead-form-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass-hover);
+  border-radius: 2rem;
+  padding: 3rem;
+  box-shadow: var(--shadow-card);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-group.full-width {
+  grid-column: span 2;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-glass);
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.25);
+}
+
+/* ----------------- Reviews Grid ----------------- */
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.review-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.review-stars {
+  color: var(--accent-gold);
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  margin-bottom: 0.75rem;
+}
+
+.review-card p {
+  font-size: 0.95rem;
+  color: var(--text-sub);
+  font-style: italic;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.review-author-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-glass);
+}
+
+.review-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.review-author {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.review-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ----------------- Gallery ----------------- */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.gallery-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+  aspect-ratio: 4/3;
+  display: flex;
+  align-items: flex-end;
+  padding: 1.5rem;
+  background-size: cover;
+  background-position: center;
+}
+
+.gallery-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.85) 100%);
+}
+
+.gallery-card:hover {
+  transform: scale(1.02);
+  border-color: var(--border-glass-hover);
+}
+
+.gallery-info {
+  position: relative;
+  z-index: 2;
+}
+
+.gallery-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.gallery-cat {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ----------------- FAQ Accordion ----------------- */
+.faq-wrap {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.faq-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 1rem;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.faq-question {
+  padding: 1.25rem 1.5rem;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.faq-question:hover {
+  color: #a5b4fc;
+}
+
+.faq-toggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.faq-answer {
+  padding: 0 1.5rem 1.25rem 1.5rem;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  display: none;
+  line-height: 1.6;
+}
+
+.faq-item.active {
+  border-color: rgba(var(--primary-rgb), 0.4);
+  background: var(--bg-card-hover);
+}
+
+.faq-item.active .faq-answer {
+  display: block;
+}
+
+.faq-item.active .faq-toggle {
+  transform: rotate(180deg);
+  background: var(--primary);
+  color: #ffffff;
+}
+
+/* ----------------- Location & Contact ----------------- */
+.location-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 2rem;
+  padding: 2.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+}
+
+.info-card h4 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.6rem;
+}
+
+.info-card p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 1.25rem;
+}
+
+.hours-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--accent-green);
+  font-weight: 700;
+  margin-top: 0.5rem;
+}
+
+/* ----------------- CTA Banner & Footer ----------------- */
+.cta-banner {
+  background: linear-gradient(135deg, ${data.theme.accentColor || '#4f46e5'}25 0%, rgba(17, 24, 39, 0.95) 100%);
+  border-top: 1px solid var(--border-glass-hover);
+  border-bottom: 1px solid var(--border-glass);
+  padding: 5rem 0;
+  text-align: center;
+  position: relative;
+}
+
+.cta-banner h2 {
+  font-size: 2.3rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 1rem;
+}
+
+.cta-banner p {
+  color: var(--text-sub);
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin: 0 auto 2.25rem auto;
+}
+
+footer {
+  background: var(--bg-main);
+  padding: 2.5rem 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-glass);
+}
+
+/* ----------------- Mobile Sticky Bottom Bar ----------------- */
 .mobile-bar {
-  display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-  background: #ffffff; border-top: 1px solid var(--border-color); padding: 0.6rem 1rem;
-  box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: rgba(11, 15, 25, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border-glass-hover);
+  padding: 0.75rem 1rem;
+  box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.6);
 }
-.mobile-bar-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
 
-@media (max-width: 640px) {
-  .hero h1 { font-size: 1.7rem; }
+.mobile-bar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .hero h1 { font-size: 2.1rem; }
+  .about-grid, .location-wrap, .form-grid { grid-template-columns: 1fr; }
+  .form-group.full-width { grid-column: span 1; }
+  .nav-links { display: none; }
   .mobile-bar { display: block; }
-  body { padding-bottom: 4rem; }
+  body { padding-bottom: 4.5rem; }
+  .lead-form-wrap { padding: 1.75rem; }
 }
 `;
 
   const js = `
 document.addEventListener('DOMContentLoaded', () => {
-  // FAQ Accordion Toggle
+  // FAQ Accordion
   const faqItems = document.querySelectorAll('.faq-item');
   faqItems.forEach(item => {
     const q = item.querySelector('.faq-question');
-    q.addEventListener('click', () => {
-      const isActive = item.classList.contains('active');
-      faqItems.forEach(i => i.classList.remove('active'));
-      if (!isActive) item.classList.add('active');
-    });
+    if (q) {
+      q.addEventListener('click', () => {
+        const isActive = item.classList.contains('active');
+        faqItems.forEach(i => i.classList.remove('active'));
+        if (!isActive) item.classList.add('active');
+      });
+    }
   });
+
+  // 1-Click WhatsApp Lead Generator Form
+  const leadForm = document.getElementById('whatsappLeadForm');
+  if (leadForm) {
+    leadForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('formName')?.value || '';
+      const phone = document.getElementById('formPhone')?.value || '';
+      const service = document.getElementById('formService')?.value || '';
+      const date = document.getElementById('formDate')?.value || '';
+      const notes = document.getElementById('formNotes')?.value || '';
+
+      const msg = \`Hello ${data.businessName}, I would like to inquire about your services:\n\n👤 Name: \${name}\n📞 Phone: \${phone}\n⚡ Service: \${service}\n📅 Preferred Date/Time: \${date || 'Earliest Available'}\n💬 Message: \${notes || 'Please provide quotation.'}\`;
+
+      const encoded = encodeURIComponent(msg);
+      window.open(\`https://wa.me/${data.whatsapp}?text=\${encoded}\`, '_blank');
+    });
+  }
 });
+
+function copyAddressToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Address copied to clipboard!');
+  });
+}
 `;
+
+  const servicesHtml = data.services
+    .map(
+      (s) => `
+      <div class="service-card">
+        <div class="service-card-top">
+          ${s.badge ? `<span class="service-badge">${s.badge}</span>` : ''}
+          <h3>${s.title}</h3>
+          <p>${s.desc}</p>
+        </div>
+        <div class="service-card-bottom">
+          <span class="service-price">${s.price || 'Custom Quote'}</span>
+          <a href="https://wa.me/${data.whatsapp}?text=${encodeURIComponent(`Hi, I would like to book or inquire about: ${s.title}`)}" class="btn btn-outline" target="_blank" rel="noreferrer" style="font-size: 0.75rem; padding: 0.45rem 0.9rem;">
+            💬 Inquire
+          </a>
+        </div>
+      </div>`
+    )
+    .join('');
+
+  const reviewsHtml = data.reviews
+    .map(
+      (r) => `
+      <div class="review-card">
+        <div class="review-stars">${'★'.repeat(r.rating)}</div>
+        <p>"${r.text}"</p>
+        <div class="review-author-wrap">
+          <div class="review-avatar">${(r.authorName || 'C').charAt(0).toUpperCase()}</div>
+          <div>
+            <div class="review-author">${r.authorName}</div>
+            <div class="review-time">${r.relativeTime || 'Recent'} • Verified Google Review</div>
+          </div>
+        </div>
+      </div>`
+    )
+    .join('');
+
+  const faqsHtml = data.faqs
+    .map(
+      (f, idx) => `
+      <div class="faq-item ${idx === 0 ? 'active' : ''}">
+        <div class="faq-question">
+          <span>${f.q}</span>
+          <span class="faq-toggle">▼</span>
+        </div>
+        <div class="faq-answer">
+          <p>${f.a}</p>
+        </div>
+      </div>`
+    )
+    .join('');
+
+  const galleryHtml = data.galleryImages
+    .map(
+      (img) => `
+      <div class="gallery-card" style="background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('${data.bannerUrl || 'https://images.unsplash.com/photo-1542744094-3a31f272c490?w=600&auto=format&fit=crop&q=60'}');">
+        <div class="gallery-info">
+          <div class="gallery-title">${img.title}</div>
+          <div class="gallery-cat">${img.category}</div>
+        </div>
+      </div>`
+    )
+    .join('');
+
+  const logoHtml = data.logoUrl
+    ? `<div class="logo-block"><img src="${data.logoUrl}" alt="${data.businessName}" style="max-height: 40px; max-width: 140px; object-fit: contain; border-radius: 8px;" /><span class="logo-title">${data.businessName}</span></div>`
+    : `<div class="logo-title"><span style="color: var(--primary);">✦</span> ${data.businessName}</div>`;
+
+  const heroBannerStyle = data.bannerUrl
+    ? `style="background: radial-gradient(circle at 50% 20%, rgba(15, 23, 42, 0.85) 0%, rgba(11, 15, 25, 0.98) 100%), url('${data.bannerUrl}') center/cover no-repeat;"`
+    : '';
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${data.businessName} — ${data.category} in ${data.city || 'Local'}</title>
+  <meta name="description" content="${data.subheadline}">
+
+  <!-- Google Fonts: Outfit & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+
+  <style>${css}</style>
+  <script type="application/ld+json">
+  ${data.jsonLdSchema}
+  </script>
+</head>
+<body>
+
+  <!-- Sticky Header Navigation -->
+  <header>
+    <div class="container header-wrap">
+      ${logoHtml}
+      <nav class="nav-links">
+        <a href="#about">About</a>
+        <a href="#services">Services</a>
+        <a href="#inquiry">Get Quote</a>
+        <a href="#reviews">Reviews</a>
+        <a href="#faq">FAQ</a>
+        <a href="#location">Contact</a>
+      </nav>
+      <div class="header-actions">
+        <a href="https://wa.me/${data.whatsapp}" class="btn btn-whatsapp" target="_blank" rel="noreferrer">
+          💬 WhatsApp
+        </a>
+        <a href="tel:${data.phone}" class="btn btn-primary">
+          📞 Call
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" ${heroBannerStyle}>
+    <div class="hero-glow"></div>
+    <div class="container hero-content">
+      <div class="verified-pill">
+        <span class="pulsing-dot"></span>
+        <span>Verified Google Business Profile • ${data.rating}★ (${data.reviewCount}+ Reviews)</span>
+      </div>
+
+      <h1>${data.headline}</h1>
+      <p>${data.subheadline}</p>
+
+      <div class="hero-btns">
+        <a href="https://wa.me/${data.whatsapp}" class="btn btn-whatsapp btn-lg" target="_blank" rel="noreferrer">
+          💬 ${data.theme.primaryCtaText}
+        </a>
+        <a href="tel:${data.phone}" class="btn btn-white btn-lg">
+          📞 ${data.theme.secondaryCtaText}
+        </a>
+        <a href="${data.googleMapsUrl}" class="btn btn-outline btn-lg" target="_blank" rel="noreferrer">
+          📍 Get Directions
+        </a>
+      </div>
+
+      <div class="hero-highlights">
+        <span class="highlight-pill">⚡ Instant WhatsApp Response</span>
+        <span class="highlight-pill">🛡️ 100% Quality Guaranteed</span>
+        <span class="highlight-pill">📍 Located in ${data.city || 'Your City'}</span>
+        <span class="highlight-pill">★ ${data.rating} Google Star Rating</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust & Rating Strip -->
+  <div class="trust-strip">
+    <div class="container">
+      <div class="trust-grid">
+        <div class="trust-card">
+          <strong>${data.rating}★ Rating</strong>
+          <span>Verified Google Maps Listing</span>
+        </div>
+        <div class="trust-card">
+          <strong>${data.reviewCount}+ Reviews</strong>
+          <span>Genuine Local Feedback</span>
+        </div>
+        <div class="trust-card">
+          <strong>100% Certified</strong>
+          <span>Professional Local Service</span>
+        </div>
+        <div class="trust-card">
+          <strong>Fast Support</strong>
+          <span>Direct Phone & WhatsApp</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- About Story Section -->
+  <section id="about">
+    <div class="container">
+      <div class="about-grid">
+        <div class="about-text">
+          <span class="section-tag">About Our Business</span>
+          <h3>Trusted ${data.category} in ${data.city || 'the Region'}</h3>
+          <p>${data.aboutText}</p>
+          <div class="about-features-list">
+            <div class="about-feature-item"><span>✓</span> <span>Certified Professionals</span></div>
+            <div class="about-feature-item"><span>✓</span> <span>Transparent Pricing</span></div>
+            <div class="about-feature-item"><span>✓</span> <span>Prompt Timelines</span></div>
+            <div class="about-feature-item"><span>✓</span> <span>5-Star Client Satisfaction</span></div>
+          </div>
+        </div>
+        <div class="about-card-banner">
+          <div class="about-badge-big">#1</div>
+          <h4 style="font-size: 1.3rem; color: #fff; margin-bottom: 0.5rem;">Committed to Quality Excellence</h4>
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+            Serving customers in ${data.city || 'the locality'} with unmatched craftsmanship and reliable customer support.
+          </p>
+          <a href="https://wa.me/${data.whatsapp}" class="btn btn-primary" target="_blank" rel="noreferrer">
+            💬 Connect with Founder
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services Grid Section -->
+  <section id="services" style="background-color: var(--bg-surface);">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">What We Offer</span>
+        <h2>${data.theme.servicesTitle}</h2>
+        <p>${data.theme.servicesSubtitle}</p>
+      </div>
+      <div class="services-grid">
+        ${servicesHtml}
+      </div>
+    </div>
+  </section>
+
+  <!-- 1-Click WhatsApp Lead Generator Form -->
+  <section id="inquiry" class="lead-form-section">
+    <div class="container">
+      <div class="lead-form-wrap">
+        <div style="text-align: center; margin-bottom: 2rem;">
+          <span class="section-tag">Fast & Direct Booking</span>
+          <h2 style="font-size: 2rem; color: #fff;">Get Free Consultation & Quote</h2>
+          <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Fill your details below to start an instant inquiry directly on WhatsApp with our team.
+          </p>
+        </div>
+
+        <form id="whatsappLeadForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Your Full Name *</label>
+              <input type="text" id="formName" placeholder="e.g. Rahul Sharma" required />
+            </div>
+
+            <div class="form-group">
+              <label>Your Phone Number *</label>
+              <input type="tel" id="formPhone" placeholder="e.g. +91 98765 43210" required />
+            </div>
+
+            <div class="form-group">
+              <label>Select Required Service</label>
+              <select id="formService">
+                ${data.services.map((s) => `<option value="${s.title}">${s.title}</option>`).join('')}
+                <option value="General Inquiry">General Inquiry / Consultation</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Preferred Date / Time</label>
+              <input type="text" id="formDate" placeholder="e.g. Tomorrow 3:00 PM" />
+            </div>
+
+            <div class="form-group full-width">
+              <label>Project Details / Special Requests</label>
+              <textarea id="formNotes" rows="3" placeholder="Briefly describe your requirements..."></textarea>
+            </div>
+
+            <div class="form-group full-width">
+              <button type="submit" class="btn btn-whatsapp btn-lg" style="width: 100%; font-size: 1.05rem;">
+                💬 Send Instant Inquiry on WhatsApp
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  ${
+    data.galleryImages.length > 0
+      ? `
+  <!-- Portfolio / Showcase Gallery -->
+  <section id="gallery">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">Work Showcase</span>
+        <h2>${data.theme.galleryTitle}</h2>
+        <p>Recent projects, transformations, and client deliverables.</p>
+      </div>
+      <div class="gallery-grid">
+        ${galleryHtml}
+      </div>
+    </div>
+  </section>
+  `
+      : ''
+  }
+
+  <!-- Verified Customer Reviews Section -->
+  <section id="reviews" style="background-color: var(--bg-surface);">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">Real Customer Feedback</span>
+        <h2>Verified Google Reviews</h2>
+        <p>Rated ${data.rating}★ across ${data.reviewCount}+ authentic reviews on Google Maps.</p>
+      </div>
+      <div class="reviews-grid">
+        ${reviewsHtml}
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Accordion Section -->
+  <section id="faq">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">Got Questions?</span>
+        <h2>Frequently Asked Questions</h2>
+        <p>Clear answers to common questions about our services and process.</p>
+      </div>
+      <div class="faq-wrap">
+        ${faqsHtml}
+      </div>
+    </div>
+  </section>
+
+  <!-- Location & Working Hours Section -->
+  <section id="location" style="background-color: var(--bg-surface);">
+    <div class="container">
+      <div class="location-wrap">
+        <div class="info-card">
+          <h4>📍 Store & Studio Address</h4>
+          <p>${data.address}</p>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="${data.googleMapsUrl}" class="btn btn-primary" target="_blank" rel="noreferrer">
+              Open Google Maps
+            </a>
+            <button onclick="copyAddressToClipboard('${data.address.replace(/'/g, "\\'")}')" class="btn btn-outline">
+              📋 Copy Address
+            </button>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <h4>🕒 Operating Hours</h4>
+          <p>${data.workingHours}</p>
+          <div class="hours-badge">
+            <span class="pulsing-dot"></span>
+            <span>Open & Ready for Visits / Orders</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final Call to Action Banner -->
+  <div class="cta-banner">
+    <div class="container">
+      <h2>Ready to Get Started with ${data.businessName}?</h2>
+      <p>Connect directly with our team on WhatsApp or phone for priority assistance and fast quotation.</p>
+      <div class="hero-btns">
+        <a href="https://wa.me/${data.whatsapp}" class="btn btn-whatsapp btn-lg" target="_blank" rel="noreferrer">
+          💬 Chat on WhatsApp
+        </a>
+        <a href="tel:${data.phone}" class="btn btn-white btn-lg">
+          📞 Call ${data.phone}
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>© ${new Date().getFullYear()} ${data.businessName}. All rights reserved. • Verified Google Maps Local Business</p>
+    </div>
+  </footer>
+
+  <!-- Mobile Floating Sticky Action Bar -->
+  <div class="mobile-bar">
+    <div class="mobile-bar-grid">
+      <a href="tel:${data.phone}" class="btn btn-primary">
+        📞 Call Now
+      </a>
+      <a href="https://wa.me/${data.whatsapp}" class="btn btn-whatsapp" target="_blank" rel="noreferrer">
+        💬 WhatsApp
+      </a>
+    </div>
+  </div>
+
+  <script>${js}</script>
+</body>
+</html>`;
+
+  return { html, css, js };
+}
 
   const servicesHtml = data.services
     .map(
