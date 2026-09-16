@@ -129,6 +129,12 @@ export interface Client {
   averageRating: number;
   gbpScore: number;
   status: 'ACTIVE' | 'ONBOARDING' | 'AT_RISK' | 'PAUSED' | 'CHURNED';
+  aiCreditBalance?: number;
+  trialEndsAt?: string;
+  subscriptionStatus?: string;
+  isGbpLinked?: boolean;
+  gbpVerifiedEmail?: string;
+  gbpLocationId?: string;
   createdAt: string;
 }
 

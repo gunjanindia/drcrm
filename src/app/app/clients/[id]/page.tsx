@@ -114,9 +114,17 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
   const [isDeleting, setIsDeleting] = useState(false);
   const [statusNotification, setStatusNotification] = useState<string | null>(null);
 
+  // AI Refill & Logs State
+  const [isRefillOpen, setIsRefillOpen] = useState(false);
+  const [refillAmount, setRefillAmount] = useState(50);
+  const [refillNote, setRefillNote] = useState('Admin Support Pack');
+  const [isRefilling, setIsRefilling] = useState(false);
+  const [refillSuccess, setRefillSuccess] = useState<string | null>(null);
+  const [clientAiLogs, setClientAiLogs] = useState<any[]>([]);
+
   const [syncedProfile, setSyncedProfile] = useState<any>(null);
 
-  React.useEffect(() => {
+  const fetchClientData = () => {
     fetch('/api/clients')
       .then((r) => r.json())
       .then((d) => {
@@ -137,6 +145,18 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
         })
         .catch(() => {});
     }
+
+    fetch('/api/admin/ai-logs')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.data)) {
+          const matched = d.data.filter(
+            (l: any) => l.clientId === clientId || (client && l.businessName === client.businessName)
+          );
+          setClientAiLogs(matched);
+        }
+      })
+      .catch(() => {});
 
     fetch('/api/tasks')
       .then((r) => r.json())
@@ -160,7 +180,51 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
         }
       })
       .catch(() => {});
+  };
+
+  React.useEffect(() => {
+    fetchClientData();
   }, [clientId]);
+
+  const handleRefillCredits = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!client || refillAmount <= 0) return;
+
+    setIsRefilling(true);
+    setRefillSuccess(null);
+
+    try {
+      const res = await fetch('/api/admin/ai-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: client.id,
+          creditsToAdd: Number(refillAmount),
+          note: refillNote,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setRefillSuccess(`Successfully added +${refillAmount} AI Credits to ${client.businessName}!`);
+        setClient((prev: any) => ({
+          ...prev,
+          aiCreditBalance: (prev.aiCreditBalance ?? 20) + Number(refillAmount),
+        }));
+        fetchClientData();
+        setTimeout(() => {
+          setRefillSuccess(null);
+          setIsRefillOpen(false);
+        }, 1500);
+      } else {
+        alert(data.error || 'Failed to grant AI credits.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error granting AI credits.');
+    } finally {
+      setIsRefilling(false);
+    }
+  };
 
   const handleToggleStatus = async () => {
     const nextStatus = client.status === 'PAUSED' ? 'ACTIVE' : 'PAUSED';
@@ -316,6 +380,25 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-purple-500/10 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-500/25 text-xs font-black">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <span>{client.aiCreditBalance ?? 20} AI Credits</span>
+            </div>
+
+            <Button
+              variant="primary"
+              size="sm"
+              icon={Sparkles}
+              onClick={() => {
+                setRefillAmount(50);
+                setRefillNote(`Admin Refill for ${client.businessName}`);
+                setIsRefillOpen(true);
+              }}
+              className="bg-purple-600 hover:bg-purple-700 text-white shadow-xs"
+            >
+              Refill AI Credits
+            </Button>
+
             <a
               href={`https://wa.me/${(client.phone || '').replace(/[^0-9]/g, '')}`}
               target="_blank"
@@ -501,6 +584,58 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
                 <strong className="text-slate-900 dark:text-white">{formatDate(client.renewalDate)}</strong>
               </div>
             </div>
+          </div>
+
+          {/* AI Credit Wallet & SaaS Tier Card */}
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                AI Credit Wallet & SaaS Tier
+              </h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200">
+                {client.subscriptionStatus === 'ACTIVE' ? 'Active SaaS' : '14-Day Free Demo'}
+              </span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-purple-500/10 dark:bg-purple-950/40 border border-purple-500/20 text-xs space-y-2">
+              <div className="flex justify-between items-center font-bold">
+                <span className="text-slate-500">Available AI Credits:</span>
+                <span className="text-base text-purple-600 dark:text-purple-300 font-black">
+                  {client.aiCreditBalance ?? 20} Credits
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-slate-500 text-[11px]">
+                <span>Total AI Requests:</span>
+                <strong className="text-slate-800 dark:text-slate-200">{clientAiLogs.length} calls</strong>
+              </div>
+              <div className="flex justify-between items-center text-slate-500 text-[11px]">
+                <span>Total Tokens Used:</span>
+                <strong className="text-slate-800 dark:text-slate-200">
+                  {clientAiLogs.reduce((acc, l) => acc + (l.totalTokens || 0), 0).toLocaleString()} tok
+                </strong>
+              </div>
+              <div className="flex justify-between items-center text-slate-500 text-[11px]">
+                <span>Total GCP Cost (INR):</span>
+                <strong className="text-emerald-600 dark:text-emerald-400">
+                  ₹{clientAiLogs.reduce((acc, l) => acc + (l.estimatedCostInr || 0), 0).toFixed(4)}
+                </strong>
+              </div>
+            </div>
+
+            <Button
+              variant="primary"
+              size="sm"
+              icon={Sparkles}
+              onClick={() => {
+                setRefillAmount(50);
+                setRefillNote(`Topup for ${client.businessName}`);
+                setIsRefillOpen(true);
+              }}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              + Refill AI Credits
+            </Button>
           </div>
         </div>
       )}
@@ -799,17 +934,72 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
       {/* Tab 8: AI & Upsell Engine */}
       {activeTab === 'ai' && (
         <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
-              <Sparkles className="w-5 h-5" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                  Google Gemini Intelligence: {client.businessName}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Live AI credit consumption, GCP token costing, and grounded upsell analysis
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                Google Gemini Intelligence: {client.businessName}
-              </h3>
-              <p className="text-xs text-slate-500">
-                Grounded analysis of service upsells and monthly performance drafting
-              </p>
+
+            <Button
+              variant="primary"
+              size="sm"
+              icon={Sparkles}
+              onClick={() => {
+                setRefillAmount(50);
+                setRefillNote(`Topup for ${client.businessName}`);
+                setIsRefillOpen(true);
+              }}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              + Refill AI Credits
+            </Button>
+          </div>
+
+          {/* AI Metrics Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="p-4 rounded-2xl bg-purple-500/10 dark:bg-purple-950/40 border border-purple-500/20 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Wallet Balance</span>
+              <div className="text-xl font-black text-purple-600 dark:text-purple-300">
+                {client.aiCreditBalance ?? 20} Credits
+              </div>
+              <span className="text-[10px] text-slate-500 block font-medium">
+                {client.subscriptionStatus === 'ACTIVE' ? 'Active SaaS Pro' : '14-Day Free Demo'}
+              </span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total AI Requests</span>
+              <div className="text-xl font-black text-slate-900 dark:text-white">
+                {clientAiLogs.length} calls
+              </div>
+              <span className="text-[10px] text-slate-500 block font-medium">Logged in Audit Engine</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Tokens</span>
+              <div className="text-xl font-black text-indigo-600 dark:text-indigo-400">
+                {clientAiLogs.reduce((acc, l) => acc + (l.totalTokens || 0), 0).toLocaleString()}
+              </div>
+              <span className="text-[10px] text-slate-500 block font-medium">Prompt + Output tokens</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">GCP Cost (INR)</span>
+              <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                ₹{clientAiLogs.reduce((acc, l) => acc + (l.estimatedCostInr || 0), 0).toFixed(4)}
+              </div>
+              <span className="text-[10px] text-slate-500 block font-medium">
+                ≈ ${clientAiLogs.reduce((acc, l) => acc + (l.estimatedCostUsd || 0), 0).toFixed(6)}
+              </span>
             </div>
           </div>
 
@@ -818,8 +1008,83 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
               Recommended Upsell Opportunity:
             </span>
             <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-              Client has active Google Business Profile management and Review QR stands, but has not yet activated <strong>Local Citation & Map Pack SEO</strong>. Competitors in Ranchi are building directory citations rapidly. Recommending upgrading to Local SEO Booster (₹1,499/mo).
+              Client has active Google Business Profile management and Review QR stands, but has not yet activated <strong>Local Citation & Map Pack SEO</strong>. Competitors in {client.city || 'Ranchi'} are building directory citations rapidly. Recommending upgrading to Local SEO Booster (₹1,499/mo).
             </p>
+          </div>
+
+          {/* Dedicated AI Usage Logs Table */}
+          <div className="space-y-3">
+            <h4 className="font-bold text-xs text-slate-900 dark:text-white">
+              AI Credit Usage History for {client.businessName}
+            </h4>
+
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  <tr>
+                    <th className="py-2.5 px-3">Timestamp</th>
+                    <th className="py-2.5 px-3">Action / Feature</th>
+                    <th className="py-2.5 px-3">Credits</th>
+                    <th className="py-2.5 px-3">Tokens (Prompt + Compl)</th>
+                    <th className="py-2.5 px-3">GCP Cost</th>
+                    <th className="py-2.5 px-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                  {clientAiLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-6 text-center text-slate-400">
+                        No AI operations logged yet for this client.
+                      </td>
+                    </tr>
+                  ) : (
+                    clientAiLogs.map((l) => (
+                      <tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                        <td className="py-2.5 px-3 text-slate-500 text-[11px]">
+                          {new Date(l.createdAt).toLocaleString([], {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                            {l.action}
+                          </span>
+                          <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 truncate max-w-xs">
+                            {l.featureName}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 font-black">
+                          <span className={l.creditsDeducted < 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                            {l.creditsDeducted > 0 ? `-${l.creditsDeducted}` : `+${Math.abs(l.creditsDeducted)}`}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <div className="font-bold text-slate-800 dark:text-slate-200">
+                            {(l.totalTokens || 0).toLocaleString()} tok
+                          </div>
+                          <span className="text-[10px] text-slate-400">
+                            {l.promptTokens || 0} in / {l.completionTokens || 0} out
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                            ₹{l.estimatedCostInr || 0}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200">
+                            {l.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Monthly Report Draft Preview */}
@@ -844,6 +1109,74 @@ export default function Client360Page({ params }: { params: Promise<{ id: string
             })()}
           </div>
         </div>
+      )}
+
+      {/* Admin AI Credit Refill Modal */}
+      {isRefillOpen && (
+        <Modal
+          isOpen={true}
+          onClose={() => setIsRefillOpen(false)}
+          title={`Refill AI Credits for ${client.businessName}`}
+          description={`Current Wallet Balance: ${client.aiCreditBalance ?? 20} AI Credits`}
+        >
+          <form onSubmit={handleRefillCredits} className="space-y-4 text-xs">
+            {refillSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{refillSuccess}</span>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Credits to Add *
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="10000"
+                value={refillAmount}
+                onChange={(e) => setRefillAmount(Number(e.target.value))}
+                className="w-full text-xs p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Refill Reason / Note
+              </label>
+              <input
+                type="text"
+                value={refillNote}
+                onChange={(e) => setRefillNote(e.target.value)}
+                placeholder="e.g. Monthly Retainer Refill or Bonus"
+                className="w-full text-xs p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsRefillOpen(false)}
+                disabled={isRefilling}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                isLoading={isRefilling}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                Grant +{refillAmount} Credits
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

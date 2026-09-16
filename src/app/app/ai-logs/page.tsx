@@ -37,6 +37,7 @@ export default function AiLogsDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState('ALL');
+  const [clientFilter, setClientFilter] = useState('ALL');
 
   // Credit Refill Modal
   const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
@@ -163,7 +164,12 @@ export default function AiLogsDashboardPage() {
     const matchesAction =
       actionFilter === 'ALL' || l.action.toUpperCase() === actionFilter.toUpperCase();
 
-    return matchesSearch && matchesAction;
+    const matchesClient =
+      clientFilter === 'ALL' ||
+      l.clientId === clientFilter ||
+      (l.businessName && clients.find((c) => c.id === clientFilter)?.businessName === l.businessName);
+
+    return matchesSearch && matchesAction && matchesClient;
   });
 
   return (
@@ -292,17 +298,169 @@ export default function AiLogsDashboardPage() {
         </div>
       </div>
 
+      {/* Per-Client AI Credit Wallets & Consumption Overview */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <Coins className="w-4 h-4 text-purple-600" />
+              Client-Wise AI Credit Balances & Costing Breakdown
+            </h3>
+            <p className="text-xs text-slate-500">
+              Live monitor of AI wallet credits, total tokens, and GCP infrastructure cost per registered business account.
+            </p>
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+            {clients.length} Client Wallets
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 dark:bg-slate-950 border-y border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
+              <tr>
+                <th className="py-2.5 px-3">Business Client</th>
+                <th className="py-2.5 px-3">Wallet Balance</th>
+                <th className="py-2.5 px-3">Platform Tier</th>
+                <th className="py-2.5 px-3">Total Calls</th>
+                <th className="py-2.5 px-3">Tokens Used</th>
+                <th className="py-2.5 px-3">GCP Cost (INR)</th>
+                <th className="py-2.5 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+              {clients.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-6 text-center text-slate-400">
+                    No client accounts registered yet.
+                  </td>
+                </tr>
+              ) : (
+                clients.map((c) => {
+                  const clientLogs = logs.filter(
+                    (l) => l.clientId === c.id || (l.businessName && l.businessName === c.businessName)
+                  );
+                  const totalClientTokens = clientLogs.reduce((acc, l) => acc + (l.totalTokens || 0), 0);
+                  const totalClientCostInr = clientLogs.reduce((acc, l) => acc + (l.estimatedCostInr || 0), 0);
+                  const credits = c.aiCreditBalance ?? 20;
+                  const isLow = credits <= 5;
+                  const isSelected = clientFilter === c.id;
+
+                  return (
+                    <tr
+                      key={c.id}
+                      className={`hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors ${
+                        isSelected ? 'bg-purple-50/50 dark:bg-purple-950/20' : ''
+                      }`}
+                    >
+                      <td className="py-2.5 px-3">
+                        <div className="font-bold text-slate-900 dark:text-white">
+                          {c.businessName}
+                        </div>
+                        <span className="text-[10px] text-slate-400">{c.email}</span>
+                      </td>
+
+                      <td className="py-2.5 px-3">
+                        <span
+                          className={`font-black inline-flex items-center gap-1 ${
+                            credits === 0
+                              ? 'text-rose-600'
+                              : isLow
+                              ? 'text-amber-600'
+                              : 'text-purple-600 dark:text-purple-300'
+                          }`}
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          {credits} Credits {credits === 0 ? '(Exhausted)' : ''}
+                        </span>
+                      </td>
+
+                      <td className="py-2.5 px-3">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            c.subscriptionStatus === 'ACTIVE'
+                              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200'
+                              : 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200'
+                          }`}
+                        >
+                          {c.subscriptionStatus === 'ACTIVE' ? 'Active SaaS (₹1.5k)' : '14-Day Free Demo'}
+                        </span>
+                      </td>
+
+                      <td className="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">
+                        {clientLogs.length} calls
+                      </td>
+
+                      <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400">
+                        {totalClientTokens.toLocaleString()} tok
+                      </td>
+
+                      <td className="py-2.5 px-3 font-bold text-emerald-600 dark:text-emerald-400">
+                        ₹{totalClientCostInr.toFixed(4)}
+                      </td>
+
+                      <td className="py-2.5 px-3 text-right">
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setClientFilter(isSelected ? 'ALL' : c.id)}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                              isSelected
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                            }`}
+                          >
+                            {isSelected ? 'Showing Logs' : 'View Logs'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedClientId(c.id);
+                              setRefillCredits(50);
+                              setRefillNote(`Topup for ${c.businessName}`);
+                              setIsRefillModalOpen(true);
+                            }}
+                            className="px-2 py-1 rounded-lg text-[10px] font-bold bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 hover:bg-purple-100 border border-purple-200 dark:border-purple-800"
+                          >
+                            +Refill
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Filter & Search Bar */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search by client, business or feature..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full text-xs pl-9 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
-          />
+      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-2 w-full md:w-auto flex-1">
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by client, business or feature..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full text-xs pl-9 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+            />
+          </div>
+
+          <select
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+            className="text-xs p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium max-w-[200px]"
+          >
+            <option value="ALL">All Clients</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.businessName} ({c.aiCreditBalance ?? 20}cr)
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">

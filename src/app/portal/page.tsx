@@ -132,7 +132,7 @@ export default function ClientPortalDashboard() {
           </p>
         </div>
 
-        {/* Quick Sync & AI Credits Pill */}
+        {/* Quick Sync & GBP Actions */}
         <div className="flex flex-wrap items-center gap-3">
           <Button
             variant="outline"
@@ -145,16 +145,17 @@ export default function ClientPortalDashboard() {
             {isSyncing ? 'Syncing GBP...' : 'Sync Google Data'}
           </Button>
 
-          <div
-            onClick={() => setIsWalletOpen(true)}
-            className="p-3 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 cursor-pointer transition-all flex items-center gap-2.5 group"
-          >
-            <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
-            <div className="text-left">
-              <span className="text-[10px] font-bold text-amber-200 block uppercase leading-none">AI Credits</span>
-              <span className="text-xs font-black text-white">{aiPoints} Available <span className="text-[10px] text-amber-300 underline font-normal">+ Recharge</span></span>
-            </div>
-          </div>
+          {client.googleMapsUrl && (
+            <a
+              href={client.googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition-all flex items-center gap-1.5"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-sky-300" />
+              <span>View On Maps</span>
+            </a>
+          )}
         </div>
       </div>
 

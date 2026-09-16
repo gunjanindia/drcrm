@@ -22,6 +22,10 @@ export const AiCreditWalletBadge: React.FC<AiCreditWalletBadgeProps> = ({
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const [currentCredits, setCurrentCredits] = useState(credits);
 
+  React.useEffect(() => {
+    setCurrentCredits(credits);
+  }, [credits]);
+
   const handlePointsAdded = (added: number) => {
     const updated = currentCredits + added;
     setCurrentCredits(updated);
