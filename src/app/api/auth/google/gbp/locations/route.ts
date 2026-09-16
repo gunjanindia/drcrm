@@ -3,6 +3,7 @@ import { getCurrentUserSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { globalStore } from '@/lib/store';
 import { convertGoogleReviewsToClientReviews } from '@/lib/client-portal-sync';
+import { logGoogleApiUsage } from '@/lib/ai-credits';
 
 export async function GET(request: Request) {
   try {
@@ -222,6 +223,23 @@ export async function GET(request: Request) {
 
     // Sort with best matched listing first
     uniqueLocations.sort((a, b) => b.matchConfidence - a.matchConfidence);
+
+    if (clientRecord && uniqueLocations.length > 0) {
+      await logGoogleApiUsage({
+        clientId: clientRecord.id,
+        userId: session?.userId,
+        userName: emailParam || session?.name || clientRecord.businessName,
+        businessName: clientRecord.businessName,
+        action: 'GOOGLE_PLACES_SYNC',
+        featureName: `Google Business Profile API Discovery (${uniqueLocations.length} locations)`,
+        apiType: 'PLACES_TEXT_SEARCH',
+        callsCount: 1,
+        metadata: {
+          discoveredLocationsCount: uniqueLocations.length,
+          matchedPlace: uniqueLocations[0]?.locationName,
+        },
+      }).catch(() => null);
+    }
 
     return NextResponse.json({
       success: true,

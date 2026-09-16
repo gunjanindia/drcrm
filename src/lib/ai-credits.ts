@@ -16,7 +16,7 @@ export interface DeductCreditParams {
   clientId?: string;
   userName?: string;
   businessName?: string;
-  action: 'REVIEW_REPLY' | 'SITE_BUILDER_AI_FILL' | 'AI_TEMPLATE_SYNTHESIS' | 'AI_AGENT_QUERY' | 'LEAD_INTELLIGENCE';
+  action: 'REVIEW_REPLY' | 'SITE_BUILDER_AI_FILL' | 'AI_TEMPLATE_SYNTHESIS' | 'AI_AGENT_QUERY' | 'LEAD_INTELLIGENCE' | 'GOOGLE_PLACES_SYNC' | 'GOOGLE_MAPS_LOOKUP' | 'GOOGLE_REVIEWS_API';
   featureName: string;
   creditsToDeduct?: number;
   promptText?: string;
@@ -24,6 +24,101 @@ export interface DeductCreditParams {
   promptTokens?: number;
   completionTokens?: number;
   metadata?: Record<string, any>;
+}
+
+export interface LogGoogleApiUsageParams {
+  userId?: string;
+  clientId?: string;
+  userName?: string;
+  businessName?: string;
+  action?: 'GOOGLE_PLACES_SYNC' | 'GOOGLE_MAPS_LOOKUP' | 'GOOGLE_REVIEWS_API' | 'GOOGLE_MAPS_GEOCODE';
+  featureName: string;
+  apiType?: 'PLACES_TEXT_SEARCH' | 'PLACES_DETAILS' | 'PLACES_REVIEWS' | 'MAPS_GEOCODE';
+  callsCount?: number;
+  metadata?: Record<string, any>;
+}
+
+// Google Places & Maps API Official GCP Billing Pricing (USD)
+const GOOGLE_API_COSTS_USD: Record<string, number> = {
+  PLACES_TEXT_SEARCH: 0.032, // $32 per 1,000 requests
+  PLACES_DETAILS: 0.017,     // $17 per 1,000 requests
+  PLACES_REVIEWS: 0.025,     // $25 per 1,000 requests
+  MAPS_GEOCODE: 0.005,       // $5 per 1,000 requests
+  DEFAULT: 0.017,
+};
+
+/**
+ * Log Google Places & Maps Platform API usage, request count, and infrastructure cost per client
+ */
+export async function logGoogleApiUsage(params: LogGoogleApiUsageParams): Promise<{ logId: string; totalCostUsd: number; totalCostInr: number }> {
+  const callsCount = params.callsCount || 1;
+  const costPerCallUsd = GOOGLE_API_COSTS_USD[params.apiType || 'DEFAULT'] || 0.017;
+  const totalCostUsd = Number((costPerCallUsd * callsCount).toFixed(6));
+  const totalCostInr = Number((totalCostUsd * USD_TO_INR_RATE).toFixed(4));
+
+  const uName = params.userName || 'Portal Client';
+  const bName = params.businessName || 'Google Maps Verified Client';
+  const actionName = params.action || 'GOOGLE_PLACES_SYNC';
+  const logId = `glog_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+
+  if (process.env.DATABASE_URL && prisma) {
+    try {
+      await prisma.aiCreditUsageLog.create({
+        data: {
+          tenantId: 'tenant_main',
+          userId: params.userId || null,
+          clientId: params.clientId || null,
+          userName: uName,
+          businessName: bName,
+          action: actionName,
+          featureName: params.featureName,
+          creditsDeducted: 0,
+          promptTokens: callsCount,
+          completionTokens: 0,
+          totalTokens: callsCount,
+          estimatedCostUsd: totalCostUsd,
+          estimatedCostInr: totalCostInr,
+          status: 'SUCCESS',
+          metadata: {
+            apiProvider: 'Google Maps / Places Platform API',
+            apiType: params.apiType || 'PLACES_DETAILS',
+            callsCount,
+            costPerCallUsd,
+            ...(params.metadata || {}),
+          },
+        },
+      });
+    } catch (e) {
+      console.warn('Error saving Google API expense log to Prisma:', e);
+    }
+  }
+
+  inMemoryAiLogs.unshift({
+    id: logId,
+    clientId: params.clientId || null,
+    userId: params.userId || null,
+    userName: uName,
+    businessName: bName,
+    action: actionName,
+    featureName: params.featureName,
+    creditsDeducted: 0,
+    promptTokens: callsCount,
+    completionTokens: 0,
+    totalTokens: callsCount,
+    estimatedCostUsd: totalCostUsd,
+    estimatedCostInr: totalCostInr,
+    status: 'SUCCESS',
+    createdAt: new Date().toISOString(),
+    metadata: {
+      apiProvider: 'Google Maps / Places Platform API',
+      apiType: params.apiType || 'PLACES_DETAILS',
+      callsCount,
+      costPerCallUsd,
+      ...(params.metadata || {}),
+    },
+  });
+
+  return { logId, totalCostUsd, totalCostInr };
 }
 
 export interface CreditCheckResult {
@@ -268,6 +363,8 @@ export async function checkAndDeductAiCredits(params: DeductCreditParams): Promi
   // Also record in memory log array for fast in-session admin view
   inMemoryAiLogs.unshift({
     id: createdLogId,
+    clientId: params.clientId || null,
+    userId: params.userId || null,
     userName: uName,
     businessName: bName,
     action: params.action,
@@ -365,6 +462,8 @@ export async function getAiUsageLogs(limit: number = 100): Promise<Array<any>> {
       if (logs && logs.length > 0) {
         return logs.map((l) => ({
           id: l.id,
+          clientId: l.clientId,
+          userId: l.userId,
           userName: l.userName,
           businessName: l.businessName,
           action: l.action,

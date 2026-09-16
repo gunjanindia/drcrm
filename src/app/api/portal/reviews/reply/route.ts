@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { globalStore } from '@/lib/store';
 import { ClientReviewItem } from '@/lib/client-360-data';
 import { generateDynamicReviewsForBusiness } from '@/lib/client-portal-sync';
+import { logGoogleApiUsage } from '@/lib/ai-credits';
 
 export async function POST(request: Request) {
   try {
@@ -322,6 +323,23 @@ export async function POST(request: Request) {
       } catch (err: any) {
         googleApiError = err.message || 'Error communicating with Google GBP API';
       }
+
+      // Log Google GBP Reviews API Usage
+      await logGoogleApiUsage({
+        clientId: clientRecord?.id,
+        userId: session?.userId,
+        userName: googleEmail || session?.name || `${businessName} Owner`,
+        businessName: businessName,
+        action: 'GOOGLE_REVIEWS_API',
+        featureName: `Google Business Profile Live Review Reply API (Reply to ${authorName || 'Reviewer'})`,
+        apiType: 'PLACES_REVIEWS',
+        callsCount: 1,
+        metadata: {
+          reviewId,
+          googleApiDispatched,
+          googleEmail,
+        },
+      }).catch((e) => console.warn('Failed to log review reply Google API usage:', e));
     }
 
     // 6. Persist updated reviews list & activity to Neon PostgreSQL

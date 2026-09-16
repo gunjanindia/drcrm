@@ -32,11 +32,31 @@ export async function GET(request: Request) {
     let totalCostUsd = 0;
     let totalCostInr = 0;
     let totalCreditsDeducted = 0;
+    let totalAiCalls = 0;
+    let totalGoogleApiCalls = 0;
+    let totalGoogleCostUsd = 0;
+    let totalGoogleCostInr = 0;
+    let totalAiCostUsd = 0;
+    let totalAiCostInr = 0;
 
     for (const log of filteredLogs) {
-      totalPromptTokens += log.promptTokens || 0;
-      totalCompletionTokens += log.completionTokens || 0;
-      totalTokens += log.totalTokens || 0;
+      const isGoogleApi =
+        (log.action && log.action.startsWith('GOOGLE_')) ||
+        (log.metadata && log.metadata.apiProvider && String(log.metadata.apiProvider).includes('Google'));
+
+      if (isGoogleApi) {
+        totalGoogleApiCalls += log.promptTokens || log.totalTokens || 1;
+        totalGoogleCostUsd += log.estimatedCostUsd || 0;
+        totalGoogleCostInr += log.estimatedCostInr || 0;
+      } else {
+        totalAiCalls += 1;
+        totalPromptTokens += log.promptTokens || 0;
+        totalCompletionTokens += log.completionTokens || 0;
+        totalTokens += log.totalTokens || 0;
+        totalAiCostUsd += log.estimatedCostUsd || 0;
+        totalAiCostInr += log.estimatedCostInr || 0;
+      }
+
       totalCostUsd += log.estimatedCostUsd || 0;
       totalCostInr += log.estimatedCostInr || 0;
       if (log.creditsDeducted > 0) {
@@ -44,7 +64,7 @@ export async function GET(request: Request) {
       }
     }
 
-    // Also get all clients for the credit refill dropdown
+    // Also get all clients for the credit refill dropdown & client table
     let clientsList: any[] = [];
     if (process.env.DATABASE_URL && prisma) {
       try {
@@ -56,6 +76,8 @@ export async function GET(request: Request) {
             aiCreditBalance: true,
             subscriptionStatus: true,
             trialEndsAt: true,
+            category: true,
+            city: true,
           },
           orderBy: { createdAt: 'desc' },
         });
@@ -69,11 +91,17 @@ export async function GET(request: Request) {
       data: filteredLogs,
       summary: {
         totalRequests: filteredLogs.length,
+        totalAiCalls,
+        totalGoogleApiCalls,
         totalPromptTokens,
         totalCompletionTokens,
         totalTokens,
         totalCostUsd: Number(totalCostUsd.toFixed(6)),
         totalCostInr: Number(totalCostInr.toFixed(4)),
+        totalGoogleCostUsd: Number(totalGoogleCostUsd.toFixed(6)),
+        totalGoogleCostInr: Number(totalGoogleCostInr.toFixed(4)),
+        totalAiCostUsd: Number(totalAiCostUsd.toFixed(6)),
+        totalAiCostInr: Number(totalAiCostInr.toFixed(4)),
         totalCreditsDeducted,
       },
       clients: clientsList,

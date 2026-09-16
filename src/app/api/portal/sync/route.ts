@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { globalStore } from '@/lib/store';
 import { convertGoogleReviewsToClientReviews, SyncedBusinessProfile } from '@/lib/client-portal-sync';
 import { lookupGooglePlace } from '@/lib/google-places';
+import { logGoogleApiUsage } from '@/lib/ai-credits';
 
 export async function POST(request: Request) {
   try {
@@ -156,6 +157,24 @@ export async function POST(request: Request) {
             timestamp: new Date(),
           },
         }).catch(() => null);
+
+        // Log Google Maps & Places Platform API Expense for Admin Monitor
+        await logGoogleApiUsage({
+          clientId: clientRecord.id,
+          userId: session?.userId,
+          userName: googleOwnerEmail || session?.name || clientRecord.businessName,
+          businessName: clientRecord.businessName,
+          action: 'GOOGLE_PLACES_SYNC',
+          featureName: `Google Places API Sync (${resolvedReviewCount} reviews, ${resolvedRating}⭐)`,
+          apiType: 'PLACES_DETAILS',
+          callsCount: 1,
+          metadata: {
+            placeId: placeId || clientRecord.id,
+            reviewCount: resolvedReviewCount,
+            rating: resolvedRating,
+            googleMapsUrl: googleMapsUrl || clientRecord.googleMapsUrl,
+          },
+        }).catch((err) => console.warn('Failed to log Google Places API expense:', err));
       } catch (dbErr) {
         console.error('Error updating Client in DB during GBP sync:', dbErr);
       }

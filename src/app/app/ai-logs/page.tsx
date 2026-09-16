@@ -18,6 +18,11 @@ import {
   Building,
   User,
   ShieldCheck,
+  MapPin,
+  Globe,
+  Layers,
+  Activity,
+  ArrowUpRight,
 } from 'lucide-react';
 import { Button, Input, Modal, Badge } from '@/components/ui';
 import { formatINR } from '@/lib/utils';
@@ -26,11 +31,17 @@ export default function AiLogsDashboardPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({
     totalRequests: 0,
+    totalAiCalls: 0,
+    totalGoogleApiCalls: 0,
     totalPromptTokens: 0,
     totalCompletionTokens: 0,
     totalTokens: 0,
     totalCostUsd: 0,
     totalCostInr: 0,
+    totalGoogleCostUsd: 0,
+    totalGoogleCostInr: 0,
+    totalAiCostUsd: 0,
+    totalAiCostInr: 0,
     totalCreditsDeducted: 0,
   });
   const [clients, setClients] = useState<any[]>([]);
@@ -61,7 +72,7 @@ export default function AiLogsDashboardPage() {
         }
       }
     } catch (e) {
-      console.error('Error fetching AI logs:', e);
+      console.error('Error fetching AI & API logs:', e);
     } finally {
       setIsLoading(false);
     }
@@ -111,36 +122,41 @@ export default function AiLogsDashboardPage() {
     if (logs.length === 0) return;
 
     const headers = [
-      'ID',
+      'Log ID',
       'Timestamp',
-      'User Name',
-      'Business Name',
-      'Action',
-      'Feature Name',
+      'Client / User Name',
+      'Business Client',
+      'Service Provider',
+      'Action Code',
+      'Feature Description',
       'Credits Deducted',
-      'Prompt Tokens',
+      'Calls / Prompt Tokens',
       'Completion Tokens',
-      'Total Tokens',
-      'GCP Cost USD',
-      'GCP Cost INR',
+      'Total Tokens/Calls',
+      'GCP Infrastructure Cost USD',
+      'GCP Infrastructure Cost INR',
       'Status',
     ];
 
-    const rows = logs.map((l) => [
-      l.id,
-      new Date(l.createdAt).toLocaleString(),
-      `"${l.userName || ''}"`,
-      `"${l.businessName || ''}"`,
-      l.action,
-      `"${l.featureName || ''}"`,
-      l.creditsDeducted,
-      l.promptTokens || 0,
-      l.completionTokens || 0,
-      l.totalTokens || 0,
-      l.estimatedCostUsd || 0,
-      l.estimatedCostInr || 0,
-      l.status,
-    ]);
+    const rows = logs.map((l) => {
+      const isGoogle = (l.action && l.action.startsWith('GOOGLE_')) || (l.metadata?.apiProvider && String(l.metadata.apiProvider).includes('Google'));
+      return [
+        l.id,
+        new Date(l.createdAt).toLocaleString(),
+        `"${l.userName || ''}"`,
+        `"${l.businessName || ''}"`,
+        isGoogle ? 'Google Maps & Places Platform' : 'Google Cloud Gemini AI',
+        l.action,
+        `"${l.featureName || ''}"`,
+        l.creditsDeducted,
+        l.promptTokens || 0,
+        l.completionTokens || 0,
+        l.totalTokens || 0,
+        l.estimatedCostUsd || 0,
+        l.estimatedCostInr || 0,
+        l.status,
+      ];
+    });
 
     const csvContent =
       'data:text/csv;charset=utf-8,' +
@@ -149,7 +165,7 @@ export default function AiLogsDashboardPage() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `digital_ranchi_ai_usage_logs_${Date.now()}.csv`);
+    link.setAttribute('download', `digital_ranchi_api_expense_audit_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -159,10 +175,14 @@ export default function AiLogsDashboardPage() {
     const matchesSearch =
       (l.userName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (l.businessName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (l.featureName || '').toLowerCase().includes(searchQuery.toLowerCase());
+      (l.featureName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.action || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesAction =
-      actionFilter === 'ALL' || l.action.toUpperCase() === actionFilter.toUpperCase();
+      actionFilter === 'ALL' ||
+      (actionFilter === 'GOOGLE_ALL' && (l.action.startsWith('GOOGLE_') || l.metadata?.apiProvider?.includes('Google'))) ||
+      (actionFilter === 'AI_ALL' && !l.action.startsWith('GOOGLE_')) ||
+      l.action.toUpperCase() === actionFilter.toUpperCase();
 
     const matchesClient =
       clientFilter === 'ALL' ||
@@ -177,20 +197,23 @@ export default function AiLogsDashboardPage() {
       {/* Header Banner */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-              ⚡ Live GCP Token Costing Engine
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Gemini 1.5 Flash Rate ($0.075 / 1M tok)
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center gap-1">
+              <MapPin className="w-3 h-3" /> Google Maps & Places API ($17 - $32 / 1K calls)
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              Gemini 1.5 Flash Rate
+              Live INR Rate: ₹86.5/USD
             </span>
           </div>
-          <h2 className="text-xl font-black text-slate-900 dark:text-white mt-1.5 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-purple-600" />
-            AI Credit Usage & GCP Cost Audit Monitor
+          <h2 className="text-xl font-black text-slate-900 dark:text-white mt-2 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-purple-600" />
+            AI & Google Maps Platform API Expense Audit Monitor
           </h2>
-          <p className="text-xs text-slate-500">
-            Monitor real-time Gemini AI usage across client portals, calculate exact GCP token costs, and manage wallet credit allowances.
+          <p className="text-xs text-slate-500 mt-0.5">
+            Monitor real-time Google Places synchronization, Google Maps lookups, Gemini AI generations, request counts, and exact infrastructure billing per client.
           </p>
         </div>
 
@@ -212,7 +235,7 @@ export default function AiLogsDashboardPage() {
             onClick={handleExportCsv}
             disabled={logs.length === 0}
           >
-            Export CSV
+            Export Expense CSV
           </Button>
 
           <Button
@@ -222,96 +245,103 @@ export default function AiLogsDashboardPage() {
             onClick={() => setIsRefillModalOpen(true)}
             className="bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/30"
           >
-            Refill Client Credits
+            Refill Client AI Credits
           </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards: 4 Summary Metric Columns */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Google Maps / Places API Usage */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Total AI Calls
+              Google Maps & Places Calls
+            </span>
+            <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-sky-600">
+              <MapPin className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-sky-600 dark:text-sky-400">
+            {summary.totalGoogleApiCalls ?? 0} <span className="text-xs font-semibold text-slate-400">calls</span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium pt-1 border-t border-slate-100 dark:border-slate-800">
+            <span>Places Sync & Lookups</span>
+            <span className="text-sky-600 font-bold">₹{Number(summary.totalGoogleCostInr || 0).toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Card 2: Gemini AI Invocations */}
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Gemini AI Invocations
             </span>
             <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600">
               <Sparkles className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">
-            {summary.totalRequests.toLocaleString()}
+          <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
+            {summary.totalAiCalls ?? 0} <span className="text-xs font-semibold text-slate-400">prompts</span>
           </div>
-          <span className="text-[11px] text-slate-400 block font-medium">
-            {summary.totalCreditsDeducted} Credits Consumed
-          </span>
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium pt-1 border-t border-slate-100 dark:border-slate-800">
+            <span>{summary.totalCreditsDeducted ?? 0} Wallet Credits</span>
+            <span className="text-purple-600 font-bold">₹{Number(summary.totalAiCostInr || 0).toFixed(2)}</span>
+          </div>
         </div>
 
+        {/* Card 3: Total AI Tokens */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Total Tokens Used
+              Total Tokens Consumed
             </span>
             <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600">
               <Cpu className="w-4 h-4" />
             </div>
           </div>
           <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
-            {summary.totalTokens.toLocaleString()}
+            {(summary.totalTokens || 0).toLocaleString()}
           </div>
-          <span className="text-[11px] text-slate-400 block font-medium">
-            {summary.totalPromptTokens.toLocaleString()} in / {summary.totalCompletionTokens.toLocaleString()} out
-          </span>
+          <div className="text-[11px] text-slate-400 font-medium pt-1 border-t border-slate-100 dark:border-slate-800 truncate">
+            {(summary.totalPromptTokens || 0).toLocaleString()} in / {(summary.totalCompletionTokens || 0).toLocaleString()} out
+          </div>
         </div>
 
+        {/* Card 4: Total Combined Infrastructure Expense */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Actual GCP Cost ($ USD)
+              Total GCP Infra Expense
             </span>
             <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600">
-              <DollarSign className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-            ${summary.totalCostUsd}
-          </div>
-          <span className="text-[11px] text-slate-400 block font-medium">
-            At $0.075 / 1M prompt & $0.30 / 1M output
-          </span>
-        </div>
-
-        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Estimated GCP Cost (₹ INR)
-            </span>
-            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
-            ₹{summary.totalCostInr}
+          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+            ₹{summary.totalCostInr ?? 0}
           </div>
-          <span className="text-[11px] text-slate-400 block font-medium">
-            Calculated at ₹86.5 / USD
-          </span>
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium pt-1 border-t border-slate-100 dark:border-slate-800">
+            <span>Combined Total</span>
+            <span className="text-emerald-600 font-bold">${summary.totalCostUsd ?? 0} USD</span>
+          </div>
         </div>
       </div>
 
-      {/* Per-Client AI Credit Wallets & Consumption Overview */}
+      {/* Per-Client Usage & Expense Breakdown Table */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <Coins className="w-4 h-4 text-purple-600" />
-              Client-Wise AI Credit Balances & Costing Breakdown
+              <Building className="w-4 h-4 text-purple-600" />
+              Client-Wise AI, Google Maps & Infrastructure Cost Breakdown
             </h3>
             <p className="text-xs text-slate-500">
-              Live monitor of AI wallet credits, total tokens, and GCP infrastructure cost per registered business account.
+              Complete breakdown by registered business: Google Maps API calls, Gemini AI requests, wallet balances, and exact GCP billing.
             </p>
           </div>
           <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-            {clients.length} Client Wallets
+            {clients.length} Registered Businesses
           </span>
         </div>
 
@@ -320,18 +350,19 @@ export default function AiLogsDashboardPage() {
             <thead className="bg-slate-50 dark:bg-slate-950 border-y border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
               <tr>
                 <th className="py-2.5 px-3">Business Client</th>
-                <th className="py-2.5 px-3">Wallet Balance</th>
-                <th className="py-2.5 px-3">Platform Tier</th>
-                <th className="py-2.5 px-3">Total Calls</th>
+                <th className="py-2.5 px-3">AI Wallet</th>
+                <th className="py-2.5 px-3">SaaS Tier</th>
+                <th className="py-2.5 px-3">Google Maps Calls</th>
+                <th className="py-2.5 px-3">Gemini AI Calls</th>
                 <th className="py-2.5 px-3">Tokens Used</th>
-                <th className="py-2.5 px-3">GCP Cost (INR)</th>
+                <th className="py-2.5 px-3">Total Infra Expense (₹)</th>
                 <th className="py-2.5 px-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
               {clients.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-slate-400">
+                  <td colSpan={8} className="py-6 text-center text-slate-400">
                     No client accounts registered yet.
                   </td>
                 </tr>
@@ -340,8 +371,17 @@ export default function AiLogsDashboardPage() {
                   const clientLogs = logs.filter(
                     (l) => l.clientId === c.id || (l.businessName && l.businessName === c.businessName)
                   );
-                  const totalClientTokens = clientLogs.reduce((acc, l) => acc + (l.totalTokens || 0), 0);
+                  
+                  // Separate Google Maps vs Gemini AI logs
+                  const mapsLogs = clientLogs.filter((l) => (l.action && l.action.startsWith('GOOGLE_')) || l.metadata?.apiProvider?.includes('Google'));
+                  const aiLogs = clientLogs.filter((l) => !mapsLogs.includes(l));
+
+                  const totalMapsCalls = mapsLogs.reduce((acc, l) => acc + (l.promptTokens || l.totalTokens || 1), 0);
+                  const totalAiCalls = aiLogs.length;
+                  const totalClientTokens = aiLogs.reduce((acc, l) => acc + (l.totalTokens || 0), 0);
                   const totalClientCostInr = clientLogs.reduce((acc, l) => acc + (l.estimatedCostInr || 0), 0);
+                  const totalClientCostUsd = clientLogs.reduce((acc, l) => acc + (l.estimatedCostUsd || 0), 0);
+                  
                   const credits = c.aiCreditBalance ?? 20;
                   const isLow = credits <= 5;
                   const isSelected = clientFilter === c.id;
@@ -354,7 +394,7 @@ export default function AiLogsDashboardPage() {
                       }`}
                     >
                       <td className="py-2.5 px-3">
-                        <div className="font-bold text-slate-900 dark:text-white">
+                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                           {c.businessName}
                         </div>
                         <span className="text-[10px] text-slate-400">{c.email}</span>
@@ -371,7 +411,7 @@ export default function AiLogsDashboardPage() {
                           }`}
                         >
                           <Sparkles className="w-3 h-3" />
-                          {credits} Credits {credits === 0 ? '(Exhausted)' : ''}
+                          {credits} Cr {credits === 0 ? '(0 left)' : ''}
                         </span>
                       </td>
 
@@ -387,16 +427,31 @@ export default function AiLogsDashboardPage() {
                         </span>
                       </td>
 
-                      <td className="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">
-                        {clientLogs.length} calls
+                      <td className="py-2.5 px-3">
+                        <span className="font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {totalMapsCalls} calls
+                        </span>
+                      </td>
+
+                      <td className="py-2.5 px-3">
+                        <span className="font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          {totalAiCalls} calls
+                        </span>
                       </td>
 
                       <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400">
                         {totalClientTokens.toLocaleString()} tok
                       </td>
 
-                      <td className="py-2.5 px-3 font-bold text-emerald-600 dark:text-emerald-400">
-                        ₹{totalClientCostInr.toFixed(4)}
+                      <td className="py-2.5 px-3">
+                        <div className="font-black text-emerald-600 dark:text-emerald-400">
+                          ₹{totalClientCostInr.toFixed(4)}
+                        </div>
+                        <span className="text-[10px] text-slate-400">
+                          (${totalClientCostUsd.toFixed(4)})
+                        </span>
                       </td>
 
                       <td className="py-2.5 px-3 text-right">
@@ -410,7 +465,7 @@ export default function AiLogsDashboardPage() {
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
                             }`}
                           >
-                            {isSelected ? 'Showing Logs' : 'View Logs'}
+                            {isSelected ? 'Showing Logs' : 'Filter Logs'}
                           </button>
                           <button
                             type="button"
@@ -442,7 +497,7 @@ export default function AiLogsDashboardPage() {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search by client, business or feature..."
+              placeholder="Search client, business, or API action..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full text-xs pl-9 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
@@ -454,7 +509,7 @@ export default function AiLogsDashboardPage() {
             onChange={(e) => setClientFilter(e.target.value)}
             className="text-xs p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium max-w-[200px]"
           >
-            <option value="ALL">All Clients</option>
+            <option value="ALL">All Client Accounts</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.businessName} ({c.aiCreditBalance ?? 20}cr)
@@ -464,29 +519,28 @@ export default function AiLogsDashboardPage() {
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">
-          {['ALL', 'REVIEW_REPLY', 'SITE_BUILDER_AI_FILL', 'AI_TEMPLATE_SYNTHESIS', 'AI_AGENT_QUERY'].map(
-            (action) => (
-              <button
-                key={action}
-                onClick={() => setActionFilter(action)}
-                className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
-                  actionFilter === action
-                    ? 'bg-purple-600 text-white shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
-              >
-                {action === 'ALL'
-                  ? 'All Actions'
-                  : action === 'REVIEW_REPLY'
-                  ? 'Reviews'
-                  : action === 'SITE_BUILDER_AI_FILL'
-                  ? 'Site Builder'
-                  : action === 'AI_TEMPLATE_SYNTHESIS'
-                  ? 'Templates'
-                  : 'AI Agent'}
-              </button>
-            )
-          )}
+          {[
+            { id: 'ALL', label: 'All Logs' },
+            { id: 'GOOGLE_ALL', label: '🗺️ Google Maps/Places' },
+            { id: 'AI_ALL', label: '✨ Gemini AI' },
+            { id: 'GOOGLE_PLACES_SYNC', label: 'GBP Sync' },
+            { id: 'GOOGLE_REVIEWS_API', label: 'Live Review Reply' },
+            { id: 'REVIEW_REPLY', label: 'AI Reviews' },
+            { id: 'SITE_BUILDER_AI_FILL', label: 'AI Site Builder' },
+            { id: 'AI_TEMPLATE_SYNTHESIS', label: 'AI Posters' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActionFilter(item.id)}
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                actionFilter === item.id
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -497,10 +551,11 @@ export default function AiLogsDashboardPage() {
             <thead className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
               <tr>
                 <th className="py-3 px-4">Client / User</th>
-                <th className="py-3 px-4">Feature / Action</th>
-                <th className="py-3 px-4">Credits</th>
-                <th className="py-3 px-4">Tokens (Prompt + Compl)</th>
-                <th className="py-3 px-4">GCP Cost ($ / ₹)</th>
+                <th className="py-3 px-4">Provider / Action</th>
+                <th className="py-3 px-4">Feature Details</th>
+                <th className="py-3 px-4">Wallet Impact</th>
+                <th className="py-3 px-4">Usage Volume (Tokens / Calls)</th>
+                <th className="py-3 px-4">GCP Expense ($ / ₹)</th>
                 <th className="py-3 px-4">Timestamp</th>
                 <th className="py-3 px-4">Status</th>
               </tr>
@@ -508,98 +563,142 @@ export default function AiLogsDashboardPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">
-                    Loading AI usage logs...
+                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                    Loading API & AI usage logs...
                   </td>
                 </tr>
               ) : filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">
-                    No AI usage logs found matching your filters.
+                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                    No usage logs found matching your filters.
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map((log) => (
-                  <tr
-                    key={log.id}
-                    className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
-                  >
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-slate-900 dark:text-white">
-                        {log.businessName || 'Business Client'}
-                      </div>
-                      <span className="text-[10px] text-slate-400">
-                        {log.userName || 'Portal User'}
-                      </span>
-                    </td>
+                filteredLogs.map((log) => {
+                  const isGoogle = (log.action && log.action.startsWith('GOOGLE_')) || (log.metadata?.apiProvider && String(log.metadata.apiProvider).includes('Google'));
 
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                        {log.action}
-                      </span>
-                      <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 max-w-xs truncate">
-                        {log.featureName}
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-4">
-                      <span
-                        className={`font-black ${
-                          log.creditsDeducted < 0
-                            ? 'text-emerald-600'
-                            : log.creditsDeducted > 0
-                            ? 'text-rose-600'
-                            : 'text-slate-400'
-                        }`}
-                      >
-                        {log.creditsDeducted > 0
-                          ? `-${log.creditsDeducted}`
-                          : log.creditsDeducted < 0
-                          ? `+${Math.abs(log.creditsDeducted)}`
-                          : '0'}
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-slate-800 dark:text-slate-200">
-                        {(log.totalTokens || 0).toLocaleString()} tok
-                      </div>
-                      <span className="text-[10px] text-slate-400">
-                        {log.promptTokens || 0} in / {log.completionTokens || 0} out
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-emerald-600 dark:text-emerald-400">
-                        ${log.estimatedCostUsd || 0}
-                      </div>
-                      <span className="text-[10px] text-slate-400">
-                        ≈ ₹{log.estimatedCostInr || 0}
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-4 text-slate-500 text-[11px]">
-                      {new Date(log.createdAt).toLocaleString([], {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-
-                    <td className="py-3 px-4">
-                      {log.status === 'SUCCESS' ? (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200">
-                          Success
+                  return (
+                    <tr
+                      key={log.id}
+                      className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
+                    >
+                      {/* Client / User */}
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-slate-900 dark:text-white">
+                          {log.businessName || 'Business Client'}
+                        </div>
+                        <span className="text-[10px] text-slate-400">
+                          {log.userName || 'Portal User'}
                         </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200">
-                          {log.status}
+                      </td>
+
+                      {/* Provider / Action Badge */}
+                      <td className="py-3 px-4">
+                        {isGoogle ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200 dark:border-sky-800 inline-flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {log.action}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800 inline-flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            {log.action}
+                          </span>
+                        )}
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          {isGoogle ? 'Google Maps Platform' : 'Gemini 1.5 Flash'}
+                        </div>
+                      </td>
+
+                      {/* Feature Details */}
+                      <td className="py-3 px-4">
+                        <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 max-w-xs truncate">
+                          {log.featureName}
+                        </div>
+                        {log.metadata?.apiType && (
+                          <span className="text-[10px] text-slate-400 block font-mono">
+                            Type: {log.metadata.apiType}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Wallet Impact */}
+                      <td className="py-3 px-4">
+                        <span
+                          className={`font-black ${
+                            log.creditsDeducted < 0
+                              ? 'text-emerald-600'
+                              : log.creditsDeducted > 0
+                              ? 'text-rose-600'
+                              : 'text-slate-400'
+                          }`}
+                        >
+                          {log.creditsDeducted > 0
+                            ? `-${log.creditsDeducted} Cr`
+                            : log.creditsDeducted < 0
+                            ? `+${Math.abs(log.creditsDeducted)} Cr`
+                            : '0 Cr (Infra)'}
                         </span>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                      </td>
+
+                      {/* Usage Volume */}
+                      <td className="py-3 px-4">
+                        {isGoogle ? (
+                          <div>
+                            <div className="font-bold text-sky-700 dark:text-sky-300">
+                              {log.promptTokens || log.totalTokens || 1} API Request{((log.promptTokens || log.totalTokens || 1) > 1) ? 's' : ''}
+                            </div>
+                            <span className="text-[10px] text-slate-400">
+                              Official GCP Rate
+                            </span>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="font-bold text-slate-800 dark:text-slate-200">
+                              {(log.totalTokens || 0).toLocaleString()} tok
+                            </div>
+                            <span className="text-[10px] text-slate-400">
+                              {log.promptTokens || 0} in / {log.completionTokens || 0} out
+                            </span>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* GCP Expense */}
+                      <td className="py-3 px-4">
+                        <div className="font-black text-emerald-600 dark:text-emerald-400">
+                          ₹{log.estimatedCostInr || 0}
+                        </div>
+                        <span className="text-[10px] text-slate-400">
+                          ${log.estimatedCostUsd || 0} USD
+                        </span>
+                      </td>
+
+                      {/* Timestamp */}
+                      <td className="py-3 px-4 text-slate-500 text-[11px] whitespace-nowrap">
+                        {new Date(log.createdAt).toLocaleString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3 px-4">
+                        {log.status === 'SUCCESS' ? (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200">
+                            Success
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200">
+                            {log.status}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
