@@ -68,8 +68,8 @@ export async function GET(request: Request) {
       candidateName === 'Business Profile' ||
       candidateName === 'Business';
 
-    const businessName = (!isGenericName ? candidateName : clientRecord?.businessName) || clientRecord?.businessName || 'Life in Lights Academy';
-    const city = cityParam || clientRecord?.city || 'Dhanbad';
+    const businessName = (!isGenericName ? candidateName : clientRecord?.businessName) || clientRecord?.businessName || 'My Business';
+    const city = cityParam || clientRecord?.city || 'Ranchi';
 
     const discoveredLocations: Array<{
       id: string;
@@ -131,7 +131,7 @@ export async function GET(request: Request) {
                 const cat =
                   loc.categories?.primaryCategory?.displayName ||
                   clientRecord?.category ||
-                  'Educational institution / Photography Academy';
+                  'Local Business';
 
                 // Try fetching live reviews from Google My Business Reviews API
                 let locReviews: any[] = [];
@@ -171,7 +171,7 @@ export async function GET(request: Request) {
                   primaryCategory: cat,
                   formattedAddress: addr,
                   rating: 5.0,
-                  reviewCount: locReviews.length > 0 ? locReviews.length : (clientRecord?.reviewCount || 30),
+                  reviewCount: locReviews.length > 0 ? locReviews.length : (clientRecord?.reviewCount || 25),
                   photosCount: 15,
                   googleMapsUrl: mapsUrl,
                   placeId: loc.metadata?.placeId || clientRecord?.placeId,
@@ -190,20 +190,48 @@ export async function GET(request: Request) {
       }
     }
 
-    // 2. If no locations were returned by the API (or offline/demo mode),
-    // supply ONLY the authentic verified client profile in Dhanbad.
-    // (Never perform loose keyword searches that pull businesses from other states)
+    // 2. If no locations from Google OAuth, try Google Places search or fallback to clientRecord
+    if (discoveredLocations.length === 0 && businessName && businessName !== 'My Business') {
+      try {
+        const { searchGooglePlaceCandidates } = await import('@/lib/google-places');
+        const candidates = await searchGooglePlaceCandidates(businessName, city, clientRecord?.category);
+        if (candidates.length > 0) {
+          for (const cand of candidates) {
+            discoveredLocations.push({
+              id: cand.placeId,
+              locationName: cand.name,
+              primaryCategory: cand.matchedCategory || clientRecord?.category || 'Local Business',
+              formattedAddress: cand.formattedAddress,
+              rating: cand.rating || 5.0,
+              reviewCount: cand.userRatingsTotal || 0,
+              photosCount: cand.photosCount || 10,
+              googleMapsUrl: cand.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(cand.name + ' ' + city)}`,
+              placeId: cand.placeId,
+              isMatched: (cand.matchConfidence || 0) >= 70,
+              matchConfidence: cand.matchConfidence || 80,
+              reviews: cand.reviews || [],
+              isOperational: cand.isOperational ?? true,
+              accountName: `${emailParam || 'Google Account'} (Verified Owner)`,
+            });
+          }
+        }
+      } catch (searchErr) {
+        console.warn('Google Places search error in locations/route:', searchErr);
+      }
+    }
+
+    // 3. If still empty, use authentic client record
     if (discoveredLocations.length === 0) {
       discoveredLocations.push({
-        id: locationId || `locations/verified_${(clientRecord?.id || 'dhanbad_owner').replace(/[^a-z0-9]/gi, '')}`,
+        id: locationId || `locations/verified_${(clientRecord?.id || 'client_owner').replace(/[^a-z0-9]/gi, '')}`,
         locationName: clientRecord?.businessName || businessName,
-        primaryCategory: clientRecord?.category || 'Educational institution / Photography Academy',
-        formattedAddress: clientRecord?.address || `${city}, Jharkhand - 826001`,
-        rating: clientRecord?.averageRating || 4.9,
-        reviewCount: clientRecord?.reviewCount || 30,
+        primaryCategory: clientRecord?.category || 'Local Business',
+        formattedAddress: clientRecord?.address || `${city}, Jharkhand`,
+        rating: clientRecord?.averageRating || 5.0,
+        reviewCount: clientRecord?.reviewCount || 0,
         photosCount: 15,
         googleMapsUrl: clientRecord?.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent((clientRecord?.businessName || businessName) + ' ' + city)}`,
-        placeId: clientRecord?.placeId || 'ChIJ_dhanbad_life_in_lights',
+        placeId: clientRecord?.placeId || clientRecord?.gbpLocationId || `loc_${clientRecord?.id || 'client'}`,
         isMatched: true,
         matchConfidence: 100,
         reviews: clientRecord?.reviews || [],

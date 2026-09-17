@@ -274,7 +274,8 @@ export function calculatePlaceMatchConfidence(
   targetName: string,
   targetCity: string = '',
   candidateName: string,
-  candidateAddress: string = ''
+  candidateAddress: string = '',
+  targetDistrictOrAddress: string = ''
 ): number {
   if (!targetName || !candidateName) return 0;
 
@@ -285,11 +286,13 @@ export function calculatePlaceMatchConfidence(
   const normCandidate = normalize(candidateName);
   const normCity = normalize(targetCity);
   const normAddress = normalize(candidateAddress);
+  const normDistrict = normalize(targetDistrictOrAddress);
 
   // 1. Exact full string match
   if (normTarget === normCandidate) {
     let score = 95;
     if (normCity && normAddress.includes(normCity)) score = 100;
+    if (normDistrict && normAddress.includes(normDistrict)) score = 100;
     return score;
   }
 
@@ -323,7 +326,7 @@ export function calculatePlaceMatchConfidence(
     }
   }
 
-  // 3. Geographic proximity & state validation
+  // 3. Geographic proximity, district & state validation
   const targetIsEastRegion =
     !normCity ||
     normCity.includes('dhanbad') ||
@@ -333,11 +336,16 @@ export function calculatePlaceMatchConfidence(
     normCity.includes('deoghar') ||
     normCity.includes('hazaribagh') ||
     normCity.includes('giridih') ||
+    normCity.includes('ramgarh') ||
     normCity.includes('patna') ||
     normCity.includes('jharkhand') ||
     normCity.includes('bihar') ||
     normCity.includes('kolkata') ||
     normCity.includes('west bengal');
+
+  if (normDistrict && normAddress.includes(normDistrict)) {
+    baseScore += 25;
+  }
 
   if (normCity && normAddress.includes(normCity)) {
     baseScore += 20;
@@ -359,8 +367,9 @@ export function calculatePlaceMatchConfidence(
  */
 export async function searchGooglePlaceCandidates(
   businessName: string,
-  city: string = 'Dhanbad',
-  category?: string
+  city: string = 'Ranchi',
+  category?: string,
+  districtOrAddress?: string
 ): Promise<GooglePlaceCandidate[]> {
   const apiKey =
     process.env.GOOGLE_PLACES_API_KEY ||
@@ -373,10 +382,15 @@ export async function searchGooglePlaceCandidates(
   }
 
   const queriesToTry = [
+    districtOrAddress ? `${businessName} ${districtOrAddress} ${city}`.trim() : '',
     `${businessName} ${category && category !== 'Local Business' && !businessName.toLowerCase().includes(category.toLowerCase()) ? category : ''} ${city}`.trim(),
     `${businessName} ${city}`.trim(),
+    districtOrAddress ? `${businessName} ${districtOrAddress}`.trim() : '',
     businessName.trim(),
-  ];
+  ].filter(Boolean);
+
+  const seenIds = new Set<string>();
+  const allCandidates: GooglePlaceCandidate[] = [];
 
   for (const query of queriesToTry) {
     try {
@@ -397,12 +411,21 @@ export async function searchGooglePlaceCandidates(
 
       const data = await res.json();
       if (res.ok && data.places && data.places.length > 0) {
-        const rawCandidates = data.places.map((place: any) => {
+        for (const place of data.places) {
+          if (!place.id || seenIds.has(place.id)) continue;
+          seenIds.add(place.id);
+
           const candName = place.displayName?.text || businessName;
           const candAddr = place.formattedAddress || `${city}, Jharkhand`;
-          const confidence = calculatePlaceMatchConfidence(businessName, city, candName, candAddr);
+          const confidence = calculatePlaceMatchConfidence(
+            businessName,
+            city,
+            candName,
+            candAddr,
+            districtOrAddress
+          );
 
-          return {
+          allCandidates.push({
             placeId: place.id,
             name: candName,
             formattedAddress: candAddr,
@@ -425,22 +448,21 @@ export async function searchGooglePlaceCandidates(
                   publishTime: r.publishTime,
                 }))
               : [],
-          };
-        });
-
-        // Filter out candidates with low match confidence (< 65%) to avoid distant false matches
-        const validCandidates = rawCandidates.filter((c: any) => (c.matchConfidence || 0) >= 65);
-        if (validCandidates.length > 0) {
-          validCandidates.sort((a: any, b: any) => (b.matchConfidence || 0) - (a.matchConfidence || 0));
-          return validCandidates;
+          });
         }
+
+        if (allCandidates.length >= 5) break;
       }
     } catch (err) {
       console.error(`Google Places candidate search error for query "${query}":`, err);
     }
   }
 
-  return [];
+  // Filter candidates with sufficient confidence (> 40%) and sort highest confidence first
+  const validCandidates = allCandidates.filter((c) => (c.matchConfidence || 0) >= 40);
+  validCandidates.sort((a, b) => (b.matchConfidence || 0) - (a.matchConfidence || 0));
+
+  return validCandidates;
 }
 
 

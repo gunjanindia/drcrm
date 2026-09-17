@@ -13,9 +13,18 @@ export async function POST(request: Request) {
       email,
       businessName,
       city = 'Ranchi',
+      district = '',
+      address = '',
       category = 'Local Business',
       password,
       authMethod = 'CREDENTIALS',
+      placeId = '',
+      googleMapsUrl = '',
+      averageRating = 5.0,
+      reviewCount = 0,
+      gbpScore = 80,
+      isGbpLinked = false,
+      reviews = [],
     } = body;
 
     const cleanEmail = email?.trim().toLowerCase();
@@ -23,6 +32,12 @@ export async function POST(request: Request) {
     const cleanName = name?.trim();
     const cleanBizName = businessName?.trim();
     const cleanCity = city?.trim() || 'Ranchi';
+    const cleanDistrict = district?.trim() || '';
+    const cleanAddress = address?.trim()
+      ? `${address.trim()}${cleanDistrict ? ', ' + cleanDistrict : ''}, ${cleanCity}, Jharkhand`
+      : cleanDistrict
+      ? `${cleanDistrict}, ${cleanCity}, Jharkhand`
+      : `Main Road, ${cleanCity}, Jharkhand`;
 
     if (!cleanEmail || !cleanName || !cleanBizName || !cleanPhone) {
       return NextResponse.json(
@@ -95,7 +110,7 @@ export async function POST(request: Request) {
           });
         }
 
-        // Create Client Record
+        // Create Client Record with confirmed GBP details
         const client = await prisma.client.create({
           data: {
             tenantId,
@@ -105,10 +120,11 @@ export async function POST(request: Request) {
             phone: cleanPhone,
             whatsapp: cleanPhone,
             email: cleanEmail,
-            address: `Main Road, ${cleanCity}, Jharkhand`,
+            address: cleanAddress,
             city: cleanCity,
             state: 'Jharkhand',
             pincode: '834001',
+            googleMapsUrl: googleMapsUrl || undefined,
             assignedManagerId: manager.id,
             packageId: 'pkg_trial_14d',
             packageName: 'Client 360 Pro (14-Day Free Trial)',
@@ -119,10 +135,30 @@ export async function POST(request: Request) {
             aiCreditBalance: initialAiCredits,
             trialEndsAt,
             subscriptionStatus: 'TRIAL',
-            isGbpLinked: false,
+            isGbpLinked: !!isGbpLinked,
+            averageRating: typeof averageRating === 'number' ? averageRating : 5.0,
+            reviewCount: typeof reviewCount === 'number' ? reviewCount : 0,
+            gbpScore: typeof gbpScore === 'number' ? gbpScore : 80,
+            gbpLocationId: placeId || undefined,
           },
         });
         createdClientId = client.id;
+
+        // If verified reviews were provided, persist to TimelineActivity
+        if (Array.isArray(reviews) && reviews.length > 0) {
+          const { convertGoogleReviewsToClientReviews } = await import('@/lib/client-portal-sync');
+          const formattedReviews = convertGoogleReviewsToClientReviews(reviews, cleanBizName);
+          await prisma.timelineActivity.create({
+            data: {
+              clientId: client.id,
+              type: 'GBP_REVIEWS_DATA',
+              title: `Google Business Profile Initial Sync (${formattedReviews.length} reviews)`,
+              description: JSON.stringify(formattedReviews),
+              actorName: cleanEmail,
+              timestamp: new Date(),
+            },
+          }).catch(() => null);
+        }
 
         // Create User Record
         const user = await prisma.user.create({
@@ -170,10 +206,11 @@ export async function POST(request: Request) {
       phone: cleanPhone,
       whatsapp: cleanPhone,
       email: cleanEmail,
-      address: `Main Road, ${cleanCity}, Jharkhand`,
+      address: cleanAddress,
       city: cleanCity,
       state: 'Jharkhand',
       pincode: '834001',
+      googleMapsUrl: googleMapsUrl || undefined,
       assignedManagerId: 'usr_super_admin',
       assignedManagerName: 'Gunjan Kumar',
       packageId: 'pkg_trial_14d',
@@ -183,14 +220,15 @@ export async function POST(request: Request) {
       monthlyRevenue: 1500,
       activeSince: new Date().toISOString(),
       renewalDate: trialEndsAt.toISOString(),
-      reviewCount: 0,
-      averageRating: 5.0,
-      gbpScore: 80,
+      reviewCount: typeof reviewCount === 'number' ? reviewCount : 0,
+      averageRating: typeof averageRating === 'number' ? averageRating : 5.0,
+      gbpScore: typeof gbpScore === 'number' ? gbpScore : 80,
       status: 'ONBOARDING' as const,
       aiCreditBalance: initialAiCredits,
       trialEndsAt: trialEndsAt.toISOString(),
       subscriptionStatus: 'TRIAL',
-      isGbpLinked: false,
+      isGbpLinked: !!isGbpLinked,
+      reviews: Array.isArray(reviews) ? reviews : [],
       createdAt: new Date().toISOString(),
     };
 

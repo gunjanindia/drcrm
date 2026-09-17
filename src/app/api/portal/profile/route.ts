@@ -256,10 +256,11 @@ export async function GET(request: Request) {
     })}`;
 
     const isPaused = clientRecord.status === 'PAUSED';
+    const isLinked = clientRecord.isGbpLinked ?? false;
 
     const profile: SyncedBusinessProfile = {
       clientId: clientRecord.id,
-      isLiveSynced: true,
+      isLiveSynced: isLinked,
       businessName: clientRecord.businessName,
       category: clientRecord.category || 'Local Business',
       city: clientRecord.city || 'Ranchi',
@@ -267,8 +268,8 @@ export async function GET(request: Request) {
       phone: clientRecord.phone || '+91 94311 00000',
       whatsapp: (clientRecord.whatsapp || clientRecord.phone || '+91 94311 00000').replace(/[^0-9]/g, ''),
       email: clientRecord.email || (session?.email ?? ''),
-      googleMapsUrl: clientRecord.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(clientRecord.businessName)}`,
-      placeId: `loc_${clientRecord.id}`,
+      googleMapsUrl: clientRecord.googleMapsUrl || (clientRecord.businessName ? `https://maps.google.com/?q=${encodeURIComponent(clientRecord.businessName + ' ' + (clientRecord.city || 'Ranchi'))}` : ''),
+      placeId: clientRecord.gbpLocationId || clientRecord.placeId || `loc_${clientRecord.id}`,
       averageRating: rating,
       reviewCount: reviewCount,
       photosCount: photosCount,
@@ -307,7 +308,7 @@ export async function GET(request: Request) {
         ? new Date(clientRecord.trialEndsAt).toISOString()
         : new Date(Date.now() + 14 * 86400000).toISOString(),
       subscriptionStatus: clientRecord.subscriptionStatus || 'TRIAL',
-      isGbpLinked: clientRecord.isGbpLinked ?? false,
+      isGbpLinked: isLinked,
     };
 
     return NextResponse.json({
