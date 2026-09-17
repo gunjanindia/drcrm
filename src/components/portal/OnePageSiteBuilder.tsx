@@ -42,6 +42,7 @@ import {
   CATEGORY_THEMES,
   LocalCategoryKey,
   GeneratedWebsiteData,
+  normalizeWhatsAppNumber,
 } from '@/lib/one-page-site-engine';
 import { usePortalProfile } from '@/contexts/PortalProfileContext';
 import { Button } from '@/components/ui';
@@ -125,7 +126,9 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
   );
 
   const [phone, setPhone] = useState(profile.phone || '+91 94311 00000');
-  const [whatsapp, setWhatsapp] = useState(profile.whatsapp || '919431100000');
+  const [whatsapp, setWhatsapp] = useState(
+    normalizeWhatsAppNumber(profile.miniSiteConfig?.whatsapp || profile.whatsapp || profile.phone)
+  );
   const [address, setAddress] = useState(profile.address || profile.city || 'Main Commercial Market');
   const [workingHours, setWorkingHours] = useState(
     profile.miniSiteConfig?.workingHours || 'Mon – Sat: 9:30 AM – 8:30 PM | Sun: Open'
@@ -676,7 +679,7 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
         workingHours,
         address,
         phone,
-        whatsapp,
+        whatsapp: normalizeWhatsAppNumber(whatsapp || phone),
         themeColor: currentTheme.accentColor,
         bannerGradient: currentTheme.gradient,
         customSlug: siteSlug,

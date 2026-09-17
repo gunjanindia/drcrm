@@ -695,6 +695,28 @@ export interface GeneratedWebsiteData {
   jsonLdSchema: string;
 }
 
+/**
+ * Ensures a valid international WhatsApp number string without leading + or 0, 
+ * adding Indian country code '91' if a 10-digit number is passed so WhatsApp doesn't block or fail to resolve.
+ */
+export function normalizeWhatsAppNumber(raw?: string, fallback: string = '919431109876'): string {
+  if (!raw || !raw.trim()) return fallback;
+  let digits = raw.replace(/[^0-9]/g, '');
+  if (!digits) return fallback;
+
+  // Strip leading zeroes e.g. 08340469107 -> 8340469107
+  while (digits.startsWith('0')) {
+    digits = digits.substring(1);
+  }
+
+  // If 10 digits (Standard Indian Mobile Number), prepend country code 91
+  if (digits.length === 10) {
+    digits = '91' + digits;
+  }
+
+  return digits;
+}
+
 export function buildGeneratedWebsiteData(params: {
   businessName: string;
   category: string;
@@ -732,7 +754,7 @@ export function buildGeneratedWebsiteData(params: {
   const rating = params.rating && params.rating > 0 ? params.rating : 4.9;
   const reviewCount = params.reviewCount && params.reviewCount > 0 ? params.reviewCount : 25;
   const phone = params.phone || '+91 94311 00000';
-  const whatsapp = params.whatsapp || phone.replace(/[^0-9]/g, '');
+  const whatsapp = normalizeWhatsAppNumber(params.whatsapp || params.phone || phone);
   const address = params.address || (city ? `${city}` : 'Main Road');
   const workingHours = params.workingHours || 'Mon – Sat: 9:30 AM – 8:30 PM | Sun: Open';
 
@@ -834,6 +856,7 @@ export function generateStandaloneHtmlBundle(data: GeneratedWebsiteData): {
   css: string;
   js: string;
 } {
+  const cleanWa = normalizeWhatsAppNumber(data.whatsapp || data.phone);
   const css = `
 /* ==========================================================================
    ULTRA-MODERN LOCAL BUSINESS ONE-PAGE WEBSITE DESIGN SYSTEM
@@ -1706,7 +1729,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const msg = \`Hello ${data.businessName}, I would like to inquire about your services:\n\n👤 Name: \${name}\n📞 Phone: \${phone}\n⚡ Service: \${service}\n📅 Preferred Date/Time: \${date || 'Earliest Available'}\n💬 Message: \${notes || 'Please provide quotation.'}\`;
 
       const encoded = encodeURIComponent(msg);
-      window.open(\`https://wa.me/${data.whatsapp}?text=\${encoded}\`, '_blank');
+      window.open(\`https://wa.me/${cleanWa}?text=\${encoded}\`, '_blank');
     });
   }
 });
@@ -1729,7 +1752,7 @@ function copyAddressToClipboard(text) {
         </div>
         <div class="service-card-bottom">
           <span class="service-price">${s.price || 'Custom Quote'}</span>
-          <a href="https://wa.me/${data.whatsapp}?text=${encodeURIComponent(`Hi, I would like to book or inquire about: ${s.title}`)}" class="btn btn-outline" target="_blank" rel="noreferrer" style="font-size: 0.75rem; padding: 0.45rem 0.9rem;">
+          <a href="https://wa.me/${cleanWa}?text=${encodeURIComponent(`Hi, I would like to book or inquire about: ${s.title}`)}" class="btn btn-outline" target="_blank" rel="noreferrer" style="font-size: 0.75rem; padding: 0.45rem 0.9rem;">
             💬 Inquire
           </a>
         </div>
@@ -1829,7 +1852,7 @@ function copyAddressToClipboard(text) {
         <a href="#location">Contact</a>
       </nav>
       <div class="header-actions">
-        <a href="https://wa.me/${data.whatsapp}" class="btn btn-whatsapp" target="_blank" rel="noreferrer">
+        <a href="https://wa.me/${cleanWa}" class="btn btn-whatsapp" target="_blank" rel="noreferrer">
           💬 WhatsApp
         </a>
         <a href="tel:${data.phone}" class="btn btn-primary">
@@ -1852,7 +1875,7 @@ function copyAddressToClipboard(text) {
       <p>${data.subheadline}</p>
 
       <div class="hero-btns">
-        <a href="https://wa.me/${data.whatsapp}" class="btn btn-whatsapp btn-lg" target="_blank" rel="noreferrer">
+        <a href="https://wa.me/${cleanWa}" class="btn btn-whatsapp btn-lg" target="_blank" rel="noreferrer">
           💬 ${data.theme.primaryCtaText}
         </a>
         <a href="tel:${data.phone}" class="btn btn-white btn-lg">
@@ -1914,7 +1937,7 @@ function copyAddressToClipboard(text) {
           <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">
             ${data.aboutBadgeDesc || `Serving customers in ${data.city || 'the locality'} with unmatched craftsmanship and reliable customer support.`}
           </p>
-          <a href="https://wa.me/${data.whatsapp}" class="btn btn-primary" target="_blank" rel="noreferrer">
+          <a href="https://wa.me/${cleanWa}" class="btn btn-primary" target="_blank" rel="noreferrer">
             💬 Connect with Founder
           </a>
         </div>
@@ -2072,7 +2095,7 @@ function copyAddressToClipboard(text) {
       <h2>Ready to Get Started with ${data.businessName}?</h2>
       <p>Connect directly with our team on WhatsApp or phone for priority assistance and fast quotation.</p>
       <div class="hero-btns">
-        <a href="https://wa.me/${data.whatsapp}" class="btn btn-whatsapp btn-lg" target="_blank" rel="noreferrer">
+        <a href="https://wa.me/${cleanWa}" class="btn btn-whatsapp btn-lg" target="_blank" rel="noreferrer">
           💬 Chat on WhatsApp
         </a>
         <a href="tel:${data.phone}" class="btn btn-white btn-lg">
@@ -2095,7 +2118,7 @@ function copyAddressToClipboard(text) {
       <a href="tel:${data.phone}" class="btn btn-primary">
         📞 Call Now
       </a>
-      <a href="https://wa.me/${data.whatsapp}" class="btn btn-whatsapp" target="_blank" rel="noreferrer">
+      <a href="https://wa.me/${cleanWa}" class="btn btn-whatsapp" target="_blank" rel="noreferrer">
         💬 WhatsApp
       </a>
     </div>

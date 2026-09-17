@@ -8,6 +8,7 @@ import {
   detectCategoryKeyFromGbp,
   CATEGORY_THEMES,
   LocalCategoryKey,
+  normalizeWhatsAppNumber,
 } from '@/lib/one-page-site-engine';
 import { getSyncedBusinessProfile } from '@/lib/client-portal-sync';
 
@@ -36,7 +37,7 @@ export default function PublicOnePageWebsite() {
       city: profile.city || '',
       address: profile.miniSiteConfig?.address || profile.address || '',
       phone: profile.miniSiteConfig?.phone || profile.phone || '+91 94311 00000',
-      whatsapp: profile.miniSiteConfig?.whatsapp || profile.whatsapp || '919431100000',
+      whatsapp: normalizeWhatsAppNumber(profile.miniSiteConfig?.whatsapp || profile.whatsapp || profile.phone),
       email: profile.email || '',
       googleMapsUrl: profile.googleMapsUrl || '',
       rating: profile.miniSiteConfig?.ratingOverride || profile.averageRating || 4.9,
