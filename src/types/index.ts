@@ -135,6 +135,7 @@ export interface Client {
   isGbpLinked?: boolean;
   gbpVerifiedEmail?: string;
   gbpLocationId?: string;
+  miniSiteConfig?: any;
   createdAt: string;
 }
 
@@ -413,7 +414,7 @@ export interface DigitalPresenceAuditResult {
 export interface TimelineActivity {
   id: string;
   clientId: string;
-  type: 'LEAD_CREATED' | 'CALL_LOGGED' | 'WHATSAPP_SENT' | 'PAYMENT_RECEIVED' | 'ONBOARDING_STARTED' | 'TASK_COMPLETED' | 'APPROVAL_REQUESTED' | 'APPROVAL_GIVEN' | 'REPORT_GENERATED' | 'TICKET_CREATED';
+  type: 'LEAD_CREATED' | 'CALL_LOGGED' | 'WHATSAPP_SENT' | 'PAYMENT_RECEIVED' | 'ONBOARDING_STARTED' | 'TASK_COMPLETED' | 'APPROVAL_REQUESTED' | 'APPROVAL_GIVEN' | 'REPORT_GENERATED' | 'TICKET_CREATED' | 'MINI_SITE_CONFIG' | 'GBP_REVIEWS_DATA' | 'GBP_SYNCED' | 'GBP_GROWTH_METRICS' | 'GBP_OAUTH_TOKENS' | 'AUDIT_COMPLETED' | (string & {});
   title: string;
   description: string;
   actorName: string;

@@ -2,84 +2,93 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import {
-  buildGeneratedWebsiteData,
-  generateStandaloneHtmlBundle,
-  detectCategoryKeyFromGbp,
-  CATEGORY_THEMES,
-  LocalCategoryKey,
-  normalizeWhatsAppNumber,
-} from '@/lib/one-page-site-engine';
-import { getSyncedBusinessProfile } from '@/lib/client-portal-sync';
+import Link from 'next/link';
+import { Globe, ArrowLeft, Building2 } from 'lucide-react';
 
 export default function PublicOnePageWebsite() {
   const params = useParams();
   const slug = params?.slug as string;
   const [renderedHtml, setRenderedHtml] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const profile = getSyncedBusinessProfile();
+    if (!slug) return;
 
-    // 1. If custom HTML override exists, use it directly
-    if (profile.miniSiteConfig?.customHtml && profile.miniSiteConfig.customHtml.trim()) {
-      setRenderedHtml(profile.miniSiteConfig.customHtml);
-      return;
-    }
+    let isMounted = true;
+    setIsLoading(true);
+    setErrorMessage(null);
 
-    // 2. Otherwise generate from full profile & miniSiteConfig
-    const detectedKey = detectCategoryKeyFromGbp(profile.category);
-    const categoryKey = profile.miniSiteConfig?.category || detectedKey;
-    const theme = CATEGORY_THEMES[categoryKey as LocalCategoryKey] || CATEGORY_THEMES.GENERAL;
+    fetch(`/api/public/site/${encodeURIComponent(slug)}`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!isMounted) return;
 
-    const data = buildGeneratedWebsiteData({
-      businessName: profile.businessName || 'Your Business Name',
-      category: profile.miniSiteConfig?.ownerTitle || theme.name,
-      city: profile.city || '',
-      address: profile.miniSiteConfig?.address || profile.address || '',
-      phone: profile.miniSiteConfig?.phone || profile.phone || '+91 94311 00000',
-      whatsapp: normalizeWhatsAppNumber(profile.miniSiteConfig?.whatsapp || profile.whatsapp || profile.phone),
-      email: profile.email || '',
-      googleMapsUrl: profile.googleMapsUrl || '',
-      rating: profile.miniSiteConfig?.ratingOverride || profile.averageRating || 4.9,
-      reviewCount: profile.miniSiteConfig?.reviewCountOverride || profile.reviewCount || 30,
-      workingHours: profile.miniSiteConfig?.workingHours,
-      headline: profile.miniSiteConfig?.headline,
-      subheadline: profile.miniSiteConfig?.subheadline,
-      customAboutTitle: profile.miniSiteConfig?.aboutTitle,
-      customAbout: profile.miniSiteConfig?.aboutText,
-      customAboutBadge: profile.miniSiteConfig?.aboutBadge,
-      customAboutBadgeTitle: profile.miniSiteConfig?.aboutBadgeTitle,
-      customAboutBadgeDesc: profile.miniSiteConfig?.aboutBadgeDesc,
-      customAboutPillars: profile.miniSiteConfig?.aboutPillars,
-      logoUrl: profile.miniSiteConfig?.logoUrl,
-      bannerUrl: profile.miniSiteConfig?.bannerUrl,
-      customServices: profile.miniSiteConfig?.services?.map((s) => ({
-        title: s.title,
-        desc: s.desc,
-        price: s.price,
-        badge: (s as any).badge,
-      })),
-      customFaqs: profile.miniSiteConfig?.faqs,
-      customGalleryImages: profile.miniSiteConfig?.galleryImages,
-      realReviews:
-        profile.miniSiteConfig?.customReviews && profile.miniSiteConfig.customReviews.length > 0
-          ? profile.miniSiteConfig.customReviews
-          : profile.reviews?.map((r) => ({
-              authorName: r.authorName,
-              rating: r.rating,
-              text: r.content,
-              relativeTime: r.date,
-            })),
-    });
+        if (res.ok && data.success && data.html) {
+          setRenderedHtml(data.html);
+          if (data.businessName && typeof document !== 'undefined') {
+            document.title = `${data.businessName} | Official Website`;
+          }
+        } else {
+          setErrorMessage(data.error || 'Website not found or has not been published yet.');
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.error('Error fetching public website:', err);
+        setErrorMessage('Failed to connect to website server. Please try again.');
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
 
-    const bundle = generateStandaloneHtmlBundle(data);
-    setRenderedHtml(bundle.html);
+    return () => {
+      isMounted = false;
+    };
   }, [slug]);
 
-  if (!renderedHtml) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white text-sm">
-        Loading verified website...
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white p-6 space-y-4 font-sans">
+        <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center animate-pulse shadow-lg shadow-indigo-500/30">
+          <Globe className="w-6 h-6 text-white" />
+        </div>
+        <div className="text-center space-y-1">
+          <h3 className="font-black text-lg tracking-tight">Loading Verified Website</h3>
+          <p className="text-xs text-slate-400 font-mono">digitalranchi.in/s/{slug}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (errorMessage || !renderedHtml) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-6 space-y-6 font-sans text-center">
+        <div className="w-16 h-16 rounded-3xl bg-slate-800 border border-slate-700 flex items-center justify-center shadow-xl">
+          <Building2 className="w-8 h-8 text-amber-400" />
+        </div>
+
+        <div className="max-w-md space-y-2">
+          <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider">
+            Site Not Found
+          </span>
+          <h1 className="text-2xl font-black text-white">
+            Website Not Found
+          </h1>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            The page <code className="px-2 py-0.5 rounded-md bg-slate-800 text-sky-300 font-mono">/s/{slug}</code> is not published or the link is incorrect.
+          </p>
+        </div>
+
+        <div className="pt-2">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Go to Digital Ranchi Home</span>
+          </Link>
+        </div>
       </div>
     );
   }

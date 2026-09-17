@@ -642,53 +642,71 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
     }
   };
 
-  // Save changes to profile & context
-  const handleSaveAndPublish = () => {
+  // Save changes to profile & context and publish to server
+  const handleSaveAndPublish = async () => {
     const fullSiteUrl =
       typeof window !== 'undefined'
         ? `${window.location.origin}${livePreviewUrl}`
         : livePreviewUrl;
 
+    const siteConfigPayload = {
+      category: categoryKey as any,
+      headline,
+      subheadline,
+      tagline: currentTheme.taglineDefault,
+      aboutTitle,
+      aboutText,
+      aboutBadge,
+      aboutBadgeTitle,
+      aboutBadgeDesc,
+      aboutPillars,
+      ownerName: profile.businessName + ' Team',
+      ownerTitle: currentTheme.name,
+      logoUrl: logoUrl || undefined,
+      bannerUrl: bannerUrl || undefined,
+      services: services.map((s) => ({
+        title: s.title,
+        desc: s.desc,
+        price: s.price || 'Standard',
+        icon: s.icon || 'Sparkles',
+        badge: s.badge || undefined,
+      })),
+      faqs,
+      customHtml: useCustomHtml && customHtml.trim() ? customHtml : effectiveHtml,
+      workingHours,
+      address,
+      phone,
+      whatsapp: normalizeWhatsAppNumber(whatsapp || phone),
+      themeColor: currentTheme.accentColor,
+      bannerGradient: currentTheme.gradient,
+      customSlug: siteSlug,
+      ratingOverride: Number(ratingOverride) > 0 ? Number(ratingOverride) : undefined,
+      reviewCountOverride: Number(reviewCountOverride) > 0 ? Number(reviewCountOverride) : undefined,
+      customReviews,
+      galleryImages,
+    };
+
     updateProfile({
       ...profile,
       websiteUrl: fullSiteUrl,
-      miniSiteConfig: {
-        category: categoryKey as any,
-        headline,
-        subheadline,
-        tagline: currentTheme.taglineDefault,
-        aboutTitle,
-        aboutText,
-        aboutBadge,
-        aboutBadgeTitle,
-        aboutBadgeDesc,
-        aboutPillars,
-        ownerName: profile.businessName + ' Team',
-        ownerTitle: currentTheme.name,
-        logoUrl: logoUrl || undefined,
-        bannerUrl: bannerUrl || undefined,
-        services: services.map((s) => ({
-          title: s.title,
-          desc: s.desc,
-          price: s.price || 'Standard',
-          icon: s.icon || 'Sparkles',
-          badge: s.badge || undefined,
-        })),
-        faqs,
-        customHtml: useCustomHtml && customHtml.trim() ? customHtml : effectiveHtml,
-        workingHours,
-        address,
-        phone,
-        whatsapp: normalizeWhatsAppNumber(whatsapp || phone),
-        themeColor: currentTheme.accentColor,
-        bannerGradient: currentTheme.gradient,
-        customSlug: siteSlug,
-        ratingOverride: Number(ratingOverride) > 0 ? Number(ratingOverride) : undefined,
-        reviewCountOverride: Number(reviewCountOverride) > 0 ? Number(reviewCountOverride) : undefined,
-        customReviews,
-        galleryImages,
-      },
+      miniSiteConfig: siteConfigPayload,
     });
+
+    try {
+      await fetch('/api/portal/site-builder/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: profile.clientId,
+          slug: siteSlug,
+          miniSiteConfig: siteConfigPayload,
+          customHtml: useCustomHtml && customHtml.trim() ? customHtml : '',
+          html: effectiveHtml,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to sync published site to database:', err);
+    }
 
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
