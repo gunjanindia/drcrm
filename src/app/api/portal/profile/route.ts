@@ -87,14 +87,26 @@ export async function GET(request: Request) {
 
       // If staff/admin viewing without specific client, fallback to first available active client
       if (!clientRecord && session.role !== 'CLIENT') {
-        clientRecord = globalStore.clients.find((c) => c.status === 'ACTIVE') || globalStore.clients[0] || null;
+        clientRecord = globalStore.clients.find((c) => c.status === 'ACTIVE' || c.isGbpLinked) || globalStore.clients[0] || null;
+      }
+    }
+
+    // 3. If still no client record found via session, check globalStore.clients (client-side/demo mode support)
+    if (!clientRecord && globalStore.clients.length > 0) {
+      if (requestedClientId) {
+        clientRecord = globalStore.clients.find((c) => c.id === requestedClientId);
+      }
+      if (!clientRecord) {
+        clientRecord = globalStore.clients.find((c) => c.isGbpLinked || (c as any).isLiveSynced || c.status === 'ACTIVE') || globalStore.clients[0];
       }
     }
 
     if (!clientRecord) {
       return NextResponse.json({
         authenticated: !!session,
+        isLiveSynced: false,
         data: DEMO_BUSINESS_PROFILE,
+        profile: DEMO_BUSINESS_PROFILE,
         message: 'No specific client record found, using default baseline profile',
       });
     }

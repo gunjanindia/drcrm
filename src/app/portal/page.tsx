@@ -39,13 +39,16 @@ import { Button } from '@/components/ui';
 import { formatINR, formatDate } from '@/lib/utils';
 import { ReviewManagementWidget } from '@/components/portal/ReviewManagementWidget';
 import { AIPointsWalletModal } from '@/components/portal/AIPointsWalletModal';
+import { GbpDataSyncWizardModal } from '@/components/portal/GbpDataSyncWizardModal';
 import { usePortalProfile } from '@/contexts/PortalProfileContext';
 
 export default function ClientPortalDashboard() {
   const { profile: client, saveReviewReply, refreshProfile, updateProfile } = usePortalProfile();
   const [aiPoints, setAiPoints] = useState(65);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [activeAgentTab, setActiveAgentTab] = useState<'GBP' | 'WHATSAPP' | 'REVIEWS' | 'WEBSITE'>('GBP');
 
@@ -63,11 +66,53 @@ export default function ClientPortalDashboard() {
   };
 
   const handleQuickSync = async () => {
+    // If not live synced or using demo placeholder, launch the 2-Min GBP Setup Wizard
+    if (!client.isLiveSynced || client.businessName === 'Life in Lights Academy') {
+      setIsWizardOpen(true);
+      return;
+    }
+
     setIsSyncing(true);
+    setSyncToast(null);
     try {
-      await refreshProfile();
+      // Direct live sync with Google Places API
+      const res = await fetch('/api/portal/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: client.clientId,
+          businessName: client.businessName,
+          category: client.category,
+          city: client.city,
+          address: client.address,
+          phone: client.phone,
+          whatsapp: client.whatsapp,
+          googleMapsUrl: client.googleMapsUrl,
+          placeId: client.placeId,
+          googleOwnerEmail: client.googleOwnerEmail,
+          googleAccountName: client.googleAccountName,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.profile || data.data) {
+          const fresh = data.profile || data.data;
+          const merged = {
+            ...client,
+            ...fresh,
+            syncedAt: new Date().toLocaleString(),
+          };
+          updateProfile(merged);
+          setSyncToast('Live Google Profile, verified reviews & rating refreshed successfully!');
+          setTimeout(() => setSyncToast(null), 4000);
+        }
+      } else {
+        await refreshProfile();
+      }
     } catch (e) {
-      console.error(e);
+      console.error('Quick sync error:', e);
+      await refreshProfile();
     } finally {
       setIsSyncing(false);
     }
@@ -195,6 +240,15 @@ export default function ClientPortalDashboard() {
               {isSyncing ? 'Syncing Google Data...' : 'Sync Live Google Profile'}
             </Button>
 
+            <button
+              type="button"
+              onClick={() => setIsWizardOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/30 text-[11px] font-bold text-indigo-200 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>{client.isLiveSynced ? 'Change / Re-link Profile' : '2-Min GBP Setup Wizard'}</span>
+            </button>
+
             <div className="flex items-center gap-2 w-full">
               {client.googleMapsUrl && (
                 <a
@@ -221,6 +275,22 @@ export default function ClientPortalDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Realtime Live Google Sync Toast Notification */}
+      {syncToast && (
+        <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-between gap-3 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-2.5 text-xs font-bold text-emerald-200">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span>{syncToast}</span>
+          </div>
+          <button
+            onClick={() => setSyncToast(null)}
+            className="text-xs text-emerald-300 hover:text-white font-black px-2 py-0.5 rounded cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 4 CORE PERFORMANCE GROWTH METRICS (Digital Ranchi KPI RADAR)                      */}
@@ -872,6 +942,18 @@ export default function ClientPortalDashboard() {
         onClose={() => setIsWalletOpen(false)}
         currentPoints={aiPoints}
         onPointsAdded={handlePointsAdded}
+      />
+
+      {/* GBP 2-Min Live Data Setup Wizard Modal */}
+      <GbpDataSyncWizardModal
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        onSyncComplete={(newProfile) => {
+          updateProfile(newProfile);
+          setIsWizardOpen(false);
+          setSyncToast('Google Business Profile successfully synced & activated!');
+          setTimeout(() => setSyncToast(null), 4000);
+        }}
       />
     </div>
   );

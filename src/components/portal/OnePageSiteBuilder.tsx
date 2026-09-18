@@ -247,6 +247,8 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [aiMessage, setAiMessage] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 

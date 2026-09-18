@@ -85,31 +85,35 @@ export async function POST(request: Request) {
       }
     }
 
+    const effectiveClientId = targetClientId || clientRecord?.id || `cli_portal_${Date.now()}`;
+
     // 3. Persist update in Prisma PostgreSQL
-    if (process.env.DATABASE_URL && prisma && clientRecord) {
+    if (process.env.DATABASE_URL && prisma) {
       try {
-        await prisma.client.update({
-          where: { id: clientRecord.id },
-          data: {
-            businessName: businessName || clientRecord.businessName,
-            category: category || clientRecord.category,
-            city: city || clientRecord.city,
-            address: address || clientRecord.address,
-            phone: phone || clientRecord.phone,
-            whatsapp: whatsapp || phone || clientRecord.whatsapp,
-            googleMapsUrl: googleMapsUrl || clientRecord.googleMapsUrl,
-            averageRating: resolvedRating,
-            reviewCount: resolvedReviewCount,
-            gbpScore: resolvedGbpScore,
-            status: 'ACTIVE',
-          },
-        });
+        if (clientRecord) {
+          await prisma.client.update({
+            where: { id: clientRecord.id },
+            data: {
+              businessName: businessName || clientRecord.businessName,
+              category: category || clientRecord.category,
+              city: city || clientRecord.city,
+              address: address || clientRecord.address,
+              phone: phone || clientRecord.phone,
+              whatsapp: whatsapp || phone || clientRecord.whatsapp,
+              googleMapsUrl: googleMapsUrl || clientRecord.googleMapsUrl,
+              averageRating: resolvedRating,
+              reviewCount: resolvedReviewCount,
+              gbpScore: resolvedGbpScore,
+              status: 'ACTIVE',
+            },
+          });
+        }
 
         // Save Synced Reviews Array into TimelineActivity (Permanent DB storage across serverless reloads)
         if (finalReviews && finalReviews.length > 0) {
           await prisma.timelineActivity.create({
             data: {
-              clientId: clientRecord.id,
+              clientId: effectiveClientId,
               type: 'GBP_REVIEWS_DATA',
               title: `Google Maps Live Reviews Snapshot (${finalReviews.length} reviews)`,
               description: JSON.stringify(finalReviews),
@@ -121,10 +125,10 @@ export async function POST(request: Request) {
 
         // Upsert GBP profile
         await prisma.gbpProfile.upsert({
-          where: { clientId: clientRecord.id },
+          where: { clientId: effectiveClientId },
           update: {
-            locationName: businessName || clientRecord.businessName,
-            primaryCategory: category || clientRecord.category,
+            locationName: businessName || clientRecord?.businessName,
+            primaryCategory: category || clientRecord?.category,
             rating: resolvedRating,
             reviewCount: resolvedReviewCount,
             photosCount: resolvedPhotosCount,
@@ -133,9 +137,9 @@ export async function POST(request: Request) {
             lastAuditDate: new Date(),
           },
           create: {
-            clientId: clientRecord.id,
-            locationName: businessName || clientRecord.businessName,
-            primaryCategory: category || clientRecord.category,
+            clientId: effectiveClientId,
+            locationName: businessName || 'My Business',
+            primaryCategory: category || 'Local Business',
             rating: resolvedRating,
             reviewCount: resolvedReviewCount,
             photosCount: resolvedPhotosCount,
@@ -149,7 +153,7 @@ export async function POST(request: Request) {
         // Log Timeline Activity for Sync Event
         await prisma.timelineActivity.create({
           data: {
-            clientId: clientRecord.id,
+            clientId: effectiveClientId,
             type: 'GBP_SYNCED',
             title: `Live Google Business Profile Synced`,
             description: `Connected to Google Maps listing (${resolvedReviewCount} reviews, ${resolvedRating}⭐ rating) by ${googleOwnerEmail || session?.email || 'Owner'}.`,
@@ -160,19 +164,19 @@ export async function POST(request: Request) {
 
         // Log Google Maps & Places Platform API Expense for Admin Monitor
         await logGoogleApiUsage({
-          clientId: clientRecord.id,
+          clientId: effectiveClientId,
           userId: session?.userId,
-          userName: googleOwnerEmail || session?.name || clientRecord.businessName,
-          businessName: clientRecord.businessName,
+          userName: googleOwnerEmail || session?.name || businessName || 'Business Owner',
+          businessName: businessName || clientRecord?.businessName || 'Business',
           action: 'GOOGLE_PLACES_SYNC',
           featureName: `Google Places API Sync (${resolvedReviewCount} reviews, ${resolvedRating}⭐)`,
           apiType: 'PLACES_DETAILS',
           callsCount: 1,
           metadata: {
-            placeId: placeId || clientRecord.id,
+            placeId: placeId || effectiveClientId,
             reviewCount: resolvedReviewCount,
             rating: resolvedRating,
-            googleMapsUrl: googleMapsUrl || clientRecord.googleMapsUrl,
+            googleMapsUrl: googleMapsUrl || clientRecord?.googleMapsUrl,
           },
         }).catch((err) => console.warn('Failed to log Google Places API expense:', err));
       } catch (dbErr) {
@@ -180,42 +184,104 @@ export async function POST(request: Request) {
       }
     }
 
-    // 4. Update in-memory globalStore & crm_store.json
-    if (clientRecord) {
-      const idx = globalStore.clients.findIndex((c) => c.id === clientRecord.id);
-      if (idx !== -1) {
-        globalStore.clients[idx] = {
-          ...globalStore.clients[idx],
-          businessName: businessName || globalStore.clients[idx].businessName,
-          category: category || globalStore.clients[idx].category,
-          city: city || globalStore.clients[idx].city,
-          address: address || globalStore.clients[idx].address,
-          phone: phone || globalStore.clients[idx].phone,
-          whatsapp: whatsapp || phone || globalStore.clients[idx].whatsapp,
-          googleMapsUrl: googleMapsUrl || globalStore.clients[idx].googleMapsUrl,
-          averageRating: resolvedRating,
-          reviewCount: resolvedReviewCount,
-          gbpScore: resolvedGbpScore,
-          status: 'ACTIVE',
-        };
-        (globalStore.clients[idx] as any).reviews = finalReviews;
-        (globalStore.clients[idx] as any).googleOwnerEmail = googleOwnerEmail;
-        (globalStore.clients[idx] as any).googleAccountName = googleAccountName;
-      }
-      globalStore.saveToFile();
+    // 4. Update or Add in globalStore.clients & crm_store.json
+    let storeClient = globalStore.clients.find((c) => c.id === effectiveClientId || c.id === clientRecord?.id);
+    if (storeClient) {
+      storeClient.businessName = businessName || storeClient.businessName;
+      storeClient.category = category || storeClient.category;
+      storeClient.city = city || storeClient.city;
+      storeClient.address = address || storeClient.address;
+      storeClient.phone = phone || storeClient.phone;
+      storeClient.whatsapp = whatsapp || phone || storeClient.whatsapp;
+      storeClient.googleMapsUrl = googleMapsUrl || storeClient.googleMapsUrl;
+      storeClient.gbpLocationId = placeId || storeClient.gbpLocationId;
+      storeClient.averageRating = resolvedRating;
+      storeClient.reviewCount = resolvedReviewCount;
+      storeClient.gbpScore = resolvedGbpScore;
+      storeClient.status = 'ACTIVE';
+      storeClient.isGbpLinked = true;
+      (storeClient as any).isLiveSynced = true;
+      (storeClient as any).reviews = finalReviews;
+      (storeClient as any).googleOwnerEmail = googleOwnerEmail;
+      (storeClient as any).googleAccountName = googleAccountName;
+    } else {
+      const newClient = {
+        id: effectiveClientId,
+        tenantId: 'tenant_main',
+        businessName: businessName || 'My Business',
+        category: category || 'Local Business',
+        phone: phone || '+91 94311 00000',
+        whatsapp: whatsapp || phone || '+91 94311 00000',
+        email: session?.email || googleOwnerEmail || 'client@digitalranchi.in',
+        address: address || `${city || 'Ranchi'}, Jharkhand`,
+        city: city || 'Ranchi',
+        state: 'Jharkhand',
+        pincode: '834001',
+        googleMapsUrl: googleMapsUrl || '',
+        assignedManagerId: 'usr_super_admin',
+        assignedManagerName: 'Gunjan Kumar',
+        packageId: 'pkg_growth_999',
+        packageName: 'Growth Retainer Plan',
+        healthScore: 'GREEN' as const,
+        healthReason: 'Active GBP Live Sync',
+        monthlyRevenue: 999,
+        activeSince: new Date().toISOString(),
+        renewalDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+        gbpLocationId: placeId || `loc_${effectiveClientId}`,
+        averageRating: resolvedRating,
+        reviewCount: resolvedReviewCount,
+        gbpScore: resolvedGbpScore,
+        status: 'ACTIVE' as const,
+        isGbpLinked: true,
+        createdAt: new Date().toISOString(),
+      };
+      (newClient as any).isLiveSynced = true;
+      (newClient as any).reviews = finalReviews;
+      (newClient as any).googleOwnerEmail = googleOwnerEmail;
+      (newClient as any).googleAccountName = googleAccountName;
+      globalStore.clients.push(newClient);
+      storeClient = newClient;
     }
+    globalStore.saveToFile();
+
+    const formattedSyncDate = `${new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })} • ${new Date().toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })}`;
+
+    const profileData = {
+      clientId: storeClient.id,
+      isLiveSynced: true,
+      businessName: storeClient.businessName,
+      category: storeClient.category,
+      city: storeClient.city,
+      address: storeClient.address,
+      phone: storeClient.phone,
+      whatsapp: storeClient.whatsapp,
+      email: storeClient.email,
+      googleMapsUrl: storeClient.googleMapsUrl,
+      placeId: placeId || storeClient.gbpLocationId,
+      averageRating: resolvedRating,
+      reviewCount: resolvedReviewCount,
+      photosCount: resolvedPhotosCount,
+      gbpScore: resolvedGbpScore,
+      googleOwnerEmail: googleOwnerEmail || storeClient.email,
+      googleAccountName: googleAccountName || `${storeClient.businessName} (Verified Owner)`,
+      syncedAt: formattedSyncDate,
+      status: 'ACTIVE' as const,
+      isOperational: true,
+      reviews: finalReviews,
+    };
 
     return NextResponse.json({
       success: true,
       message: 'Google Business Profile live data and verified reviews successfully synced and saved to CRM.',
-      data: {
-        clientId: clientRecord?.id,
-        businessName: businessName || clientRecord?.businessName,
-        reviews: finalReviews,
-        rating: resolvedRating,
-        reviewCount: resolvedReviewCount,
-        isLiveSynced: true,
-      },
+      data: profileData,
+      profile: profileData,
     });
   } catch (error: any) {
     console.error('POST /api/portal/sync error:', error);
