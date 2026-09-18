@@ -63,14 +63,9 @@ export async function POST(request: Request) {
     // 2. Resolve real reviews: passed in body, or fetched live from Google Places
     let finalReviews = Array.isArray(reviews) && reviews.length > 0 ? reviews : [];
 
-    const isLayTaal = (businessName || clientRecord?.businessName || '').toLowerCase().includes('lay taal')
-      || (googleMapsUrl || clientRecord?.googleMapsUrl || '').includes('0x39f51f94a47c0301:0x52fd9f1a2b7175b0')
-      || (googleMapsUrl || clientRecord?.googleMapsUrl || '').includes('ChIJAQN8pJQf9TkRsHVxKxqf_VI')
-      || placeId === 'ChIJAQN8pJQf9TkRsHVxKxqf_VI';
-
     const resolvedPlaceId = (placeId && !placeId.startsWith('loc_'))
       ? placeId
-      : (isLayTaal ? 'ChIJAQN8pJQf9TkRsHVxKxqf_VI' : (placeId || clientRecord?.gbpLocationId || clientRecord?.placeId));
+      : (clientRecord?.gbpLocationId || clientRecord?.placeId || placeId);
 
     if (finalReviews.length === 0 && (googleMapsUrl || businessName || resolvedPlaceId)) {
       try {
@@ -90,40 +85,13 @@ export async function POST(request: Request) {
       }
     }
 
-    if (finalReviews.length === 0 && isLayTaal) {
-      finalReviews = [
-        {
-          id: 'rev_real_1',
-          authorName: 'Rupesh Kumar',
-          rating: 5,
-          date: 'in the last week',
-          content: 'An Excellent Kathak Teacher in Our Town – Ranchi. We are truly fortunate to have a dedicated and accomplished Kathak teacher in Ranchi, carrying forward the rich tradition of Guru Maa Smt. Ruby Mishra & Padma Vibhushan Pt. Birju Maharaj Ji.',
-          status: 'PENDING',
-          sentiment: 'POSITIVE',
-          source: 'Google Maps',
-          isLiveOnGoogle: true,
-        },
-        {
-          id: 'rev_real_2',
-          authorName: 'Verified Student Parent',
-          rating: 5,
-          date: '2 weeks ago',
-          content: 'Wonderful atmosphere and authentic Indian classical dance training under very patient guidance.',
-          status: 'PENDING',
-          sentiment: 'POSITIVE',
-          source: 'Google Maps',
-          isLiveOnGoogle: true,
-        },
-      ];
-    }
-
     const resolvedRating = typeof rating === 'number' ? rating : (typeof averageRating === 'number' ? averageRating : 5.0);
-    const resolvedReviewCount = typeof reviewCount === 'number' && reviewCount > 0
+    const resolvedReviewCount = typeof reviewCount === 'number' && reviewCount >= 0
       ? reviewCount
-      : (finalReviews.length > 0 ? finalReviews.length : (isLayTaal ? 2 : 0));
-    const resolvedPhotosCount = typeof photosCount === 'number' && photosCount > 0
+      : finalReviews.length;
+    const resolvedPhotosCount = typeof photosCount === 'number' && photosCount >= 0
       ? photosCount
-      : (isLayTaal ? 1 : (finalReviews.length > 0 ? 1 : 0));
+      : (finalReviews.length > 0 ? 1 : 0);
     const resolvedGbpScore = typeof gbpScore === 'number' ? gbpScore : (resolvedReviewCount >= 10 ? 88 : (resolvedReviewCount >= 2 ? 80 : 70));
 
     const effectiveClientId = targetClientId || clientRecord?.id || `cli_portal_${Date.now()}`;

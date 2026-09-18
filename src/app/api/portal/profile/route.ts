@@ -275,51 +275,16 @@ export async function GET(request: Request) {
     })}`;
 
     const isPaused = clientRecord.status === 'PAUSED';
-    const isLinked = clientRecord.isGbpLinked ?? false;
+    const isLinked = clientRecord.isGbpLinked ?? Boolean(clientRecord.gbpLocationId);
 
-    const isLayTaal = (clientRecord.businessName || '').toLowerCase().includes('lay taal')
-      || (clientRecord.googleMapsUrl || '').includes('0x39f51f94a47c0301:0x52fd9f1a2b7175b0')
-      || (clientRecord.googleMapsUrl || '').includes('ChIJAQN8pJQf9TkRsHVxKxqf_VI')
-      || clientRecord.gbpLocationId === 'ChIJAQN8pJQf9TkRsHVxKxqf_VI';
-
-    const resolvedPlaceId = (clientRecord.gbpLocationId && !clientRecord.gbpLocationId.startsWith('loc_'))
-      ? clientRecord.gbpLocationId
-      : (isLayTaal ? 'ChIJAQN8pJQf9TkRsHVxKxqf_VI' : (clientRecord.placeId || clientRecord.gbpLocationId || `loc_${clientRecord.id}`));
-
-    const effectiveReviewCount = isLayTaal && reviewCount === 0 ? 2 : reviewCount;
-    const effectivePhotosCount = isLayTaal ? 1 : photosCount;
-    const effectiveRating = isLayTaal ? 5.0 : rating;
-
-    if (reviewsToUse.length === 0 && isLayTaal) {
-      reviewsToUse = [
-        {
-          id: 'rev_real_1',
-          authorName: 'Rupesh Kumar',
-          rating: 5,
-          date: 'in the last week',
-          content: 'An Excellent Kathak Teacher in Our Town – Ranchi. We are truly fortunate to have a dedicated and accomplished Kathak teacher in Ranchi, carrying forward the rich tradition of Guru Maa Smt. Ruby Mishra & Padma Vibhushan Pt. Birju Maharaj Ji.',
-          status: 'PENDING',
-          sentiment: 'POSITIVE',
-          source: 'Google Maps',
-          isLiveOnGoogle: true,
-        },
-        {
-          id: 'rev_real_2',
-          authorName: 'Verified Student Parent',
-          rating: 5,
-          date: '2 weeks ago',
-          content: 'Wonderful atmosphere and authentic Indian classical dance training under very patient guidance.',
-          status: 'PENDING',
-          sentiment: 'POSITIVE',
-          source: 'Google Maps',
-          isLiveOnGoogle: true,
-        },
-      ];
-    }
+    const resolvedPlaceId = clientRecord.gbpLocationId || clientRecord.placeId || (clientRecord.id ? `place_${clientRecord.id}` : undefined);
+    const effectiveReviewCount = typeof clientRecord.reviewCount === 'number' ? clientRecord.reviewCount : reviewsToUse.length;
+    const effectivePhotosCount = typeof clientRecord.photosCount === 'number' ? clientRecord.photosCount : (effectiveReviewCount > 0 ? 1 : 0);
+    const effectiveRating = typeof clientRecord.averageRating === 'number' ? clientRecord.averageRating : 5.0;
 
     const profile: SyncedBusinessProfile = {
       clientId: clientRecord.id,
-      isLiveSynced: isLinked || isLayTaal,
+      isLiveSynced: isLinked,
       businessName: clientRecord.businessName,
       category: clientRecord.category || 'Local Business',
       city: clientRecord.city || 'Ranchi',

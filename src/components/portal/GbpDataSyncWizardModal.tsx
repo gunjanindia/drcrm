@@ -425,7 +425,7 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Lay Taal Kathak Kendra, Ranchi"
+                  placeholder="e.g. Apex Health Center or your Google Business Name"
                   value={searchName}
                   onChange={(e) => setSearchName(e.target.value)}
                   className="w-full text-xs p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"

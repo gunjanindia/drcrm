@@ -252,15 +252,6 @@ async function extractGoogleMapsMetadataFromUrl(url: string, fallbackName: strin
       }
     }
 
-    // Known profiles registry fallback for verified places
-    const targetNormalized = (extractedName || fallbackName).toLowerCase();
-    if (targetNormalized.includes('lay taal') || finalUrl.includes('0x39f51f94a47c0301:0x52fd9f1a2b7175b0') || finalUrl.includes('ChIJAQN8pJQf9TkRsHVxKxqf_VI')) {
-      extractedPlaceId = 'ChIJAQN8pJQf9TkRsHVxKxqf_VI';
-      extractedRating = 5.0;
-      extractedReviews = 2;
-      extractedAddress = 'Sumiran Banquet Hall, Latma Rd, near Hethu Bridge, Singh More, Prem Nagar, Ranchi, Jharkhand 834003';
-    }
-
     return {
       placeId: extractedPlaceId,
       name: extractedName || fallbackName,
@@ -271,17 +262,6 @@ async function extractGoogleMapsMetadataFromUrl(url: string, fallbackName: strin
     };
   } catch (e) {
     console.error('Error extracting Google Maps metadata from URL:', e);
-    const targetNormalized = fallbackName.toLowerCase();
-    if (targetNormalized.includes('lay taal') || url.includes('0x39f51f94a47c0301:0x52fd9f1a2b7175b0') || url.includes('ChIJAQN8pJQf9TkRsHVxKxqf_VI')) {
-      return {
-        placeId: 'ChIJAQN8pJQf9TkRsHVxKxqf_VI',
-        name: 'Lay Taal Kathak Kendra',
-        rating: 5.0,
-        userRatingsTotal: 2,
-        address: 'Sumiran Banquet Hall, Latma Rd, near Hethu Bridge, Singh More, Prem Nagar, Ranchi, Jharkhand 834003',
-        resolvedUrl: url,
-      };
-    }
     return {
       name: fallbackName,
       resolvedUrl: url,
@@ -577,35 +557,14 @@ export async function lookupGooglePlace(
       // Extract verified live metadata from the Google Maps page
       const meta = await extractGoogleMapsMetadataFromUrl(resolvedUrl, cleanName, city);
 
-      const isLayTaal = (meta.name || cleanName).toLowerCase().includes('lay taal')
-        || resolvedUrl.includes('0x39f51f94a47c0301:0x52fd9f1a2b7175b0')
-        || resolvedUrl.includes('ChIJAQN8pJQf9TkRsHVxKxqf_VI')
-        || meta.placeId === 'ChIJAQN8pJQf9TkRsHVxKxqf_VI';
-
-      const resolvedPlaceId = meta.placeId || (isLayTaal ? 'ChIJAQN8pJQf9TkRsHVxKxqf_VI' : undefined);
-      const rating = isLayTaal ? 5.0 : (meta.rating !== undefined ? meta.rating : 5.0);
-      const reviewCount = isLayTaal ? 2 : (meta.userRatingsTotal !== undefined ? meta.userRatingsTotal : 0);
-      const photosCount = isLayTaal ? 1 : (meta.photosCount !== undefined ? meta.photosCount : (reviewCount > 0 ? 1 : 0));
-
-      const layTaalReviews: GooglePlaceReview[] = [
-        {
-          authorName: 'Rupesh Kumar',
-          rating: 5,
-          text: 'An Excellent Kathak Teacher in Our Town – Ranchi. We are truly fortunate to have a dedicated and accomplished Kathak teacher in Ranchi, carrying forward the rich tradition of Guru Maa Smt. Ruby Mishra & Padma Vibhushan Pt. Birju Maharaj Ji.',
-          relativeTime: 'Recently',
-        },
-        {
-          authorName: 'Verified Student Parent',
-          rating: 5,
-          text: 'Wonderful atmosphere and authentic Indian classical dance training under very patient guidance.',
-          relativeTime: 'Recently',
-        },
-      ];
+      const rating = meta.rating !== undefined ? meta.rating : 5.0;
+      const reviewCount = meta.userRatingsTotal !== undefined ? meta.userRatingsTotal : (meta.reviews?.length || 0);
+      const photosCount = meta.photosCount !== undefined ? meta.photosCount : (reviewCount > 0 ? 1 : 0);
 
       return {
         status: 'VERIFIED_MATCH',
-        placeId: resolvedPlaceId,
-        name: isLayTaal ? 'Lay Taal Kathak Kendra' : (meta.name || cleanName),
+        placeId: meta.placeId,
+        name: meta.name || cleanName,
         formattedAddress: meta.address || `${cleanName}, ${city}, Jharkhand`,
         rating,
         userRatingsTotal: reviewCount,
@@ -613,9 +572,9 @@ export async function lookupGooglePlace(
         googleMapsUrl: meta.resolvedUrl || resolvedUrl,
         isOperational: true,
         hasWebsite: false,
-        matchedCategory: isLayTaal ? 'Dance Academy' : (category || 'Local Business'),
-        matchConfidence: 99,
-        reviews: isLayTaal ? layTaalReviews : (meta.reviews || []),
+        matchedCategory: category || 'Local Business',
+        matchConfidence: 98,
+        reviews: meta.reviews || [],
         apiSource: 'GOOGLE_MAPS_HTML_SCRAPER',
       };
     }
@@ -639,8 +598,6 @@ export async function fetchGooglePlaceByPlaceId(placeId: string): Promise<Google
   const cleanId = placeId?.trim();
   if (!cleanId) return null;
 
-  const isLayTaal = cleanId === 'ChIJAQN8pJQf9TkRsHVxKxqf_VI' || cleanId.toLowerCase().includes('laytaal');
-
   const apiKey =
     process.env.GOOGLE_PLACES_API_KEY ||
     process.env.GOOGLE_MAPS_API_KEY ||
@@ -661,23 +618,23 @@ export async function fetchGooglePlaceByPlaceId(placeId: string): Promise<Google
 
       if (res.ok) {
         const place = await res.json();
-        const candName = place.displayName?.text || (isLayTaal ? 'Lay Taal Kathak Kendra' : 'Verified Google Business');
+        const candName = place.displayName?.text || 'Verified Google Business';
         const count = typeof place.userRatingCount === 'number'
           ? place.userRatingCount
-          : (Array.isArray(place.reviews) ? place.reviews.length : (isLayTaal ? 2 : 0));
+          : (Array.isArray(place.reviews) ? place.reviews.length : 0);
 
         return {
           placeId: place.id || cleanId,
           name: candName,
-          formattedAddress: place.formattedAddress || (isLayTaal ? 'Sumiran Banquet Hall, Latma Rd, near Hethu Bridge, Singh More, Prem Nagar, Ranchi, Jharkhand 834003' : 'Ranchi, Jharkhand'),
-          rating: typeof place.rating === 'number' ? place.rating : (isLayTaal ? 5.0 : 5.0),
+          formattedAddress: place.formattedAddress || 'Ranchi, Jharkhand',
+          rating: typeof place.rating === 'number' ? place.rating : 5.0,
           userRatingsTotal: count,
-          photosCount: Array.isArray(place.photos) ? place.photos.length : (isLayTaal ? 1 : 0),
+          photosCount: Array.isArray(place.photos) ? place.photos.length : (count > 0 ? 1 : 0),
           googleMapsUrl: place.googleMapsUri || `https://search.google.com/local/writereview?placeid=${cleanId}`,
           isOperational: place.businessStatus === 'OPERATIONAL' || place.businessStatus === undefined,
           hasWebsite: Boolean(place.websiteUri),
-          matchedCategory: isLayTaal ? 'Dance Academy' : (place.primaryType || 'Local Business'),
-          phone: place.nationalPhoneNumber || place.internationalPhoneNumber || '+91 92632 29810',
+          matchedCategory: place.primaryType || 'Local Business',
+          phone: place.nationalPhoneNumber || place.internationalPhoneNumber || '',
           websiteUri: place.websiteUri,
           matchConfidence: 100,
           reviews: Array.isArray(place.reviews) && place.reviews.length > 0
@@ -688,20 +645,7 @@ export async function fetchGooglePlaceByPlaceId(placeId: string): Promise<Google
                 relativeTime: r.relativePublishTimeDescription || 'Recently',
                 publishTime: r.publishTime,
               }))
-            : (isLayTaal ? [
-                {
-                  authorName: 'Rupesh Kumar',
-                  rating: 5,
-                  text: 'An Excellent Kathak Teacher in Our Town – Ranchi. We are truly fortunate to have a dedicated and accomplished Kathak teacher in Ranchi, carrying forward the rich tradition of Guru Maa Smt. Ruby Mishra & Padma Vibhushan Pt. Birju Maharaj Ji.',
-                  relativeTime: 'Recently',
-                },
-                {
-                  authorName: 'Verified Student Parent',
-                  rating: 5,
-                  text: 'Wonderful atmosphere and authentic Indian classical dance training under very patient guidance.',
-                  relativeTime: 'Recently',
-                },
-              ] : []),
+            : [],
         };
       }
     } catch (err) {
@@ -709,57 +653,20 @@ export async function fetchGooglePlaceByPlaceId(placeId: string): Promise<Google
     }
   }
 
-  // Fallback direct Place ID synthesis
-  if (isLayTaal) {
-    return {
-      placeId: 'ChIJAQN8pJQf9TkRsHVxKxqf_VI',
-      name: 'Lay Taal Kathak Kendra',
-      formattedAddress: 'Sumiran Banquet Hall, Latma Rd, near Hethu Bridge, Singh More, Prem Nagar, Ranchi, Jharkhand 834003',
-      rating: 5.0,
-      userRatingsTotal: 2,
-      photosCount: 1,
-      googleMapsUrl: 'https://www.google.com/maps/place/Lay+Taal+Kathak+Kendra/@23.302129,85.3183547,15z/data=!4m7!3m6!1s0x39f51f94a47c0301:0x52fd9f1a2b7175b0!8m2!3d23.3021308!4d85.3368087!15sChREYW5jZSBzY2hvb2wgbmVhciBtZSIDkAEBkgEMZGFuY2Vfc2Nob29s4AEA!16s%2Fg%2F11nw1hr9rm?entry=tts&g_ep=EgoyMDI2MDkxNS4wIPu8ASoASAFQAw%3D%3D&skid=d1399032-6676-4ede-901f-05cd3dd8c2fa',
-      matchedCategory: 'Dance Academy',
-      isOperational: true,
-      matchConfidence: 100,
-      phone: '+91 92632 29810',
-      reviews: [
-        {
-          authorName: 'Rupesh Kumar',
-          rating: 5,
-          text: 'An Excellent Kathak Teacher in Our Town – Ranchi. We are truly fortunate to have a dedicated and accomplished Kathak teacher in Ranchi, carrying forward the rich tradition of Guru Maa Smt. Ruby Mishra & Padma Vibhushan Pt. Birju Maharaj Ji.',
-          relativeTime: 'Recently',
-        },
-        {
-          authorName: 'Verified Student Parent',
-          rating: 5,
-          text: 'Wonderful atmosphere and authentic Indian classical dance training under very patient guidance.',
-          relativeTime: 'Recently',
-        },
-      ],
-    };
-  }
-
+  // Fallback direct Place ID synthesis when no API key is available
   return {
     placeId: cleanId,
     name: 'Verified Google Business Location',
     formattedAddress: 'Ranchi, Jharkhand',
     rating: 5.0,
-    userRatingsTotal: 2,
-    photosCount: 1,
+    userRatingsTotal: 0,
+    photosCount: 0,
     googleMapsUrl: `https://search.google.com/local/writereview?placeid=${encodeURIComponent(cleanId)}`,
     matchedCategory: 'Local Business & Professional Services',
     isOperational: true,
     matchConfidence: 100,
-    phone: '+91 94311 88220',
-    reviews: [
-      {
-        authorName: 'Verified Reviewer',
-        rating: 5,
-        text: 'Outstanding experience! Very professional service and high quality.',
-        relativeTime: 'Recently',
-      },
-    ],
+    phone: '',
+    reviews: [],
   };
 }
 
