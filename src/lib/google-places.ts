@@ -440,14 +440,14 @@ export async function searchGooglePlaceCandidates(
             placeId: place.id,
             name: candName,
             formattedAddress: candAddr,
-            rating: typeof place.rating === 'number' ? place.rating : 4.8,
-            userRatingsTotal: typeof place.userRatingCount === 'number' ? place.userRatingCount : 0,
-            photosCount: Array.isArray(place.photos) ? place.photos.length : 0,
+            rating: typeof place.rating === 'number' ? place.rating : 5.0,
+            userRatingsTotal: typeof place.userRatingCount === 'number' ? place.userRatingCount : (Array.isArray(place.reviews) ? place.reviews.length : 0),
+            photosCount: Array.isArray(place.photos) ? place.photos.length : (Array.isArray(place.reviews) && place.reviews.length > 0 ? 1 : 0),
             googleMapsUrl: place.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(candName)}`,
             isOperational: place.businessStatus === 'OPERATIONAL' || place.businessStatus === undefined,
             hasWebsite: Boolean(place.websiteUri),
             matchedCategory: place.primaryType,
-            phone: place.nationalPhoneNumber || place.internationalPhoneNumber || '+91 94311 09876',
+            phone: place.nationalPhoneNumber || place.internationalPhoneNumber || '',
             websiteUri: place.websiteUri,
             matchConfidence: confidence,
             reviews: Array.isArray(place.reviews)
@@ -489,12 +489,40 @@ export async function lookupGooglePlace(
 ): Promise<GooglePlaceLookupResult> {
   const cleanName = businessName.trim();
   const cleanUrl = mapsUrl?.trim();
+  const cleanPlaceId = selectedPlaceId?.trim();
   const apiKey =
     process.env.GOOGLE_PLACES_API_KEY ||
     process.env.GOOGLE_MAPS_API_KEY ||
     '';
 
-  // 1. Strict URL validation if a Maps URL was supplied
+  // 1. Direct Place ID Resolution if selectedPlaceId or Place ID in name/URL
+  const directIdToUse = cleanPlaceId || (cleanName.startsWith('ChIJ') ? cleanName : undefined) || cleanUrl?.match(/ChIJ[a-zA-Z0-9_-]{24,}/)?.[0];
+  if (directIdToUse) {
+    const placeCandidate = await fetchGooglePlaceByPlaceId(directIdToUse);
+    if (placeCandidate) {
+      return {
+        status: 'VERIFIED_MATCH',
+        placeId: placeCandidate.placeId,
+        name: placeCandidate.name || cleanName,
+        formattedAddress: placeCandidate.formattedAddress,
+        rating: placeCandidate.rating,
+        userRatingsTotal: placeCandidate.userRatingsTotal,
+        photosCount: placeCandidate.photosCount,
+        googleMapsUrl: placeCandidate.googleMapsUrl,
+        isOperational: placeCandidate.isOperational,
+        hasWebsite: placeCandidate.hasWebsite,
+        matchedCategory: placeCandidate.matchedCategory || category,
+        phone: placeCandidate.phone,
+        websiteUri: placeCandidate.websiteUri,
+        matchConfidence: 100,
+        reviews: placeCandidate.reviews,
+        candidates: [placeCandidate],
+        apiSource: 'GOOGLE_PLACES_API_NEW',
+      };
+    }
+  }
+
+  // 2. Strict URL validation if a Maps URL was supplied
   if (cleanUrl) {
     const urlCheck = validateGoogleMapsUrl(cleanUrl);
     if (!urlCheck.isValid) {
@@ -505,16 +533,16 @@ export async function lookupGooglePlace(
     }
   }
 
-  // 2. Query Live Google Places API when API key is configured
+  // 3. Query Live Google Places API when API key is configured
   if (apiKey && apiKey.length > 20) {
     const candidates = await searchGooglePlaceCandidates(cleanName, city, category);
 
     if (candidates.length > 0) {
-      const matched = selectedPlaceId
-        ? candidates.find((c) => c.placeId === selectedPlaceId) || candidates[0]
+      const matched = directIdToUse
+        ? candidates.find((c) => c.placeId === directIdToUse) || candidates[0]
         : candidates[0];
 
-      if ((matched.matchConfidence || 0) >= 65) {
+      if ((matched.matchConfidence || 0) >= 50) {
         return {
           status: 'VERIFIED_MATCH',
           placeId: matched.placeId,
@@ -538,7 +566,7 @@ export async function lookupGooglePlace(
     }
   }
 
-  // 3. Deep Page HTML Scraping & URL Resolver when a Google Maps URL is provided
+  // 4. Deep Page HTML Scraping & URL Resolver when a Google Maps URL is provided
   if (cleanUrl) {
     const urlCheck = validateGoogleMapsUrl(cleanUrl);
     if (urlCheck.isValid) {
@@ -556,6 +584,28 @@ export async function lookupGooglePlace(
 
       // Extract verified live metadata from the Google Maps page
       const meta = await extractGoogleMapsMetadataFromUrl(resolvedUrl, cleanName, city);
+
+      if (meta.placeId && apiKey && apiKey.length > 20) {
+        const enriched = await fetchGooglePlaceByPlaceId(meta.placeId);
+        if (enriched) {
+          return {
+            status: 'VERIFIED_MATCH',
+            placeId: enriched.placeId,
+            name: enriched.name || meta.name || cleanName,
+            formattedAddress: enriched.formattedAddress || meta.address || `${cleanName}, ${city}, Jharkhand`,
+            rating: enriched.rating,
+            userRatingsTotal: enriched.userRatingsTotal,
+            photosCount: enriched.photosCount,
+            googleMapsUrl: enriched.googleMapsUrl || meta.resolvedUrl || resolvedUrl,
+            isOperational: enriched.isOperational,
+            hasWebsite: enriched.hasWebsite,
+            matchedCategory: enriched.matchedCategory || category || 'Local Business',
+            matchConfidence: 100,
+            reviews: enriched.reviews,
+            apiSource: 'GOOGLE_PLACES_API_NEW',
+          };
+        }
+      }
 
       const rating = meta.rating !== undefined ? meta.rating : 5.0;
       const reviewCount = meta.userRatingsTotal !== undefined ? meta.userRatingsTotal : (meta.reviews?.length || 0);

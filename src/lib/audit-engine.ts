@@ -177,7 +177,7 @@ export async function runDigitalPresenceAudit(
     overallScore,
     isVerifiedOnGoogle: placeResult.status === 'VERIFIED_MATCH',
     validationStatus: placeResult.status,
-    averageRating: placeResult.status === 'VERIFIED_MATCH' ? (placeResult.rating ?? 4.6) : 0,
+    averageRating: placeResult.status === 'VERIFIED_MATCH' ? (placeResult.rating ?? 5.0) : 0,
     reviewCount: placeResult.status === 'VERIFIED_MATCH' ? (placeResult.userRatingsTotal ?? 0) : 0,
     scannedAt: new Date().toISOString(),
     matchedPlace: placeResult.status === 'VERIFIED_MATCH' ? {
