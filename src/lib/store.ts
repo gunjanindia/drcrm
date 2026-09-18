@@ -2016,6 +2016,24 @@ export class AppStore {
     return this.globalAiPromptConfigs;
   }
 
+  public createGlobalAiPromptConfig(data: Omit<GlobalAiPromptConfig, 'id' | 'updatedAt'>): GlobalAiPromptConfig {
+    const cleanKey = (data.category || data.displayName || 'category')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+
+    const newConfig: GlobalAiPromptConfig = {
+      id: generateId('cfg'),
+      ...data,
+      category: cleanKey,
+      updatedAt: new Date().toISOString(),
+    };
+    this.globalAiPromptConfigs.push(newConfig);
+    this.saveToFile();
+    return newConfig;
+  }
+
   public updateGlobalAiPromptConfig(id: string, data: Partial<GlobalAiPromptConfig>): GlobalAiPromptConfig {
     const index = this.globalAiPromptConfigs.findIndex((c) => c.id === id);
     if (index === -1) throw new Error('Global AI config not found');
@@ -2026,6 +2044,13 @@ export class AppStore {
     };
     this.saveToFile();
     return this.globalAiPromptConfigs[index];
+  }
+
+  public deleteGlobalAiPromptConfig(id: string): boolean {
+    const initialLen = this.globalAiPromptConfigs.length;
+    this.globalAiPromptConfigs = this.globalAiPromptConfigs.filter((c) => c.id !== id);
+    this.saveToFile();
+    return this.globalAiPromptConfigs.length < initialLen;
   }
 }
 
