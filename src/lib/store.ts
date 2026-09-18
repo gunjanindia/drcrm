@@ -1847,14 +1847,44 @@ export class AppStore {
     if (existing) return existing;
 
     const client = this.clients.find((c) => c.id === clientId);
+    const category = (client?.category || '').toLowerCase();
+    const city = client?.city || 'Ranchi';
+
+    let businessType = client?.category || 'Salon & Beauty Parlour';
+    let keyServices = ['Hair Styling & Cut', 'Bridal Makeup', 'Facial Glow Treatment', 'Hair Spa', 'Hygienic Manicure & Pedicure'];
+    let targetKeywords = [`best salon in ${city}`, 'bridal makeup artist', 'hair spa treatment', 'hygienic parlour', 'glowing skin treatment'];
+    let customInstructions = 'Highlight courteous staff, skilled hair stylists, spotless salon hygiene, relaxing ambiance, and premium beauty products.';
+
+    if (category.includes('dent') || category.includes('doctor') || category.includes('clinic') || category.includes('health') || category.includes('hospital')) {
+      businessType = client?.category || 'Dental Clinic & Implant Center';
+      keyServices = ['Painless Treatment', 'Doctor Consultation', 'Clean Clinic', 'Accurate Diagnosis', 'Gentle Care'];
+      targetKeywords = [`best clinic in ${city}`, 'painless treatment', 'experienced doctor', 'clean clinic', 'caring staff'];
+      customInstructions = 'Highlight compassionate doctor consultation, gentle painless treatment, spotless clinic hygiene, and transparent guidance.';
+    } else if (category.includes('food') || category.includes('restaur') || category.includes('cafe') || category.includes('sweet') || category.includes('baker')) {
+      businessType = client?.category || 'Restaurant & Cafe';
+      keyServices = ['Delicious Fresh Food', 'Quick Table Service', 'Cozy Ambiance', 'Family Dining', 'Authentic Taste'];
+      targetKeywords = [`best restaurant in ${city}`, 'delicious food', 'authentic taste', 'must visit cafe', 'quick service'];
+      customInstructions = 'Highlight authentic flavors, fresh ingredients, generous portions, quick polite service, and cozy ambiance.';
+    } else if (category.includes('salon') || category.includes('beauty') || category.includes('spa') || category.includes('parlour') || category.includes('makeup') || category.includes('hair')) {
+      businessType = client?.category || 'Salon & Beauty Parlour';
+      keyServices = ['Hair Styling & Cut', 'Bridal Makeup', 'Facial Glow Treatment', 'Hair Spa', 'Hygienic Manicure & Pedicure'];
+      targetKeywords = [`best salon in ${city}`, 'bridal makeup artist', 'hair spa treatment', 'hygienic parlour', 'glowing skin treatment'];
+      customInstructions = 'Highlight courteous staff, skilled hair stylists, spotless salon hygiene, relaxing ambiance, and premium beauty products.';
+    } else if (client?.category) {
+      businessType = client.category;
+      keyServices = ['Quality Service', 'Honest Pricing', 'Prompt Response', 'Expert Consultation', 'Reliable Support'];
+      targetKeywords = [`best ${client.category} in ${city}`, 'quick service', 'honest pricing', 'trustworthy business'];
+      customInstructions = 'Highlight courteous staff, punctual fulfillment, and fair transparent pricing.';
+    }
+
     const defaultSettings: AiReviewSettings = {
       clientId,
-      businessType: client?.category || 'Local Business',
-      keyServices: ['Customer Consultation', 'Professional Service', 'Quality Support', 'Express Delivery'],
-      targetKeywords: [`best ${client?.category || 'service'} in ${client?.city || 'Ranchi'}`, 'quick service', 'honest pricing'],
+      businessType,
+      keyServices,
+      targetKeywords,
       tone: 'PROFESSIONAL',
       isShieldActive: true,
-      customInstructions: 'Highlight courteous staff, punctual fulfillment, and fair transparent pricing.',
+      customInstructions,
       reviewRedirectUrl: client?.googleMapsUrl || '',
       updatedAt: new Date().toISOString(),
     };

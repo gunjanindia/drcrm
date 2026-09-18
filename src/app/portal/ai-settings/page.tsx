@@ -47,13 +47,31 @@ export default function AiReviewSettingsPage() {
       .then((data) => {
         if (data.success && data.data?.settings) {
           const s = data.data.settings;
-          setBusinessType(s.businessType || profile.category || 'Local Business');
-          setKeyServices(s.keyServices || ['Painless Service', 'Consultation', 'Spotless Hygiene', 'Fair Pricing']);
-          setTargetKeywords(s.targetKeywords || [`best ${profile.category || 'service'} in ${profile.city || 'Ranchi'}`, 'quick service']);
+          const detectedCategory = s.businessType || profile.category || 'Salon & Beauty Parlour';
+          setBusinessType(detectedCategory);
+
+          const isSalon = detectedCategory.toLowerCase().includes('salon') || detectedCategory.toLowerCase().includes('beauty') || detectedCategory.toLowerCase().includes('parlour') || detectedCategory.toLowerCase().includes('spa');
+          const isHealth = detectedCategory.toLowerCase().includes('dent') || detectedCategory.toLowerCase().includes('doctor') || detectedCategory.toLowerCase().includes('clinic') || detectedCategory.toLowerCase().includes('health');
+          const isFood = detectedCategory.toLowerCase().includes('food') || detectedCategory.toLowerCase().includes('restaur') || detectedCategory.toLowerCase().includes('cafe') || detectedCategory.toLowerCase().includes('sweet');
+
+          const defaultServices = isSalon
+            ? ['Hair Styling & Cut', 'Bridal Makeup', 'Facial Glow Treatment', 'Hair Spa', 'Hygienic Manicure & Pedicure']
+            : isHealth
+            ? ['Painless Treatment', 'Doctor Consultation', 'Clean Clinic', 'Accurate Diagnosis', 'Gentle Care']
+            : isFood
+            ? ['Delicious Fresh Food', 'Quick Table Service', 'Cozy Ambiance', 'Family Dining', 'Authentic Taste']
+            : ['Quality Service', 'Honest Pricing', 'Prompt Response', 'Expert Consultation', 'Reliable Support'];
+
+          const finalServices = s.keyServices && s.keyServices.length > 0 && !s.keyServices.includes('Painless Service') && !s.keyServices.includes('Painless Root Canal')
+            ? s.keyServices
+            : defaultServices;
+
+          setKeyServices(finalServices);
+          setTargetKeywords(s.targetKeywords && s.targetKeywords.length > 0 ? s.targetKeywords : [`best ${detectedCategory} in ${profile.city || 'Ranchi'}`, 'quick service']);
           setTone(s.tone || 'PROFESSIONAL');
           setCustomInstructions(s.customInstructions || '');
           setIsShieldActive(s.isShieldActive ?? true);
-          setSimSelectedServices((s.keyServices || []).slice(0, 2));
+          setSimSelectedServices(finalServices.slice(0, 2));
         }
       })
       .catch((err) => console.error('Failed to load AI review settings:', err))
@@ -197,7 +215,7 @@ export default function AiReviewSettingsPage() {
                 type="text"
                 value={businessType}
                 onChange={(e) => setBusinessType(e.target.value)}
-                placeholder="e.g. Dental Implant & Root Canal Center"
+                placeholder="e.g. Salon & Beauty Parlour / Dental Clinic / Cafe"
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500"
               />
               <p className="text-[11px] text-slate-500">
@@ -217,7 +235,7 @@ export default function AiReviewSettingsPage() {
                   value={newServiceInput}
                   onChange={(e) => setNewServiceInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddService())}
-                  placeholder="Type service (e.g. Painless Root Canal) and press enter"
+                  placeholder="Type service (e.g. Bridal Makeup, Hair Styling, Facial) and press enter"
                   className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
                 />
                 <button
