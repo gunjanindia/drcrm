@@ -13,16 +13,15 @@ interface RateLimitRecord {
 
 const rateLimitMap = new Map<string, RateLimitRecord>();
 
-// Clean up expired keys every 30 minutes to prevent memory leaks
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    const now = Date.now();
+// Helper to clean up expired keys lazily
+function cleanupExpiredKeys(now: number) {
+  if (rateLimitMap.size > 500) {
     for (const [key, record] of rateLimitMap.entries()) {
       if (now > record.resetAt) {
         rateLimitMap.delete(key);
       }
     }
-  }, 30 * 60 * 1000);
+  }
 }
 
 export interface RateLimitResult {
@@ -46,6 +45,7 @@ export function checkRateLimit(
   windowMs: number = 24 * 60 * 60 * 1000
 ): RateLimitResult {
   const now = Date.now();
+  cleanupExpiredKeys(now);
   const cleanId = (identifier || 'unknown-client').trim().toLowerCase();
   const record = rateLimitMap.get(cleanId);
 

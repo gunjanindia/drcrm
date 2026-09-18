@@ -14,16 +14,15 @@ interface CachedSearchResult {
 const gbpSearchCache = new Map<string, CachedSearchResult>();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-// Cleanup stale cache entries periodically (every 1 hour)
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    const now = Date.now();
+// Lazy cleanup helper for stale cache entries
+function cleanupStaleCache(now: number) {
+  if (gbpSearchCache.size > 200) {
     for (const [key, val] of gbpSearchCache.entries()) {
       if (now - val.timestamp > CACHE_TTL_MS) {
         gbpSearchCache.delete(key);
       }
     }
-  }, 60 * 60 * 1000);
+  }
 }
 
 export async function POST(request: Request) {
@@ -56,6 +55,7 @@ export async function POST(request: Request) {
     }
 
     const now = Date.now();
+    cleanupStaleCache(now);
     if (formLoadedAt > 0 && now - formLoadedAt < 600) {
       console.warn('[Anti-Abuse] Sub-second automated bot request detected in GBP search.');
       return NextResponse.json({
