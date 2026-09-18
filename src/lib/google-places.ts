@@ -8,6 +8,8 @@
  * 4. Strict Google Maps URL validation & short-link canonical resolver
  */
 
+import { globalStore } from '@/lib/store';
+
 export interface GooglePlaceReview {
   authorName: string;
   rating: number;
@@ -649,6 +651,38 @@ export async function fetchGooglePlaceByPlaceId(placeId: string): Promise<Google
   const cleanId = placeId?.trim();
   if (!cleanId) return null;
 
+  // 1. Dynamic Check in CRM globalStore clients & leads
+  try {
+    const matchedClient: any =
+      globalStore?.clients?.find(
+        (c: any) => c.placeId === cleanId || c.gbpLocationId === cleanId || c.googleMapsUrl?.includes(cleanId)
+      ) ||
+      globalStore?.leads?.find(
+        (l: any) => (l as any).placeId === cleanId || l.googleMapsUrl?.includes(cleanId)
+      );
+
+    if (matchedClient) {
+      const count = typeof matchedClient.reviewCount === 'number' ? matchedClient.reviewCount : 0;
+      const rat = typeof matchedClient.averageRating === 'number' ? matchedClient.averageRating : (typeof matchedClient.rating === 'number' ? matchedClient.rating : 5.0);
+      return {
+        placeId: cleanId,
+        name: matchedClient.businessName || matchedClient.contactName || matchedClient.name || 'Google Business Profile',
+        formattedAddress: matchedClient.address || `${matchedClient.city || 'Ranchi'}, Jharkhand`,
+        rating: rat,
+        userRatingsTotal: count,
+        photosCount: count > 0 ? 1 : 0,
+        googleMapsUrl:
+          matchedClient.googleMapsUrl ||
+          `https://search.google.com/local/writereview?placeid=${encodeURIComponent(cleanId)}`,
+        matchedCategory: matchedClient.category || 'Local Business',
+        isOperational: true,
+        matchConfidence: 100,
+        phone: matchedClient.phone || '',
+        reviews: Array.isArray(matchedClient.reviews) ? matchedClient.reviews : [],
+      };
+    }
+  } catch {}
+
   const apiKey =
     process.env.GOOGLE_PLACES_API_KEY ||
     process.env.GOOGLE_MAPS_API_KEY ||
@@ -656,7 +690,7 @@ export async function fetchGooglePlaceByPlaceId(placeId: string): Promise<Google
 
   if (apiKey && apiKey.length > 20) {
     try {
-      // 1. Places API (New) Place Details
+      // 2. Places API (New) Place Details
       const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(cleanId)}`, {
         method: 'GET',
         headers: {
@@ -669,7 +703,7 @@ export async function fetchGooglePlaceByPlaceId(placeId: string): Promise<Google
 
       if (res.ok) {
         const place = await res.json();
-        const candName = place.displayName?.text || 'Verified Google Business';
+        const candName = place.displayName?.text || 'Google Business Location';
         const count = typeof place.userRatingCount === 'number'
           ? place.userRatingCount
           : (Array.isArray(place.reviews) ? place.reviews.length : 0);
@@ -704,10 +738,10 @@ export async function fetchGooglePlaceByPlaceId(placeId: string): Promise<Google
     }
   }
 
-  // Fallback direct Place ID synthesis when no API key is available
+  // 3. Universal generic structure for any Place ID
   return {
     placeId: cleanId,
-    name: 'Verified Google Business Location',
+    name: 'Google Business Profile',
     formattedAddress: 'Ranchi, Jharkhand',
     rating: 5.0,
     userRatingsTotal: 0,
