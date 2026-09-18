@@ -31,7 +31,7 @@ function getPrismaClient(): PrismaClient | null {
   }
 }
 
-export const prisma = globalForPrisma.prisma ?? getPrismaClient();
+export const prisma = (globalForPrisma.prisma ?? getPrismaClient()) as PrismaClient;
 
 if (prisma) {
   globalForPrisma.prisma = prisma;

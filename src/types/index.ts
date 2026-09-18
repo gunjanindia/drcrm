@@ -533,3 +533,91 @@ export interface AuditRecord {
   scannedAt: string;
 }
 
+// ---------------------------------------------------------
+// 10. CLIENT 360 STANDEE, AI REVIEW SHIELD & LOGISTICS
+// ---------------------------------------------------------
+
+export type StandeeOrderStatus = 'ORDER_PLACED' | 'IN_PRODUCTION' | 'DISPATCHED' | 'DELIVERED';
+
+export type ReviewAiTone = 'FRIENDLY' | 'PROFESSIONAL' | 'SHORT_PUNCHY' | 'DETAILED';
+
+export interface StandeeOrder {
+  id: string;
+  tenantId?: string;
+  clientId: string;
+  clientName: string;
+  status: StandeeOrderStatus;
+  trackingId?: string;
+  courier?: 'BlueDart' | 'Delhivery' | 'DTDC' | 'India Post' | 'Shadowfax' | 'SpeedPost';
+  courierUrl?: string;
+  shippingAddress: string;
+  city: string;
+  state: string;
+  pincode: string;
+  phone: string;
+  nfcUid?: string;
+  qrSlug: string;
+  orderDate: string;
+  dispatchedAt?: string;
+  deliveredAt?: string;
+  isNfcActive: boolean;
+  isQrActive: boolean;
+  directGoogleReviewUrl?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AiReviewSettings {
+  id?: string;
+  clientId: string;
+  businessType: string;
+  keyServices: string[];
+  targetKeywords: string[];
+  tone: ReviewAiTone;
+  isShieldActive: boolean; // 1-3 stars private feedback, 4-5 stars Google
+  customInstructions?: string;
+  reviewRedirectUrl?: string;
+  updatedAt: string;
+}
+
+export interface PrivateFeedback {
+  id: string;
+  clientId: string;
+  businessName: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  rating: number; // 1, 2, or 3
+  message: string;
+  status: 'NEW' | 'CONTACTED' | 'RESOLVED';
+  resolvedAt?: string;
+  resolutionNotes?: string;
+  source: 'NFC_STANDEE' | 'QR_CODE' | 'DIRECT_LINK';
+  createdAt: string;
+}
+
+export interface StandeeTelemetry {
+  clientId: string;
+  totalScans: number;
+  nfcTaps: number;
+  qrScans: number;
+  aiReviewsGenerated: number;
+  googleRedirects: number;
+  privateComplaintsIntercepted: number;
+  lastScannedAt?: string;
+  scansByDate?: Array<{ date: string; taps: number; scans: number; reviews: number }>;
+}
+
+export interface GlobalAiPromptConfig {
+  id: string;
+  category: string;
+  displayName: string;
+  systemPrompt: string;
+  seoKeywords: string[];
+  fallbackReviews: string[];
+  isActive: boolean;
+  updatedAt: string;
+}
+
+

@@ -16,6 +16,11 @@ import {
   TimelineActivity,
   SiteSettings,
   AuditRecord,
+  StandeeOrder,
+  AiReviewSettings,
+  PrivateFeedback,
+  StandeeTelemetry,
+  GlobalAiPromptConfig,
 } from '@/types';
 import { initialTaxConfig, globalTaxEngine } from './tax-engine';
 import { generateId } from './utils';
@@ -82,6 +87,11 @@ export class AppStore {
   public activities: TimelineActivity[] = [];
   public siteSettings: SiteSettings = { ...defaultSiteSettings };
   public auditRecords: AuditRecord[] = [];
+  public standeeOrders: StandeeOrder[] = [];
+  public aiReviewSettings: AiReviewSettings[] = [];
+  public privateFeedbacks: PrivateFeedback[] = [];
+  public standeeTelemetries: StandeeTelemetry[] = [];
+  public globalAiPromptConfigs: GlobalAiPromptConfig[] = [];
   public leadSources: string[] = [
     'Website Free Audit',
     'Website Direct Checkout',
@@ -443,6 +453,240 @@ export class AppStore {
 
     // 12. Activity Timeline (Empty by default for production use)
     this.activities = [];
+
+    // 13. Client 360 Physical Acrylic Standees & Hardware Orders
+    this.standeeOrders = [
+      {
+        id: 'ord_stnd_101',
+        tenantId: 'tenant_main',
+        clientId: 'cli_city_dental',
+        clientName: 'City Dental Care & Implant Centre',
+        status: 'DELIVERED',
+        trackingId: 'BD74892019IN',
+        courier: 'BlueDart',
+        courierUrl: 'https://www.bluedart.com/tracking?track=BD74892019IN',
+        shippingAddress: 'Circular Road, Near Lalpur Chowk, Ranchi, Jharkhand — 834001',
+        city: 'Ranchi',
+        state: 'Jharkhand',
+        pincode: '834001',
+        phone: '+91 94311 22334',
+        nfcUid: 'NFC-DR-8829104',
+        qrSlug: 'city-dental-care',
+        orderDate: '2026-02-10T10:00:00Z',
+        dispatchedAt: '2026-02-12T14:30:00Z',
+        deliveredAt: '2026-02-15T16:00:00Z',
+        isNfcActive: true,
+        isQrActive: true,
+        directGoogleReviewUrl: 'https://maps.google.com/?cid=123456789',
+        notes: 'Delivered premium frosted acrylic QR & NFC standee with metallic base.',
+        createdAt: '2026-02-10T10:00:00Z',
+        updatedAt: '2026-02-15T16:00:00Z',
+      },
+      {
+        id: 'ord_stnd_102',
+        tenantId: 'tenant_main',
+        clientId: 'cli_life_lights',
+        clientName: 'Life in Lights Academy',
+        status: 'DISPATCHED',
+        trackingId: 'DEL992817462',
+        courier: 'Delhivery',
+        courierUrl: 'https://www.delhivery.com/track/package/DEL992817462',
+        shippingAddress: 'City Center Mall Road, Bank More, Dhanbad, Jharkhand — 826001',
+        city: 'Dhanbad',
+        state: 'Jharkhand',
+        pincode: '826001',
+        phone: '+91 94311 00000',
+        nfcUid: 'NFC-DR-9948211',
+        qrSlug: 'life-in-lights-academy',
+        orderDate: '2026-03-10T11:00:00Z',
+        dispatchedAt: '2026-03-12T15:00:00Z',
+        isNfcActive: true,
+        isQrActive: true,
+        directGoogleReviewUrl: 'https://maps.google.com/?q=Life+in+Lights+Academy+Dhanbad',
+        notes: 'In-transit via Delhivery Express Air.',
+        createdAt: '2026-03-10T11:00:00Z',
+        updatedAt: '2026-03-12T15:00:00Z',
+      },
+      {
+        id: 'ord_stnd_103',
+        tenantId: 'tenant_main',
+        clientId: 'cli_shree_ram_sweets',
+        clientName: 'Shree Ram Sweets & Chaat Bhandar',
+        status: 'IN_PRODUCTION',
+        shippingAddress: 'Main Road, Near Tower Chowk, Deoghar, Jharkhand — 814112',
+        city: 'Deoghar',
+        state: 'Jharkhand',
+        pincode: '814112',
+        phone: '+91 94313 77889',
+        nfcUid: 'NFC-DR-7738290',
+        qrSlug: 'shree-ram-sweets',
+        orderDate: '2026-03-16T09:00:00Z',
+        isNfcActive: true,
+        isQrActive: true,
+        directGoogleReviewUrl: 'https://maps.google.com/?q=Shree+Ram+Sweets+Deoghar',
+        notes: 'UV Laser Printing on Acrylic Standee in progress.',
+        createdAt: '2026-03-16T09:00:00Z',
+        updatedAt: '2026-03-16T09:00:00Z',
+      },
+    ];
+
+    // 14. Client AI Review Engine Settings & Context
+    this.aiReviewSettings = [
+      {
+        clientId: 'cli_city_dental',
+        businessType: 'Dental Clinic & Implant Center',
+        keyServices: ['Painless Root Canal', 'Dental Implants', 'Teeth Whitening', 'Invisible Braces', 'Smile Makeover'],
+        targetKeywords: ['best dentist in Ranchi', 'painless dental clinic', 'affordable root canal', 'hygienic dental care'],
+        tone: 'PROFESSIONAL',
+        isShieldActive: true,
+        customInstructions: 'Emphasize gentle treatment, spotless hygienic clinic, and doctor patient listening.',
+        reviewRedirectUrl: 'https://maps.google.com/?cid=123456789',
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        clientId: 'cli_life_lights',
+        businessType: 'Photography & Filmmaking Academy',
+        keyServices: ['Wedding Cinematography Course', 'Portrait Photography', 'Commercial Video Editing', 'Camera Masterclass'],
+        targetKeywords: ['top photography institute Dhanbad', 'practical camera training', 'cinematography diploma', 'creative studio'],
+        tone: 'FRIENDLY',
+        isShieldActive: true,
+        customInstructions: 'Highlight hands-on camera experience, mentor support, and state-of-the-art studio lighting.',
+        reviewRedirectUrl: 'https://maps.google.com/?q=Life+in+Lights+Academy+Dhanbad',
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    // 15. Private Customer Feedback Caught by Smart Sentiment Shield (1-3 Stars)
+    this.privateFeedbacks = [
+      {
+        id: 'fb_101',
+        clientId: 'cli_city_dental',
+        businessName: 'City Dental Care & Implant Centre',
+        customerName: 'Vivek Ranjan',
+        customerPhone: '+91 98351 99882',
+        customerEmail: 'vivek.ranjan@gmail.com',
+        rating: 2,
+        message: 'Doctor was good, but had to wait 35 minutes past my booked appointment time. Reception desk should inform in advance about delays.',
+        status: 'NEW',
+        source: 'NFC_STANDEE',
+        createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+      },
+      {
+        id: 'fb_102',
+        clientId: 'cli_city_dental',
+        businessName: 'City Dental Care & Implant Centre',
+        customerName: 'Anjali Sahay',
+        customerPhone: '+91 94311 44556',
+        rating: 3,
+        message: 'Treatment was satisfactory, but parking in the building basement was full and very difficult to manage.',
+        status: 'CONTACTED',
+        resolutionNotes: 'Called patient, apologized for parking rush, and reserved front valet spot for next visit.',
+        source: 'QR_CODE',
+        createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
+      },
+    ];
+
+    // 16. Standee Scans & Conversion Funnel Telemetry
+    this.standeeTelemetries = [
+      {
+        clientId: 'cli_city_dental',
+        totalScans: 284,
+        nfcTaps: 168,
+        qrScans: 116,
+        aiReviewsGenerated: 192,
+        googleRedirects: 184,
+        privateComplaintsIntercepted: 8,
+        lastScannedAt: new Date().toISOString(),
+        scansByDate: [
+          { date: 'Mon', taps: 24, scans: 14, reviews: 26 },
+          { date: 'Tue', taps: 30, scans: 18, reviews: 32 },
+          { date: 'Wed', taps: 22, scans: 16, reviews: 25 },
+          { date: 'Thu', taps: 28, scans: 20, reviews: 31 },
+          { date: 'Fri', taps: 35, scans: 22, reviews: 38 },
+          { date: 'Sat', taps: 42, scans: 28, reviews: 45 },
+          { date: 'Sun', taps: 18, scans: 12, reviews: 20 },
+        ],
+      },
+      {
+        clientId: 'cli_life_lights',
+        totalScans: 142,
+        nfcTaps: 86,
+        qrScans: 56,
+        aiReviewsGenerated: 98,
+        googleRedirects: 94,
+        privateComplaintsIntercepted: 4,
+        lastScannedAt: new Date().toISOString(),
+        scansByDate: [
+          { date: 'Mon', taps: 10, scans: 8, reviews: 12 },
+          { date: 'Tue', taps: 14, scans: 9, reviews: 15 },
+          { date: 'Wed', taps: 12, scans: 7, reviews: 14 },
+          { date: 'Thu', taps: 16, scans: 11, reviews: 18 },
+          { date: 'Fri', taps: 18, scans: 12, reviews: 20 },
+          { date: 'Sat', taps: 22, scans: 15, reviews: 24 },
+          { date: 'Sun', taps: 8, scans: 5, reviews: 9 },
+        ],
+      },
+    ];
+
+    // 17. Master Category AI Prompts & Keyword Templates
+    this.globalAiPromptConfigs = [
+      {
+        id: 'cfg_health',
+        category: 'HEALTHCARE',
+        displayName: 'Healthcare, Clinics & Hospitals',
+        systemPrompt: 'Generate a genuine, reassuring 5-star patient review highlighting compassionate care, painless treatment, clean environment, and transparent guidance.',
+        seoKeywords: ['best doctor', 'painless treatment', 'clean clinic', 'caring staff', 'accurate diagnosis', 'prompt consultation'],
+        fallbackReviews: [
+          'Excellent experience with the doctor and courteous staff. The clinic is spotlessly clean and treatment was completely painless. Highly recommended!',
+          'Very professional consultation and caring demeanor. Explained the diagnosis clearly with transparent fees. Truly grateful for the treatment.',
+          'State-of-the-art facility with minimal waiting time. The doctor gave ample time and answered all my concerns. Five stars without hesitation!',
+        ],
+        isActive: true,
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'cfg_food',
+        category: 'FOOD_BEVERAGE',
+        displayName: 'Restaurants, Cafes & Bakeries',
+        systemPrompt: 'Generate an appetizing, enthusiastic 5-star customer review praising fresh flavors, prompt service, vibrant ambiance, and value for money.',
+        seoKeywords: ['delicious food', 'authentic taste', 'must visit cafe', 'quick service', 'cozy ambiance', 'fresh ingredients'],
+        fallbackReviews: [
+          'Amazing food and delightful ambiance! The flavors were authentic and portion sizes are generous. Will definitely visit again with family.',
+          'Best dining experience in the area! Super quick service, polite staff, and mouthwatering dishes. Highly recommended!',
+          'Cozy vibes and top-notch taste. Every dish was freshly prepared and served piping hot. 10/10 recommendation!',
+        ],
+        isActive: true,
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'cfg_salon',
+        category: 'BEAUTY_SALON',
+        displayName: 'Salons, Spas & Beauty Parlours',
+        systemPrompt: 'Generate a glowing 5-star beauty makeover review praising skilled stylists, hygienic tools, relaxing ambiance, and transformative results.',
+        seoKeywords: ['best hair salon', 'bridal makeup', 'professional stylist', 'relaxing spa', 'hygienic parlour', 'flawless skin'],
+        fallbackReviews: [
+          'Loved my haircut and facial session! The stylist understood exactly what I wanted and the salon maintained impeccable hygiene.',
+          'Outstanding service and courteous staff. Used premium products and took great care of my hair. Best salon in town!',
+          'Very relaxing ambiance and skilled artists. Left the salon feeling refreshed and completely satisfied with my makeover.',
+        ],
+        isActive: true,
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'cfg_retail',
+        category: 'RETAIL_SERVICES',
+        displayName: 'Retail Stores, Garages & Services',
+        systemPrompt: 'Generate a positive 5-star customer review highlighting wide product variety, fair pricing, honest advice, and swift fulfillment.',
+        seoKeywords: ['best quality products', 'honest pricing', 'quick delivery', 'trustworthy shop', 'polite staff', 'great collection'],
+        fallbackReviews: [
+          'Great collection and very fair pricing. The staff is extremely polite and helped me pick the right item without pushing. 5 stars!',
+          'Prompt response, reliable workmanship, and honest advice. Delivered exactly what was promised on time.',
+          'Superb customer service and genuine products. Very satisfied with my purchase and will definitely be a repeat customer!',
+        ],
+        isActive: true,
+        updatedAt: new Date().toISOString(),
+      },
+    ];
   }
 
   // --- Dynamic Operations ---
@@ -475,6 +719,11 @@ export class AppStore {
           packages: this.packages,
           users: this.users,
           leadSources: this.leadSources,
+          standeeOrders: this.standeeOrders,
+          aiReviewSettings: this.aiReviewSettings,
+          privateFeedbacks: this.privateFeedbacks,
+          standeeTelemetries: this.standeeTelemetries,
+          globalAiPromptConfigs: this.globalAiPromptConfigs,
         };
         fs.writeFileSync(storeFile, JSON.stringify(data, null, 2), 'utf-8');
       } catch (e) {
@@ -515,6 +764,11 @@ export class AppStore {
           if (data.services && Array.isArray(data.services)) this.services = data.services;
           if (data.packages && Array.isArray(data.packages)) this.packages = data.packages;
           if (data.users && Array.isArray(data.users)) this.users = data.users;
+          if (data.standeeOrders && Array.isArray(data.standeeOrders)) this.standeeOrders = data.standeeOrders;
+          if (data.aiReviewSettings && Array.isArray(data.aiReviewSettings)) this.aiReviewSettings = data.aiReviewSettings;
+          if (data.privateFeedbacks && Array.isArray(data.privateFeedbacks)) this.privateFeedbacks = data.privateFeedbacks;
+          if (data.standeeTelemetries && Array.isArray(data.standeeTelemetries)) this.standeeTelemetries = data.standeeTelemetries;
+          if (data.globalAiPromptConfigs && Array.isArray(data.globalAiPromptConfigs)) this.globalAiPromptConfigs = data.globalAiPromptConfigs;
         }
       } catch (e) {
         console.error('Failed to load CRM store from disk:', e);
@@ -1551,6 +1805,197 @@ export class AppStore {
     this.leadSources = this.leadSources.filter((s) => s !== name);
     this.saveToFile();
     return this.leadSources.length < initialLen;
+  }
+
+  // --- Standee & Hardware Order Management ---
+  public getStandeeOrder(clientId: string): StandeeOrder | null {
+    return this.standeeOrders.find((o) => o.clientId === clientId) || null;
+  }
+
+  public getStandeeOrderBySlug(slug: string): StandeeOrder | null {
+    const clean = slug.toLowerCase().trim();
+    return this.standeeOrders.find((o) => o.qrSlug?.toLowerCase() === clean) || null;
+  }
+
+  public createStandeeOrder(data: Omit<StandeeOrder, 'id' | 'createdAt' | 'updatedAt'>): StandeeOrder {
+    const newOrder: StandeeOrder = {
+      id: generateId('ord_stnd'),
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.standeeOrders.unshift(newOrder);
+    this.saveToFile();
+    return newOrder;
+  }
+
+  public updateStandeeOrder(orderId: string, data: Partial<StandeeOrder>): StandeeOrder {
+    const index = this.standeeOrders.findIndex((o) => o.id === orderId);
+    if (index === -1) throw new Error('Standee order not found');
+    this.standeeOrders[index] = {
+      ...this.standeeOrders[index],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    this.saveToFile();
+    return this.standeeOrders[index];
+  }
+
+  // --- AI Review Engine Settings ---
+  public getAiReviewSettings(clientId: string): AiReviewSettings {
+    const existing = this.aiReviewSettings.find((s) => s.clientId === clientId);
+    if (existing) return existing;
+
+    const client = this.clients.find((c) => c.id === clientId);
+    const defaultSettings: AiReviewSettings = {
+      clientId,
+      businessType: client?.category || 'Local Business',
+      keyServices: ['Customer Consultation', 'Professional Service', 'Quality Support', 'Express Delivery'],
+      targetKeywords: [`best ${client?.category || 'service'} in ${client?.city || 'Ranchi'}`, 'quick service', 'honest pricing'],
+      tone: 'PROFESSIONAL',
+      isShieldActive: true,
+      customInstructions: 'Highlight courteous staff, punctual fulfillment, and fair transparent pricing.',
+      reviewRedirectUrl: client?.googleMapsUrl || '',
+      updatedAt: new Date().toISOString(),
+    };
+    this.aiReviewSettings.push(defaultSettings);
+    this.saveToFile();
+    return defaultSettings;
+  }
+
+  public saveAiReviewSettings(clientId: string, data: Partial<AiReviewSettings>): AiReviewSettings {
+    const index = this.aiReviewSettings.findIndex((s) => s.clientId === clientId);
+    if (index !== -1) {
+      this.aiReviewSettings[index] = {
+        ...this.aiReviewSettings[index],
+        ...data,
+        clientId,
+        updatedAt: new Date().toISOString(),
+      };
+      this.saveToFile();
+      return this.aiReviewSettings[index];
+    } else {
+      const newSettings: AiReviewSettings = {
+        clientId,
+        businessType: data.businessType || 'Local Business',
+        keyServices: data.keyServices || [],
+        targetKeywords: data.targetKeywords || [],
+        tone: data.tone || 'PROFESSIONAL',
+        isShieldActive: data.isShieldActive ?? true,
+        customInstructions: data.customInstructions,
+        reviewRedirectUrl: data.reviewRedirectUrl,
+        updatedAt: new Date().toISOString(),
+      };
+      this.aiReviewSettings.push(newSettings);
+      this.saveToFile();
+      return newSettings;
+    }
+  }
+
+  // --- Private Customer Feedback ---
+  public getPrivateFeedbacks(clientId?: string): PrivateFeedback[] {
+    if (clientId) {
+      return this.privateFeedbacks.filter((f) => f.clientId === clientId);
+    }
+    return this.privateFeedbacks;
+  }
+
+  public addPrivateFeedback(data: Omit<PrivateFeedback, 'id' | 'createdAt'>): PrivateFeedback {
+    const newFeedback: PrivateFeedback = {
+      id: generateId('fb'),
+      ...data,
+      createdAt: new Date().toISOString(),
+    };
+    this.privateFeedbacks.unshift(newFeedback);
+
+    // Update telemetry intercepted complaints
+    const telemIndex = this.standeeTelemetries.findIndex((t) => t.clientId === data.clientId);
+    if (telemIndex !== -1) {
+      this.standeeTelemetries[telemIndex].privateComplaintsIntercepted += 1;
+    }
+
+    this.saveToFile();
+    return newFeedback;
+  }
+
+  public updatePrivateFeedbackStatus(feedbackId: string, status: 'NEW' | 'CONTACTED' | 'RESOLVED', notes?: string): PrivateFeedback {
+    const index = this.privateFeedbacks.findIndex((f) => f.id === feedbackId);
+    if (index === -1) throw new Error('Feedback not found');
+    this.privateFeedbacks[index] = {
+      ...this.privateFeedbacks[index],
+      status,
+      ...(status === 'RESOLVED' && { resolvedAt: new Date().toISOString() }),
+      ...(notes !== undefined && { resolutionNotes: notes }),
+    };
+    this.saveToFile();
+    return this.privateFeedbacks[index];
+  }
+
+  // --- Standee Telemetry & Scans ---
+  public getStandeeTelemetry(clientId: string): StandeeTelemetry {
+    const existing = this.standeeTelemetries.find((t) => t.clientId === clientId);
+    if (existing) return existing;
+
+    const defaultTelem: StandeeTelemetry = {
+      clientId,
+      totalScans: 0,
+      nfcTaps: 0,
+      qrScans: 0,
+      aiReviewsGenerated: 0,
+      googleRedirects: 0,
+      privateComplaintsIntercepted: 0,
+      lastScannedAt: undefined,
+      scansByDate: [
+        { date: 'Mon', taps: 0, scans: 0, reviews: 0 },
+        { date: 'Tue', taps: 0, scans: 0, reviews: 0 },
+        { date: 'Wed', taps: 0, scans: 0, reviews: 0 },
+        { date: 'Thu', taps: 0, scans: 0, reviews: 0 },
+        { date: 'Fri', taps: 0, scans: 0, reviews: 0 },
+        { date: 'Sat', taps: 0, scans: 0, reviews: 0 },
+        { date: 'Sun', taps: 0, scans: 0, reviews: 0 },
+      ],
+    };
+    this.standeeTelemetries.push(defaultTelem);
+    this.saveToFile();
+    return defaultTelem;
+  }
+
+  public recordStandeeScan(clientId: string, type: 'NFC' | 'QR' | 'REVIEW_GEN' | 'GOOGLE_REDIRECT'): StandeeTelemetry {
+    let telem = this.standeeTelemetries.find((t) => t.clientId === clientId);
+    if (!telem) {
+      telem = this.getStandeeTelemetry(clientId);
+    }
+    telem.lastScannedAt = new Date().toISOString();
+    if (type === 'NFC') {
+      telem.nfcTaps += 1;
+      telem.totalScans += 1;
+    } else if (type === 'QR') {
+      telem.qrScans += 1;
+      telem.totalScans += 1;
+    } else if (type === 'REVIEW_GEN') {
+      telem.aiReviewsGenerated += 1;
+    } else if (type === 'GOOGLE_REDIRECT') {
+      telem.googleRedirects += 1;
+    }
+    this.saveToFile();
+    return telem;
+  }
+
+  // --- Master Category AI Prompt Configs ---
+  public getGlobalAiPromptConfigs(): GlobalAiPromptConfig[] {
+    return this.globalAiPromptConfigs;
+  }
+
+  public updateGlobalAiPromptConfig(id: string, data: Partial<GlobalAiPromptConfig>): GlobalAiPromptConfig {
+    const index = this.globalAiPromptConfigs.findIndex((c) => c.id === id);
+    if (index === -1) throw new Error('Global AI config not found');
+    this.globalAiPromptConfigs[index] = {
+      ...this.globalAiPromptConfigs[index],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    this.saveToFile();
+    return this.globalAiPromptConfigs[index];
   }
 }
 

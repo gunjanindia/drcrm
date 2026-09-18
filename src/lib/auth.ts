@@ -532,16 +532,7 @@ export async function changeUserPassword(
     } catch {
       isCurrentValid = false;
     }
-    if (!isCurrentValid && user.passwordHash === currentPassword) {
-      isCurrentValid = true;
-    }
-    if (
-      !isCurrentValid &&
-      (currentPassword === 'Password@123' ||
-        currentPassword === 'Client@1234' ||
-        currentPassword === 'admin123' ||
-        currentPassword === 'demo123')
-    ) {
+    if (!isCurrentValid && !user.passwordHash.startsWith('$2') && user.passwordHash === currentPassword) {
       isCurrentValid = true;
     }
   } else {

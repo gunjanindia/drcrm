@@ -17,6 +17,8 @@ import {
   Sparkles,
   Layers,
   Cpu,
+  Truck,
+  Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -65,11 +67,14 @@ export const AppSidebar: React.FC = () => {
     { name: 'Leads & Inquiries', href: '/app/leads', icon: Users },
     { name: 'Sales Pipeline', href: '/app/pipeline', icon: GitPullRequest },
     { name: 'Client 360', href: '/app/clients', icon: Building2 },
+    { name: 'Standee Orders', href: '/app/orders', icon: Truck, badge: 'NFC' },
     { name: 'Task Board', href: '/app/tasks', icon: CheckSquare },
     { name: 'Recurring Engine', href: '/app/recurring', icon: Repeat },
     { name: 'GBP Health & SEO', href: '/app/gbp', icon: MapPin },
     { name: 'Billing & Invoices', href: '/app/billing', icon: FileText },
     { name: 'Website Templates', href: '/app/templates', icon: Layers, badge: 'AI Engine' },
+    { name: 'AI Review Prompts', href: '/app/ai-config', icon: Sparkles },
+    { name: 'Hardware Telemetry', href: '/app/analytics', icon: Radio },
     { name: 'AI Operations Agent', href: '/app/ai', icon: Sparkles, badge: 'Gemini' },
     { name: 'AI Usage & GCP Logs', href: '/app/ai-logs', icon: Cpu, badge: 'GCP Cost' },
     { name: 'System & Tax Settings', href: '/app/settings', icon: Settings },

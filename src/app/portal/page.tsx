@@ -32,6 +32,8 @@ import {
   Flame,
   ArrowUpRight,
   Check,
+  Radio,
+  Truck,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { formatINR, formatDate } from '@/lib/utils';
@@ -623,6 +625,83 @@ export default function ClientPortalDashboard() {
       </div>
 
       {/* ========================================================================= */}
+      {/* SMART AI STANDEE & SENTIMENT SHIELD CONVERSION HUB                         */}
+      {/* ========================================================================= */}
+      <div className="p-6 rounded-3xl bg-gradient-to-br from-purple-900/30 via-slate-900 to-indigo-950/40 border border-purple-500/30 shadow-lg space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-purple-500/20">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-600/30">
+              <Radio className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-purple-400">
+                  Client 360 Hardware Suite
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  Smart Shield Active
+                </span>
+              </div>
+              <h3 className="text-base font-black text-white">
+                Contactless AI Standee & Sentiment Shield
+              </h3>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/portal/ai-standee"
+              className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all shadow-sm"
+            >
+              Manage Hardware
+            </Link>
+            <Link
+              href="/portal/feedback"
+              className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all border border-slate-700"
+            >
+              Private Inbox
+            </Link>
+          </div>
+        </div>
+
+        {/* Mini 3-Column Radar */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+              <span>NFC Hardware Status</span>
+              <Truck className="w-4 h-4 text-purple-400" />
+            </div>
+            <div className="text-sm font-bold text-white flex items-center gap-1.5 pt-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>Order Active • Free Delivery</span>
+            </div>
+            <p className="text-[10px] text-slate-400">UV Acrylic Counter Stand with NFC chip</p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+              <span>4★ & 5★ AI Generator</span>
+              <Sparkles className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="text-sm font-bold text-emerald-400 flex items-center gap-1.5 pt-1">
+              <span>1-Tap Google Maps Redirect</span>
+            </div>
+            <p className="text-[10px] text-slate-400">Gemini SEO keywords pre-synthesized</p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+              <span>1★ - 3★ Sentiment Shield</span>
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="text-sm font-bold text-purple-300 flex items-center gap-1.5 pt-1">
+              <span>Private Owner Inbox</span>
+            </div>
+            <p className="text-[10px] text-slate-400">Prevents public negative Google reviews</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
       {/* Digital Ranchi QUICK LAUNCHPAD: ALL-IN-ONE AI LOCAL MARKETING APPS                 */}
       {/* ========================================================================= */}
       <div className="space-y-3 pt-4">
@@ -636,11 +715,11 @@ export default function ClientPortalDashboard() {
             </h3>
           </div>
           <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">
-            6 Specialized Growth Apps Included
+            8 Specialized Growth Apps Included
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* App 1: 1-Page Site Builder */}
           <Link
             href="/portal/site-builder"

@@ -18,6 +18,8 @@ import {
   HelpCircle,
   Zap,
   ExternalLink,
+  Radio,
+  ShieldAlert,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -50,10 +52,13 @@ export const PortalSidebar: React.FC = () => {
       badge: pendingCount > 0 ? `${pendingCount} Urgent` : undefined,
       isUrgent: pendingCount > 0,
     },
+    { name: 'Smart NFC Standee', href: '/portal/ai-standee', icon: Radio, badge: 'Hardware' },
+    { name: 'AI Review Engine', href: '/portal/ai-settings', icon: Sparkles, badge: 'SEO AI' },
+    { name: 'Review Shield Inbox', href: '/portal/feedback', icon: ShieldAlert, badge: 'Shield' },
     { name: '1-Page GBP Website', href: '/portal/site-builder', icon: Globe, badge: 'Live' },
     { name: 'Local SEO & Growth', href: '/portal/growth', icon: TrendingUp, badge: `${profile.gbpScore || 85}/100 Score` },
     { name: 'Festival Posters Studio', href: '/portal/creative-studio', icon: Sparkles, badge: 'AI' },
-    { name: 'Review QR Stand', href: '/portal/qr-stand', icon: QrCode },
+    { name: 'Printable QR Stand', href: '/portal/qr-stand', icon: QrCode },
     { name: 'My Plan & Invoices', href: '/portal/invoices', icon: Receipt },
   ];
 
