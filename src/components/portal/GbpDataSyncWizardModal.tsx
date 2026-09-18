@@ -51,6 +51,7 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
   const [searchCity, setSearchCity] = useState('Ranchi');
   const [searchDistrict, setSearchDistrict] = useState('');
   const [mapsUrlInput, setMapsUrlInput] = useState('');
+  const [placeIdInput, setPlaceIdInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [candidatesList, setCandidatesList] = useState<any[]>([]);
@@ -92,8 +93,8 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
 
   const handleSearchGooglePlaces = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!searchName.trim() && !mapsUrlInput.trim()) {
-      setSearchError('Please enter a business name or paste a Google Maps link.');
+    if (!searchName.trim() && !mapsUrlInput.trim() && !placeIdInput.trim()) {
+      setSearchError('Please enter a business name, Google Place ID (ChIJ...), or paste a Google Maps link.');
       return;
     }
 
@@ -110,6 +111,7 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
           city: searchCity.trim(),
           district: searchDistrict.trim(),
           googleMapsUrl: mapsUrlInput.trim() || undefined,
+          placeId: placeIdInput.trim() || undefined,
         }),
       });
 
@@ -132,6 +134,7 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
 
   const selectCandidateAndAdvance = (candidate: any) => {
     const placeInfo = {
+      placeId: candidate.placeId || placeIdInput.trim() || `place_${Math.random().toString(36).substring(2, 10)}`,
       name: candidate.name || searchName,
       category: candidate.matchedCategory || 'Local Business',
       address: candidate.formattedAddress || `${searchCity}, Jharkhand`,
@@ -362,18 +365,33 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
               </div>
             )}
 
-            <div>
-              <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                Official Business Name as listed on Google Maps *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Royal Sweets & Bakery, Ranchi"
-                value={searchName}
-                onChange={(e) => setSearchName(e.target.value)}
-                className="w-full text-xs p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Official Business Name as listed on Google Maps
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Lay Taal Kathak Kendra, Ranchi"
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  className="w-full text-xs p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1 flex items-center justify-between">
+                  <span>Google Place ID (Direct Exact Match)</span>
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-normal">Optional / 100% Exact</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. ChIJN1t_tDeuEmsRUsoyG83frY4"
+                  value={placeIdInput}
+                  onChange={(e) => setPlaceIdInput(e.target.value)}
+                  className="w-full text-xs p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-mono text-[11px]"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -631,6 +649,14 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
                 <span className="text-slate-400">Phone:</span>
                 <span className="font-mono text-slate-700 dark:text-slate-300">{finalProfile.phone}</span>
               </div>
+              {finalProfile.placeId && (
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Google Place ID:</span>
+                  <span className="font-mono text-slate-600 dark:text-slate-400 text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded truncate max-w-[200px]">
+                    {finalProfile.placeId}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">Authorized Google Email:</span>
                 <span className="font-mono text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-0.5 rounded text-[11px]">

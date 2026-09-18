@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { searchGooglePlaceCandidates, lookupGooglePlace } from '@/lib/google-places';
+import { searchGooglePlaceCandidates, lookupGooglePlace, fetchGooglePlaceByPlaceId } from '@/lib/google-places';
 import { checkRateLimit } from '@/lib/rate-limiter';
 
 // ---------------------------------------------------------------------------
@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       district = '',
       address = '',
       googleMapsUrl = '',
+      placeId = '',
       category = 'Local Business',
       sessionToken = '',
       hp_field = '', // Anti-bot honeypot
@@ -92,19 +93,40 @@ export async function POST(request: Request) {
     const cleanDistrict = district.trim();
     const cleanAddress = address.trim();
     const cleanMapsUrl = googleMapsUrl.trim();
+    const cleanPlaceId = placeId.trim();
+
+    // -----------------------------------------------------------------------
+    // LAYER 3: DIRECT PLACE ID RESOLVER (When placeId e.g. ChIJ... is provided)
+    // -----------------------------------------------------------------------
+    if (cleanPlaceId) {
+      try {
+        const placeCandidate = await fetchGooglePlaceByPlaceId(cleanPlaceId);
+        if (placeCandidate) {
+          if (cleanBizName) placeCandidate.name = cleanBizName;
+          return NextResponse.json({
+            success: true,
+            total: 1,
+            candidates: [placeCandidate],
+            source: 'EXACT_PLACE_ID_LOOKUP',
+          });
+        }
+      } catch (placeIdErr) {
+        console.warn('Place ID direct lookup error:', placeIdErr);
+      }
+    }
 
     // Minimum character requirement
-    if ((!cleanBizName || cleanBizName.length < 3) && !cleanMapsUrl) {
+    if ((!cleanBizName || cleanBizName.length < 3) && !cleanMapsUrl && !cleanPlaceId) {
       return NextResponse.json(
-        { error: 'Please enter at least 3 characters of your Business Name or a Google Maps URL.' },
+        { error: 'Please enter at least 3 characters of your Business Name, Google Place ID, or a Google Maps URL.' },
         { status: 400 }
       );
     }
 
     // -----------------------------------------------------------------------
-    // LAYER 3: 24-HOUR IN-MEMORY CACHE CHECK
+    // LAYER 4: 24-HOUR IN-MEMORY CACHE CHECK
     // -----------------------------------------------------------------------
-    const cacheKey = `${cleanCity.toLowerCase()}:${cleanDistrict.toLowerCase()}:${cleanBizName.toLowerCase()}:${cleanMapsUrl.toLowerCase()}`;
+    const cacheKey = `${cleanCity.toLowerCase()}:${cleanDistrict.toLowerCase()}:${cleanBizName.toLowerCase()}:${cleanMapsUrl.toLowerCase()}:${cleanPlaceId.toLowerCase()}`;
     const cachedEntry = gbpSearchCache.get(cacheKey);
 
     if (cachedEntry && (now - cachedEntry.timestamp < CACHE_TTL_MS)) {
