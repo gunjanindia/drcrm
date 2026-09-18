@@ -60,15 +60,10 @@ export async function POST(request: Request) {
         ) || globalStore.clients[0];
     }
 
-    const resolvedRating = typeof rating === 'number' ? rating : (typeof averageRating === 'number' ? averageRating : 4.8);
-    const resolvedReviewCount = typeof reviewCount === 'number' ? reviewCount : 24;
-    const resolvedPhotosCount = typeof photosCount === 'number' ? photosCount : 15;
-    const resolvedGbpScore = typeof gbpScore === 'number' ? gbpScore : 84;
-
     // 2. Resolve real reviews: passed in body, or fetched live from Google Places
     let finalReviews = Array.isArray(reviews) && reviews.length > 0 ? reviews : [];
 
-    if (finalReviews.length === 0 && (googleMapsUrl || businessName)) {
+    if (finalReviews.length === 0 && (googleMapsUrl || businessName || placeId)) {
       try {
         const placeLookup = await lookupGooglePlace(
           businessName || clientRecord?.businessName || 'Business',
@@ -84,6 +79,11 @@ export async function POST(request: Request) {
         console.error('Live place lookup during sync error:', err);
       }
     }
+
+    const resolvedRating = typeof rating === 'number' ? rating : (typeof averageRating === 'number' ? averageRating : 5.0);
+    const resolvedReviewCount = typeof reviewCount === 'number' ? reviewCount : finalReviews.length;
+    const resolvedPhotosCount = typeof photosCount === 'number' ? photosCount : (finalReviews.length > 0 ? 1 : 0);
+    const resolvedGbpScore = typeof gbpScore === 'number' ? gbpScore : (resolvedReviewCount >= 10 ? 88 : (resolvedReviewCount >= 2 ? 80 : 70));
 
     const effectiveClientId = targetClientId || clientRecord?.id || `cli_portal_${Date.now()}`;
 

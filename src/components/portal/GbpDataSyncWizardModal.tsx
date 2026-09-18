@@ -93,7 +93,11 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
 
   const handleSearchGooglePlaces = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!searchName.trim() && !mapsUrlInput.trim() && !placeIdInput.trim()) {
+    const rawSearch = searchName.trim();
+    const rawPlaceId = placeIdInput.trim();
+    const rawMapsUrl = mapsUrlInput.trim();
+
+    if (!rawSearch && !rawMapsUrl && !rawPlaceId) {
       setSearchError('Please enter a business name, Google Place ID (ChIJ...), or paste a Google Maps link.');
       return;
     }
@@ -102,16 +106,21 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
     setSearchError(null);
     setCandidatesList([]);
 
+    // Auto-detect Place ID if pasted into searchName or placeIdInput
+    const detectedPlaceId = rawPlaceId.startsWith('ChIJ')
+      ? rawPlaceId
+      : (rawSearch.startsWith('ChIJ') ? rawSearch : undefined);
+
     try {
       const res = await fetch('/api/portal/gbp-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          businessName: searchName.trim(),
+          businessName: detectedPlaceId ? '' : rawSearch,
           city: searchCity.trim(),
           district: searchDistrict.trim(),
-          googleMapsUrl: mapsUrlInput.trim() || undefined,
-          placeId: placeIdInput.trim() || undefined,
+          googleMapsUrl: rawMapsUrl || undefined,
+          placeId: detectedPlaceId || undefined,
         }),
       });
 
@@ -133,20 +142,25 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
   };
 
   const selectCandidateAndAdvance = (candidate: any) => {
+    const rawReviews = Array.isArray(candidate.reviews) ? candidate.reviews : [];
+    const countFromCandidate = typeof candidate.userRatingsTotal === 'number'
+      ? candidate.userRatingsTotal
+      : rawReviews.length;
+
     const placeInfo = {
-      placeId: candidate.placeId || placeIdInput.trim() || `place_${Math.random().toString(36).substring(2, 10)}`,
-      name: candidate.name || searchName,
+      placeId: candidate.placeId || placeIdInput.trim() || searchName.trim(),
+      name: candidate.name || searchName || 'Verified Google Business',
       category: candidate.matchedCategory || 'Local Business',
       address: candidate.formattedAddress || `${searchCity}, Jharkhand`,
       city: searchCity,
-      rating: typeof candidate.rating === 'number' ? candidate.rating : 4.9,
-      reviewCount: typeof candidate.userRatingsTotal === 'number' ? candidate.userRatingsTotal : 25,
-      photosCount: typeof candidate.photosCount === 'number' ? candidate.photosCount : 15,
-      gbpScore: 88,
+      rating: typeof candidate.rating === 'number' ? candidate.rating : 5.0,
+      reviewCount: countFromCandidate,
+      photosCount: typeof candidate.photosCount === 'number' ? candidate.photosCount : (rawReviews.length > 0 ? 1 : 0),
+      gbpScore: countFromCandidate >= 10 ? 88 : (countFromCandidate >= 2 ? 80 : 70),
       isOperational: candidate.isOperational !== undefined ? candidate.isOperational : true,
-      mapsUrl: candidate.googleMapsUrl || mapsUrlInput.trim() || `https://maps.google.com/?q=${encodeURIComponent(candidate.name + ' ' + searchCity)}`,
+      mapsUrl: candidate.googleMapsUrl || mapsUrlInput.trim() || `https://maps.google.com/?q=${encodeURIComponent((candidate.name || searchName) + ' ' + searchCity)}`,
       phone: candidate.phone || '+91 94311 00000',
-      reviews: Array.isArray(candidate.reviews) ? candidate.reviews : [],
+      reviews: rawReviews,
     };
 
     setDiscoveredPlace(placeInfo);
@@ -196,7 +210,7 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
 
     const realReviews = discoveredPlace.reviews && discoveredPlace.reviews.length > 0
       ? convertGoogleReviewsToClientReviews(discoveredPlace.reviews, discoveredPlace.name)
-      : generateDynamicReviewsForBusiness(discoveredPlace.name, discoveredPlace.category, discoveredPlace.city, discoveredPlace.rating);
+      : [];
 
     const growth = generateDynamicGrowthForBusiness(discoveredPlace.reviewCount, discoveredPlace.rating);
     const factors = generateDynamicAuditFactorsForBusiness(
@@ -214,18 +228,18 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
       category: discoveredPlace.category,
       city: discoveredPlace.city,
       address: discoveredPlace.address,
-      phone: discoveredPlace.phone || '+91 94311 09876',
-      whatsapp: (discoveredPlace.phone || '+91 94311 09876').replace(/[^0-9]/g, ''),
-      email: `contact@${discoveredPlace.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.in`,
+      phone: discoveredPlace.phone || '+91 94311 00000',
+      whatsapp: (discoveredPlace.phone || '+91 94311 00000').replace(/[^0-9]/g, ''),
+      email: email || `contact@${discoveredPlace.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.in`,
       websiteUrl: `https://digitalranchi.in/s/${discoveredPlace.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
       googleMapsUrl: discoveredPlace.mapsUrl,
-      placeId: `place_${Math.random().toString(36).substring(2, 10)}`,
+      placeId: discoveredPlace.placeId,
       averageRating: discoveredPlace.rating,
       reviewCount: discoveredPlace.reviewCount,
       photosCount: discoveredPlace.photosCount,
       gbpScore: discoveredPlace.gbpScore,
-      packageName: 'Premium Retainer Tier',
-      monthlyRevenue: 2499,
+      packageName: 'Growth Retainer Plan',
+      monthlyRevenue: 999,
       renewalDate: new Date(Date.now() + 30 * 86400000).toISOString(),
       googleOwnerEmail: email,
       googleAccountName: accountName || `${discoveredPlace.name} (Verified Owner)`,
@@ -239,8 +253,8 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
         headline: `${discoveredPlace.name}`,
         subheadline: `Verified ${discoveredPlace.category} in ${discoveredPlace.city}`,
         address: discoveredPlace.address,
-        phone: discoveredPlace.phone || '+91 94311 09876',
-        whatsapp: (discoveredPlace.phone || '+91 94311 09876').replace(/[^0-9]/g, ''),
+        phone: discoveredPlace.phone || '+91 94311 00000',
+        whatsapp: (discoveredPlace.phone || '+91 94311 00000').replace(/[^0-9]/g, ''),
         customSlug: discoveredPlace.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
       },
     };
