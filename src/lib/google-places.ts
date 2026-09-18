@@ -134,6 +134,7 @@ async function extractGoogleMapsMetadataFromUrl(url: string, fallbackName: strin
   name?: string;
   rating?: number;
   userRatingsTotal?: number;
+  photosCount?: number;
   address?: string;
   resolvedUrl: string;
   reviews?: GooglePlaceReview[];
