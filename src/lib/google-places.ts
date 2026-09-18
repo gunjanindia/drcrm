@@ -374,8 +374,7 @@ export async function searchGooglePlaceCandidates(
   const apiKey =
     process.env.GOOGLE_PLACES_API_KEY ||
     process.env.GOOGLE_MAPS_API_KEY ||
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
-    'AIzaSyB63ku-P0PIYy-KYXBqeL_m1QlVYbmNKPM';
+    '';
 
   if (!apiKey || apiKey.length < 20) {
     return [];
@@ -481,8 +480,7 @@ export async function lookupGooglePlace(
   const apiKey =
     process.env.GOOGLE_PLACES_API_KEY ||
     process.env.GOOGLE_MAPS_API_KEY ||
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
-    'AIzaSyB63ku-P0PIYy-KYXBqeL_m1QlVYbmNKPM';
+    '';
 
   // 1. Strict URL validation if a Maps URL was supplied
   if (cleanUrl) {

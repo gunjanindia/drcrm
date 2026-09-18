@@ -19,19 +19,26 @@ export async function GET(request: Request) {
 
     let clientRecord: any = null;
 
-    // 1. If explicit clientId requested (e.g. from Admin 360 preview or specific portal link)
+    // 1. IDOR Protection: If explicit clientId requested, ensure only staff/admin or the owning client can access it
     if (requestedClientId) {
-      if (process.env.DATABASE_URL) {
-        try {
-          clientRecord = await prisma.client.findUnique({
-            where: { id: requestedClientId },
-          });
-        } catch (e) {
-          console.error('Error fetching requested clientId from Prisma:', e);
-        }
+      if (session && session.role === 'CLIENT' && session.clientId !== requestedClientId) {
+        return NextResponse.json({ error: 'Forbidden: Access to another client profile is restricted' }, { status: 403 });
       }
-      if (!clientRecord) {
-        clientRecord = globalStore.clients.find((c) => c.id === requestedClientId);
+
+      // Only allow lookup if authenticated
+      if (session) {
+        if (process.env.DATABASE_URL) {
+          try {
+            clientRecord = await prisma.client.findUnique({
+              where: { id: requestedClientId },
+            });
+          } catch (e) {
+            console.error('Error fetching requested clientId from Prisma:', e);
+          }
+        }
+        if (!clientRecord) {
+          clientRecord = globalStore.clients.find((c) => c.id === requestedClientId);
+        }
       }
     }
 

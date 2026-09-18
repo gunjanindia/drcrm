@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { PaymentRecord, PaymentStatus } from '@/types';
 
 export interface CreateOrderDTO {
@@ -49,7 +50,7 @@ export class RazorpayPaymentProvider implements PaymentProvider {
   }
 
   async createOrder(params: CreateOrderDTO): Promise<PaymentOrderResult> {
-    const isMock = !process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET.startsWith('YourRazorpay');
+    const isMock = !process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET.startsWith('YourRazorpay') || process.env.RAZORPAY_KEY_SECRET === 'mock_secret';
     
     // In production with valid credentials, this invokes Razorpay API:
     // const rzpOrder = await instance.orders.create({ amount: params.amount * 100, currency: params.currency, receipt: params.receipt });
@@ -68,18 +69,50 @@ export class RazorpayPaymentProvider implements PaymentProvider {
   }
 
   async verifyPaymentSignature(params: VerifySignatureDTO): Promise<boolean> {
-    // In a full production server with Node crypto:
-    // const expectedSignature = crypto.createHmac('sha256', this.keySecret).update(`${params.orderId}|${params.paymentId}`).digest('hex');
-    // return expectedSignature === params.signature;
-    
-    // For test / local environments or mock payments, accept valid tokens
-    return Boolean(params.orderId && params.paymentId);
+    if (!params.orderId || !params.paymentId || !params.signature) return false;
+
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!secret || secret.startsWith('mock_') || secret.startsWith('YourRazorpay')) {
+      return process.env.NODE_ENV !== 'production';
+    }
+
+    try {
+      const payload = `${params.orderId}|${params.paymentId}`;
+      const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(payload)
+        .digest('hex');
+
+      const sigBuffer = Buffer.from(params.signature);
+      const expBuffer = Buffer.from(expectedSignature);
+      if (sigBuffer.length !== expBuffer.length) return false;
+      return crypto.timingSafeEqual(sigBuffer, expBuffer);
+    } catch {
+      return false;
+    }
   }
 
   verifyWebhookSignature(rawBody: string, signature: string): boolean {
-    if (!signature) return false;
-    // In production crypto comparison
-    return true;
+    if (!rawBody || !signature) return false;
+
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!secret || secret.startsWith('mock_') || secret.startsWith('YourRazorpay')) {
+      return process.env.NODE_ENV !== 'production';
+    }
+
+    try {
+      const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(rawBody)
+        .digest('hex');
+
+      const sigBuffer = Buffer.from(signature);
+      const expBuffer = Buffer.from(expectedSignature);
+      if (sigBuffer.length !== expBuffer.length) return false;
+      return crypto.timingSafeEqual(sigBuffer, expBuffer);
+    } catch {
+      return false;
+    }
   }
 
   async fetchPayment(paymentId: string): Promise<Partial<PaymentRecord>> {

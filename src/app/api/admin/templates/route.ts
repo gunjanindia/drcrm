@@ -85,7 +85,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const session = await getCurrentUserSession();
-    if (session && session.role !== 'SUPER_ADMIN' && session.role !== 'BUSINESS_ADMIN' && session.role !== 'OPERATIONS_MANAGER') {
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'BUSINESS_ADMIN' && session.role !== 'OPERATIONS_MANAGER')) {
       return NextResponse.json({ error: 'Unauthorized: Admin privileges required' }, { status: 403 });
     }
 
@@ -191,7 +191,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const session = await getCurrentUserSession();
-    if (session && session.role !== 'SUPER_ADMIN' && session.role !== 'BUSINESS_ADMIN') {
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'BUSINESS_ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized: Admin privileges required' }, { status: 403 });
     }
 

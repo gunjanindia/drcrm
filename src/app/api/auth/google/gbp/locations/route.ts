@@ -17,8 +17,11 @@ export async function GET(request: Request) {
     let accessToken = searchParams.get('accessToken') || '';
     let locationId = searchParams.get('locationId') || '';
     let clientRecord: any = null;
-
     const targetClientId = clientIdParam || session?.clientId;
+
+    if (session && session.role === 'CLIENT' && clientIdParam && clientIdParam !== session.clientId) {
+      return NextResponse.json({ error: 'Forbidden: Access to another client profile is restricted' }, { status: 403 });
+    }
 
     if (process.env.DATABASE_URL && prisma && targetClientId) {
       try {

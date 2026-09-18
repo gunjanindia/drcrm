@@ -20,8 +20,13 @@ export interface AuthSessionPayload {
   clientId?: string;
 }
 
-// In-memory / persistent store for active password reset verification requests (15 mins TTL)
-const passwordResetStore: Map<string, { code: string; expiresAt: number }> = new Map();
+// In-memory / persistent store for active password reset verification requests (10 mins TTL, max 5 attempts)
+interface PasswordResetRecord {
+  code: string;
+  expiresAt: number;
+  attempts: number;
+}
+const passwordResetStore: Map<string, PasswordResetRecord> = new Map();
 
 // 1. Password Hashing (Bcrypt cost factor 12)
 export async function hashPassword(password: string): Promise<string> {
@@ -215,7 +220,7 @@ export async function authenticateWithCredentials(
 
   if (!user) return null;
 
-  // 4. Verify password
+  // 4. Verify password with strict bcrypt hashing
   let isValid = false;
 
   if (user.passwordHash) {
@@ -226,70 +231,21 @@ export async function authenticateWithCredentials(
       isValid = false;
     }
 
-    // B. Direct plaintext match fallback
-    if (!isValid && user.passwordHash === passwordAttempt) {
+    // B. If password is stored as legacy plaintext (non-bcrypt), verify and upgrade immediately
+    if (!isValid && !user.passwordHash.startsWith('$2') && user.passwordHash === passwordAttempt) {
       isValid = true;
-    }
-
-    // C. Default initial setup fallback passwords
-    if (
-      !isValid &&
-      (passwordAttempt === 'Password@123' ||
-        passwordAttempt === 'Client@1234' ||
-        passwordAttempt === 'admin123' ||
-        passwordAttempt === 'demo123')
-    ) {
-      isValid = true;
-    }
-  } else {
-    // User had no passwordHash set yet: accept attempt, auto-hash and persist for future logins
-    if (
-      passwordAttempt === 'Password@123' ||
-      passwordAttempt === 'Client@1234' ||
-      passwordAttempt === 'admin123' ||
-      passwordAttempt === 'demo123' ||
-      passwordAttempt.length >= 4
-    ) {
-      isValid = true;
-      const newHash = await hashPassword(passwordAttempt);
-      user.passwordHash = newHash;
-
-      // Persist to Prisma
+      const upgradedHash = await hashPassword(passwordAttempt);
+      user.passwordHash = upgradedHash;
       if (process.env.DATABASE_URL && prisma) {
         try {
-          await prisma.user.upsert({
-              where: { email: user.email.toLowerCase() },
-              update: {
-                passwordHash: newHash,
-                role: user.role,
-                clientId: user.clientId,
-              },
-              create: {
-                tenantId: user.tenantId || 'tenant_main',
-                name: user.name,
-                email: user.email.toLowerCase(),
-                phone: user.phone || '+91 9431100000',
-                passwordHash: newHash,
-                role: user.role,
-                clientId: user.clientId,
-                department: user.department || 'Client Portal',
-              },
-            });
+          await prisma.user.updateMany({
+            where: { email: { equals: user.email, mode: 'insensitive' } },
+            data: { passwordHash: upgradedHash },
+          });
         } catch (e) {
-          console.error('Auto-save password hash error in DB:', e);
+          console.error('Password hash upgrade error:', e);
         }
       }
-
-      // Persist to globalStore
-      const existingIdx = globalStore.users.findIndex(
-        (u) => u.email.toLowerCase() === user?.email.toLowerCase()
-      );
-      if (existingIdx !== -1) {
-        globalStore.users[existingIdx].passwordHash = newHash;
-      } else {
-        globalStore.users.unshift(user);
-      }
-      globalStore.saveToFile();
     }
   }
 
@@ -377,17 +333,18 @@ export async function requestPasswordReset(identifier: string): Promise<{
 
   // Generate secure 6-digit numeric verification code
   const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes validity
+  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes validity
 
-  passwordResetStore.set(targetEmail.toLowerCase(), { code, expiresAt });
+  const record: PasswordResetRecord = { code, expiresAt, attempts: 0 };
+  passwordResetStore.set(targetEmail.toLowerCase(), record);
   if (hasDigits) {
-    passwordResetStore.set(last10Digits, { code, expiresAt });
+    passwordResetStore.set(last10Digits, record);
   }
 
+  // In production, send code via Email / SMS. Do not expose code in client payload.
   return {
     success: true,
-    message: `Verification code generated for ${targetEmail}. Enter the 6-digit code to set your new password.`,
-    code,
+    message: `A 6-digit verification code has been sent to ${targetEmail}. Please enter the code to set your new password.`,
   };
 }
 
@@ -421,17 +378,33 @@ export async function resetPasswordWithCode(
     };
   }
 
-  if (resetRecord.code !== code.trim()) {
+  // Anti-Brute-Force check: max 5 failed attempts
+  if (resetRecord.attempts >= 5) {
+    passwordResetStore.delete(cleanId);
+    if (last10Digits) passwordResetStore.delete(last10Digits);
     return {
       success: false,
-      message: 'Invalid 6-digit verification code. Please check and try again.',
+      message: 'Too many incorrect attempts. This verification code has been invalidated for security. Please request a new code.',
     };
   }
 
-  if (newPassword.length < 4) {
+  if (resetRecord.code !== code.trim()) {
+    resetRecord.attempts += 1;
+    const remainingAttempts = 5 - resetRecord.attempts;
     return {
       success: false,
-      message: 'Password must be at least 4 characters long.',
+      message: `Invalid 6-digit verification code. (${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining)`,
+    };
+  }
+
+  // Code verified successfully -> Invalidate immediately
+  passwordResetStore.delete(cleanId);
+  if (last10Digits) passwordResetStore.delete(last10Digits);
+
+  if (newPassword.length < 6) {
+    return {
+      success: false,
+      message: 'Password must be at least 6 characters long.',
     };
   }
 

@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { globalStore } from '@/lib/store';
+import { getCurrentUserSession } from '@/lib/auth';
 
 export async function GET() {
+  const session = await getCurrentUserSession();
+  if (!session || session.role === 'CLIENT') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     if (process.env.DATABASE_URL) {
       const leads = await prisma.lead.findMany({
@@ -32,11 +38,11 @@ export async function POST(request: Request) {
       const newLead = await prisma.lead.create({
         data: {
           tenantId: 'tenant_main',
-          businessName: body.businessName.trim(),
-          contactName: (body.contactName || body.businessName).trim(),
+          businessName: body.businessName?.trim() || 'Prospective Client',
+          contactName: (body.contactName || body.businessName || 'Contact Person').trim(),
           phone: cleanPhone,
           whatsapp: (body.whatsapp || cleanPhone).trim(),
-          email: body.email || `${cleanPhone.replace(/[^0-9]/g, '')}@lead.digitalranchi.in`,
+          email: body.email || `${cleanPhone.replace(/[^0-9]/g, '') || Date.now()}@lead.digitalranchi.in`,
           category: body.category || 'Local Business',
           city: body.city || 'Ranchi',
           state: body.state || 'Jharkhand',
@@ -64,6 +70,11 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const session = await getCurrentUserSession();
+    if (!session || session.role === 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { id, ...updates } = body;
     if (!id) {
@@ -103,6 +114,11 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getCurrentUserSession();
+    if (!session || session.role === 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) {

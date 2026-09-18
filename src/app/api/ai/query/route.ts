@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { aiAssistantEngine } from '@/lib/ai-engine';
+import { getCurrentUserSession } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
+    const session = await getCurrentUserSession();
+    if (!session || session.role === 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized: Staff access required' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { query } = body;
     if (!query) {

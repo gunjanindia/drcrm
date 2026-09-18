@@ -6,6 +6,10 @@ import { globalStore } from '@/lib/store';
 export async function POST(request: Request) {
   try {
     const session = await getCurrentUserSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+    }
+
     const body = await request.json();
     const {
       clientId,
@@ -15,7 +19,8 @@ export async function POST(request: Request) {
       html,
     } = body;
 
-    const targetClientId = clientId || session?.clientId;
+    // IDOR Protection: If Client, only allow publishing for their own account
+    const targetClientId = session.role === 'CLIENT' ? session.clientId : (clientId || session.clientId);
     let clientRecord: any = null;
 
     if (process.env.DATABASE_URL && prisma) {

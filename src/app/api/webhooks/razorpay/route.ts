@@ -8,9 +8,13 @@ const processedEvents = new Set<string>();
 export async function POST(request: Request) {
   try {
     const rawBody = await request.text();
-    const signature = request.headers.get('x-razorpay-signature') || 'mock_sig';
+    const signature = request.headers.get('x-razorpay-signature');
 
-    const isValid = paymentProvider.verifyWebhookSignature(rawBody, signature);
+    if (!signature && process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Missing webhook signature' }, { status: 400 });
+    }
+
+    const isValid = paymentProvider.verifyWebhookSignature(rawBody, signature || '');
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 400 });
     }

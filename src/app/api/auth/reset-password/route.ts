@@ -5,9 +5,13 @@ import {
   changeUserPassword,
   getCurrentUserSession,
 } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rate-limiter';
 
 export async function POST(request: Request) {
   try {
+    const forwardedHeader = request.headers.get('x-forwarded-for');
+    const clientIp = forwardedHeader ? forwardedHeader.split(',')[0].trim() : 'unknown-ip';
+
     const body = await request.json();
     const { action } = body;
 
@@ -17,14 +21,24 @@ export async function POST(request: Request) {
       if (!email || !email.trim()) {
         return NextResponse.json({ error: 'Email address is required' }, { status: 400 });
       }
+
+      // Rate limit: max 3 reset requests per 15 minutes per IP
+      const rateCheck = checkRateLimit(`pwd_reset_req_${clientIp}`, 3, 15 * 60 * 1000);
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          { error: 'Too many password reset requests. Please wait a few minutes before trying again.' },
+          { status: 429 }
+        );
+      }
+
       const result = await requestPasswordReset(email);
       if (!result.success) {
         return NextResponse.json({ error: result.message }, { status: 404 });
       }
+
       return NextResponse.json({
         success: true,
         message: result.message,
-        code: result.code, // Returned for convenient on-screen display & testing
       });
     }
 
@@ -37,10 +51,20 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
+
+      const rateCheck = checkRateLimit(`pwd_reset_sub_${clientIp}`, 10, 15 * 60 * 1000);
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          { error: 'Too many verification attempts. Please wait 15 minutes.' },
+          { status: 429 }
+        );
+      }
+
       const result = await resetPasswordWithCode(email, code, newPassword);
       if (!result.success) {
         return NextResponse.json({ error: result.message }, { status: 400 });
       }
+
       return NextResponse.json({ success: true, message: result.message });
     }
 
@@ -50,6 +74,7 @@ export async function POST(request: Request) {
       if (!session) {
         return NextResponse.json({ error: 'Unauthorized. Please sign in.' }, { status: 401 });
       }
+
       const { currentPassword, newPassword } = body;
       if (!currentPassword || !newPassword) {
         return NextResponse.json(
@@ -57,10 +82,12 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
+
       const result = await changeUserPassword(session.userId || session.email, currentPassword, newPassword);
       if (!result.success) {
         return NextResponse.json({ error: result.message }, { status: 400 });
       }
+
       return NextResponse.json({ success: true, message: result.message });
     }
 

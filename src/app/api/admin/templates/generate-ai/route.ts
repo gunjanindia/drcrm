@@ -5,7 +5,7 @@ import { checkAndDeductAiCredits } from '@/lib/ai-credits';
 export async function POST(request: Request) {
   try {
     const session = await getCurrentUserSession();
-    if (session && session.role !== 'SUPER_ADMIN' && session.role !== 'BUSINESS_ADMIN' && session.role !== 'OPERATIONS_MANAGER') {
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'BUSINESS_ADMIN' && session.role !== 'OPERATIONS_MANAGER')) {
       return NextResponse.json({ error: 'Unauthorized: Admin privileges required' }, { status: 403 });
     }
 
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       googleMapsUrl = '',
     } = body;
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
 
     let aiGeneratedJson: any = null;
 

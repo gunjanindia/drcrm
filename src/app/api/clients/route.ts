@@ -1,8 +1,36 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { globalStore } from '@/lib/store';
+import { hashPassword, getCurrentUserSession } from '@/lib/auth';
 
 export async function GET() {
+  const session = await getCurrentUserSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // If logged in as a Client, only return the client's own record (IDOR protection)
+  if (session.role === 'CLIENT') {
+    let clientRecord = null;
+    if (process.env.DATABASE_URL && prisma && session.clientId) {
+      try {
+        clientRecord = await prisma.client.findUnique({
+          where: { id: session.clientId },
+        });
+      } catch (e) {}
+    }
+    if (!clientRecord && session.clientId) {
+      clientRecord = globalStore.clients.find((c) => c.id === session.clientId);
+    }
+    if (!clientRecord && session.email) {
+      clientRecord = globalStore.clients.find(
+        (c) => c.email?.toLowerCase() === session.email.toLowerCase()
+      );
+    }
+    return NextResponse.json({ success: true, data: clientRecord ? [clientRecord] : [] });
+  }
+
+  // Admin & Staff: Return all clients
   try {
     if (process.env.DATABASE_URL) {
       const clients = await prisma.client.findMany({
@@ -18,10 +46,13 @@ export async function GET() {
   return NextResponse.json({ success: true, data: globalStore.clients });
 }
 
-import { hashPassword } from '@/lib/auth';
-
 export async function POST(request: Request) {
   try {
+    const session = await getCurrentUserSession();
+    if (!session || session.role === 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const body = await request.json();
     const {
       businessName,
@@ -226,6 +257,11 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const session = await getCurrentUserSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const {
       id,
@@ -249,22 +285,31 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
     }
 
+    // IDOR protection: Clients can only update their own record and cannot elevate admin fields
+    if (session.role === 'CLIENT') {
+      if (session.clientId !== id) {
+        return NextResponse.json({ error: 'Forbidden: Cannot modify another client record' }, { status: 403 });
+      }
+    }
+
     let updatedClient: any = null;
 
     if (process.env.DATABASE_URL) {
       try {
         const updateData: any = {};
-        if (status !== undefined) updateData.status = status;
-        if (healthScore !== undefined) updateData.healthScore = healthScore;
-        if (healthReason !== undefined) updateData.healthReason = healthReason;
-        if (monthlyRevenue !== undefined) updateData.monthlyRevenue = Number(monthlyRevenue);
-        if (packageName !== undefined) updateData.packageName = packageName;
-        if (packageId !== undefined) updateData.packageId = packageId;
+        if (session.role !== 'CLIENT') {
+          if (status !== undefined) updateData.status = status;
+          if (healthScore !== undefined) updateData.healthScore = healthScore;
+          if (healthReason !== undefined) updateData.healthReason = healthReason;
+          if (monthlyRevenue !== undefined) updateData.monthlyRevenue = Number(monthlyRevenue);
+          if (packageName !== undefined) updateData.packageName = packageName;
+          if (packageId !== undefined) updateData.packageId = packageId;
+          if (subscriptionStatus !== undefined) updateData.subscriptionStatus = subscriptionStatus;
+          if (aiCreditBalance !== undefined) updateData.aiCreditBalance = Number(aiCreditBalance);
+          if (trialEndsAt !== undefined) updateData.trialEndsAt = new Date(trialEndsAt);
+          if (isGbpLinked !== undefined) updateData.isGbpLinked = !!isGbpLinked;
+        }
         if (businessName !== undefined) updateData.businessName = businessName;
-        if (subscriptionStatus !== undefined) updateData.subscriptionStatus = subscriptionStatus;
-        if (aiCreditBalance !== undefined) updateData.aiCreditBalance = Number(aiCreditBalance);
-        if (trialEndsAt !== undefined) updateData.trialEndsAt = new Date(trialEndsAt);
-        if (isGbpLinked !== undefined) updateData.isGbpLinked = !!isGbpLinked;
         if (phone !== undefined) {
           updateData.phone = phone;
           updateData.whatsapp = phone;
@@ -284,22 +329,23 @@ export async function PATCH(request: Request) {
     // Update in globalStore as well
     const index = globalStore.clients.findIndex((c) => c.id === id);
     if (index !== -1) {
+      const isClientRole = session.role === 'CLIENT';
       globalStore.clients[index] = {
         ...globalStore.clients[index],
-        ...(status !== undefined && { status }),
-        ...(healthScore !== undefined && { healthScore }),
-        ...(healthReason !== undefined && { healthReason }),
-        ...(monthlyRevenue !== undefined && { monthlyRevenue: Number(monthlyRevenue) }),
-        ...(packageName !== undefined && { packageName }),
-        ...(packageId !== undefined && { packageId }),
+        ...(!isClientRole && status !== undefined && { status }),
+        ...(!isClientRole && healthScore !== undefined && { healthScore }),
+        ...(!isClientRole && healthReason !== undefined && { healthReason }),
+        ...(!isClientRole && monthlyRevenue !== undefined && { monthlyRevenue: Number(monthlyRevenue) }),
+        ...(!isClientRole && packageName !== undefined && { packageName }),
+        ...(!isClientRole && packageId !== undefined && { packageId }),
         ...(businessName !== undefined && { businessName }),
         ...(phone !== undefined && { phone, whatsapp: phone }),
         ...(email !== undefined && { email }),
         ...(googleMapsUrl !== undefined && { googleMapsUrl }),
-        ...(subscriptionStatus !== undefined && { subscriptionStatus }),
-        ...(aiCreditBalance !== undefined && { aiCreditBalance: Number(aiCreditBalance) }),
-        ...(trialEndsAt !== undefined && { trialEndsAt }),
-        ...(isGbpLinked !== undefined && { isGbpLinked: !!isGbpLinked }),
+        ...(!isClientRole && subscriptionStatus !== undefined && { subscriptionStatus }),
+        ...(!isClientRole && aiCreditBalance !== undefined && { aiCreditBalance: Number(aiCreditBalance) }),
+        ...(!isClientRole && trialEndsAt !== undefined && { trialEndsAt }),
+        ...(!isClientRole && isGbpLinked !== undefined && { isGbpLinked: !!isGbpLinked }),
       };
       globalStore.saveToFile();
       if (!updatedClient) updatedClient = globalStore.clients[index];
@@ -318,6 +364,11 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getCurrentUserSession();
+    if (!session || session.role === 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     let id = searchParams.get('id');
 

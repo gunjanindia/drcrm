@@ -22,17 +22,28 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Helper to add OWASP security headers to any response
+  const applySecurityHeaders = (response: NextResponse) => {
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
+    return response;
+  };
+
   // 1. Protect Agency CRM Routes (/app, /app/*)
   if (pathname === '/app' || pathname.startsWith('/app/')) {
     if (!session) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
+      return applySecurityHeaders(NextResponse.redirect(loginUrl));
     }
 
     // Clients cannot access agency CRM
     if (session.role === 'CLIENT') {
-      return NextResponse.redirect(new URL('/portal', request.url));
+      return applySecurityHeaders(NextResponse.redirect(new URL('/portal', request.url)));
     }
   }
 
@@ -41,7 +52,7 @@ export async function middleware(request: NextRequest) {
     if (!session) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
+      return applySecurityHeaders(NextResponse.redirect(loginUrl));
     }
   }
 
@@ -49,16 +60,26 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/login') {
     if (session) {
       if (session.role === 'CLIENT') {
-        return NextResponse.redirect(new URL('/portal', request.url));
+        return applySecurityHeaders(NextResponse.redirect(new URL('/portal', request.url)));
       } else {
-        return NextResponse.redirect(new URL('/app', request.url));
+        return applySecurityHeaders(NextResponse.redirect(new URL('/app', request.url)));
       }
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  return applySecurityHeaders(response);
 }
 
 export const config = {
-  matcher: ['/app/:path*', '/portal/:path*', '/login'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public assets
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };

@@ -1,8 +1,35 @@
 import { NextResponse } from 'next/server';
 import { globalStore } from '@/lib/store';
 import { globalTaxEngine } from '@/lib/tax-engine';
+import { getCurrentUserSession } from '@/lib/auth';
 
 export async function GET() {
+  const session = await getCurrentUserSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // If Client, only return invoices and payments belonging to their clientId
+  if (session.role === 'CLIENT') {
+    const clientInvoices = globalStore.invoices.filter((i) => i.clientId === session.clientId);
+    const clientPayments = globalStore.payments.filter((p) => p.clientId === session.clientId);
+    const totalBilled = clientInvoices.reduce((acc, inv) => acc + inv.totalAmount, 0);
+    const totalCollected = clientPayments.reduce((acc, p) => acc + p.amount, 0);
+    const outstandingAmount = totalBilled - totalCollected;
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        invoices: clientInvoices,
+        payments: clientPayments,
+        totalBilled,
+        totalCollected,
+        outstandingAmount,
+      },
+    });
+  }
+
+  // Agency Staff: Full financial overview
   const totalBilled = globalStore.invoices.reduce((acc, inv) => acc + inv.totalAmount, 0);
   const totalCollected = globalStore.payments.reduce((acc, p) => acc + p.amount, 0);
   const outstandingAmount = totalBilled - totalCollected;
@@ -22,6 +49,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getCurrentUserSession();
+    if (!session || session.role === 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const body = await request.json();
 
     if (body.action === 'toggle_gst') {

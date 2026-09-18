@@ -9,6 +9,10 @@ import { logGoogleApiUsage } from '@/lib/ai-credits';
 export async function POST(request: Request) {
   try {
     const session = await getCurrentUserSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { clientId, reviewId, replyText, googleEmail, authorName } = body;
 
@@ -19,7 +23,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const targetClientId = clientId || session?.clientId;
+    // IDOR Protection: If Client, only allow replying for their own account
+    const targetClientId = session.role === 'CLIENT' ? session.clientId : (clientId || session.clientId);
+    if (session.role === 'CLIENT' && clientId && clientId !== session.clientId) {
+      return NextResponse.json({ error: 'Forbidden: Cannot reply to reviews for another client' }, { status: 403 });
+    }
     let clientRecord: any = null;
 
     // 1. Find Client in Prisma DB

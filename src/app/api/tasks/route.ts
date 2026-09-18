@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { globalStore } from '@/lib/store';
+import { getCurrentUserSession } from '@/lib/auth';
 
 export async function GET() {
+  const session = await getCurrentUserSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const isClient = session.role === 'CLIENT';
+  const scopedClientId = session.clientId;
+
   try {
     if (process.env.DATABASE_URL) {
       const tasks = await prisma.task.findMany({
+        where: isClient && scopedClientId ? { clientId: scopedClientId } : undefined,
         include: { client: true, assignedTo: true },
         orderBy: { createdAt: 'desc' },
       });
@@ -45,11 +55,19 @@ export async function GET() {
   }
 
   await globalStore.syncFromDb();
-  return NextResponse.json({ success: true, data: globalStore.tasks, source: 'FALLBACK_STORE' });
+  const storeTasks = isClient && scopedClientId
+    ? globalStore.tasks.filter((t) => t.clientId === scopedClientId)
+    : globalStore.tasks;
+  return NextResponse.json({ success: true, data: storeTasks, source: 'FALLBACK_STORE' });
 }
 
 export async function POST(request: Request) {
   try {
+    const session = await getCurrentUserSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { title, description, clientId, priority, status, assignedToId, dueDate, slaDeadline } = body;
 
@@ -57,9 +75,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Task title is required' }, { status: 400 });
     }
 
+    // Force client to only create tasks under their own account
+    let targetClientId = session.role === 'CLIENT' ? session.clientId : (clientId || session.clientId);
+
     if (process.env.DATABASE_URL) {
       // Find a valid client in DB
-      let targetClientId = clientId;
       const clientExists = targetClientId
         ? await prisma.client.findUnique({ where: { id: targetClientId } }).catch(() => null)
         : null;
@@ -144,7 +164,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const task = await globalStore.createTask(body);
+    const task = await globalStore.createTask({ ...body, clientId: targetClientId });
     return NextResponse.json({ success: true, data: task });
   } catch (err: any) {
     console.error('POST /api/tasks error:', err);
@@ -154,33 +174,51 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const session = await getCurrentUserSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, ...updates } = body;
     if (!id) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
     }
 
+    // If Client, verify task ownership
+    if (session.role === 'CLIENT') {
+      const existingTask = process.env.DATABASE_URL
+        ? await prisma.task.findUnique({ where: { id } }).catch(() => null)
+        : globalStore.tasks.find((t) => t.id === id);
+
+      if (existingTask && existingTask.clientId !== session.clientId) {
+        return NextResponse.json({ error: 'Forbidden: Cannot modify another client task' }, { status: 403 });
+      }
+    }
+
     if (process.env.DATABASE_URL) {
       const updateData: any = {};
-      if (updates.title !== undefined) updateData.title = updates.title;
-      if (updates.description !== undefined) updateData.description = updates.description;
-      if (updates.status !== undefined) {
-        updateData.status = updates.status;
-        if (updates.status === 'COMPLETED') {
-          updateData.completedAt = new Date();
-        } else if (updates.completedAt !== undefined) {
-          updateData.completedAt = updates.completedAt ? new Date(updates.completedAt) : null;
+      if (session.role !== 'CLIENT') {
+        if (updates.title !== undefined) updateData.title = updates.title;
+        if (updates.description !== undefined) updateData.description = updates.description;
+        if (updates.status !== undefined) {
+          updateData.status = updates.status;
+          if (updates.status === 'COMPLETED') {
+            updateData.completedAt = new Date();
+          } else if (updates.completedAt !== undefined) {
+            updateData.completedAt = updates.completedAt ? new Date(updates.completedAt) : null;
+          }
         }
-      }
-      if (updates.priority !== undefined) updateData.priority = updates.priority;
-      if (updates.assignedToId !== undefined) {
-        const userExists = await prisma.user.findUnique({ where: { id: updates.assignedToId } }).catch(() => null);
-        if (userExists) {
-          updateData.assignedToId = updates.assignedToId;
+        if (updates.priority !== undefined) updateData.priority = updates.priority;
+        if (updates.assignedToId !== undefined) {
+          const userExists = await prisma.user.findUnique({ where: { id: updates.assignedToId } }).catch(() => null);
+          if (userExists) {
+            updateData.assignedToId = updates.assignedToId;
+          }
         }
+        if (updates.dueDate !== undefined) updateData.dueDate = new Date(updates.dueDate);
+        if (updates.slaDeadline !== undefined) updateData.slaDeadline = new Date(updates.slaDeadline);
       }
-      if (updates.dueDate !== undefined) updateData.dueDate = new Date(updates.dueDate);
-      if (updates.slaDeadline !== undefined) updateData.slaDeadline = new Date(updates.slaDeadline);
       if (updates.deliverableUrl !== undefined) updateData.deliverableUrl = updates.deliverableUrl;
       if (updates.deliverableType !== undefined) updateData.deliverableType = updates.deliverableType;
       if (updates.approvalStatus !== undefined) updateData.approvalStatus = updates.approvalStatus;
@@ -241,6 +279,11 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getCurrentUserSession();
+    if (!session || session.role === 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized: Admin privileges required' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) {

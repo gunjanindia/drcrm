@@ -7,7 +7,7 @@ const globalForPrisma = globalThis as unknown as {
   pool: Pool | undefined;
 };
 
-function getPrismaClient(): PrismaClient {
+function getPrismaClient(): PrismaClient | null {
   const connectionString = process.env.DATABASE_URL;
   if (connectionString) {
     try {
@@ -24,9 +24,15 @@ function getPrismaClient(): PrismaClient {
       console.error('Failed to initialize PrismaPg adapter, using default client:', e);
     }
   }
-  return new PrismaClient();
+  try {
+    return new PrismaClient();
+  } catch (e) {
+    return null as any;
+  }
 }
 
 export const prisma = globalForPrisma.prisma ?? getPrismaClient();
 
-globalForPrisma.prisma = prisma;
+if (prisma) {
+  globalForPrisma.prisma = prisma;
+}

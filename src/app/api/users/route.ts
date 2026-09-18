@@ -1,10 +1,27 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { globalStore } from '@/lib/store';
-import { hashPassword } from '@/lib/auth';
+import { hashPassword, getCurrentUserSession } from '@/lib/auth';
 import { UserRole } from '@/types';
 
+// Helper to verify Super Admin or Business Admin privileges
+async function verifyAdminAuth() {
+  const session = await getCurrentUserSession();
+  if (
+    !session ||
+    (session.role !== 'SUPER_ADMIN' && session.role !== 'BUSINESS_ADMIN')
+  ) {
+    return null;
+  }
+  return session;
+}
+
 export async function GET() {
+  const session = await verifyAdminAuth();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized: Admin privileges required' }, { status: 401 });
+  }
+
   try {
     if (process.env.DATABASE_URL) {
       const dbUsers = await prisma.user.findMany({
@@ -52,6 +69,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const session = await verifyAdminAuth();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized: Admin privileges required' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { name, email, phone, role, department, password } = body;
@@ -69,11 +91,10 @@ export async function POST(request: Request) {
     const plainPassword = password && password.trim() ? password.trim() : 'Password@123';
     const passwordHash = await hashPassword(plainPassword);
 
-    let createdUser = null;
+    let createdUser: any = null;
 
     if (process.env.DATABASE_URL) {
       try {
-        // Ensure default tenant exists
         const tenant = await prisma.tenant.upsert({
           where: { domain: 'digitalranchi.in' },
           update: {},
@@ -114,7 +135,6 @@ export async function POST(request: Request) {
           phone: dbUser.phone,
           role: dbUser.role as UserRole,
           department: dbUser.department || undefined,
-          passwordHash: dbUser.passwordHash,
           createdAt: dbUser.createdAt ? new Date(dbUser.createdAt).toISOString() : new Date().toISOString(),
         };
       } catch (dbErr: any) {
@@ -122,7 +142,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Always update globalStore as well
     if (!createdUser) {
       createdUser = globalStore.createUser({
         name: name.trim(),
@@ -133,7 +152,6 @@ export async function POST(request: Request) {
         passwordHash,
       });
     } else {
-      // Sync into memory store
       const existingIdx = globalStore.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
       if (existingIdx >= 0) {
         globalStore.users[existingIdx] = createdUser;
@@ -154,7 +172,7 @@ export async function POST(request: Request) {
         department: createdUser.department,
         createdAt: createdUser.createdAt,
       },
-      message: `Staff account for ${name} created successfully. Default password is ${plainPassword}.`,
+      message: `Staff account for ${name} created successfully.`,
     });
   } catch (error: any) {
     console.error('Error creating staff user:', error);
@@ -163,6 +181,11 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const session = await verifyAdminAuth();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized: Admin privileges required' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { id, name, email, phone, role, department, password } = body;
@@ -196,7 +219,6 @@ export async function PUT(request: Request) {
       }
     }
 
-    // Update globalStore
     try {
       globalStore.updateUser(id, {
         ...(name ? { name: name.trim() } : {}),
@@ -221,6 +243,11 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const session = await verifyAdminAuth();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized: Admin privileges required' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
