@@ -350,34 +350,51 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Tab Selection Bar */}
-          <div className="flex items-center justify-start md:justify-center gap-2 overflow-x-auto pb-4 no-scrollbar max-w-5xl mx-auto">
+          {/* Tab Selection Grid: 100% visible on mobile, tablet, and desktop with zero horizontal scroll clipping */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 max-w-5xl mx-auto w-full">
             {[
-              { id: 'ai-reviews', label: '1. Gemini AI Review Replier', icon: Bot, badge: 'Interactive Demo' },
-              { id: 'site-builder', label: '2. 1-Page Mini Site Engine', icon: Globe, badge: 'Live Preview' },
-              { id: 'gbp', label: '3. Google Maps Rank Booster', icon: MapPin, badge: 'Top 3 Pack' },
-              { id: 'qr-stand', label: '4. Counter QR Stand Kit', icon: QrCode, badge: '5-Star Boost' },
-              { id: 'radar', label: '5. Local Growth Radar', icon: TrendingUp, badge: 'Analytics' },
-            ].map((tab) => {
+              { id: 'ai-reviews', num: '01', label: 'Gemini AI Review Replier', icon: Bot, badge: 'Interactive' },
+              { id: 'site-builder', num: '02', label: '1-Page Mini Site Engine', icon: Globe, badge: 'Live Preview' },
+              { id: 'gbp', num: '03', label: 'Google Maps Rank Booster', icon: MapPin, badge: 'Top 3 Pack' },
+              { id: 'qr-stand', num: '04', label: 'Counter QR Stand Kit', icon: QrCode, badge: '5-Star Boost' },
+              { id: 'radar', num: '05', label: 'Local Growth Radar', icon: TrendingUp, badge: 'Analytics' },
+            ].map((tab, idx) => {
               const Icon = tab.icon;
               const isActive = activeAgentTab === tab.id;
+              const isLastOdd = idx === 4; // 5th item spans 2 cols on 2-col mobile screens
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveAgentTab(tab.id as any)}
-                  className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl font-bold text-xs shrink-0 transition-all ${
+                  className={`p-3 sm:p-3.5 rounded-2xl font-bold text-left transition-all duration-200 cursor-pointer flex flex-col justify-between gap-2.5 ${
+                    isLastOdd ? 'col-span-2 sm:col-span-1' : 'col-span-1'
+                  } ${
                     isActive
-                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 scale-105 border border-indigo-400/40'
-                      : 'bg-slate-900/90 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-white'
+                      ? 'bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-xl shadow-indigo-600/30 border-2 border-indigo-300 ring-2 ring-indigo-500/40 scale-[1.02]'
+                      : 'bg-slate-900/90 hover:bg-slate-850 text-slate-300 border border-slate-800 hover:border-slate-700 hover:text-white'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-indigo-400'}`} />
-                  <span>{tab.label}</span>
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black uppercase ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
-                  }`}>
-                    {tab.badge}
-                  </span>
+                  <div className="flex items-center justify-between w-full">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                      isActive ? 'bg-white/20 text-white shadow-xs' : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                    }`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                      isActive ? 'bg-white text-indigo-900 font-extrabold shadow-xs' : 'bg-slate-800/80 text-slate-400 border border-slate-700/60'
+                    }`}>
+                      {tab.badge}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className={`text-[10px] font-mono font-bold block ${isActive ? 'text-indigo-200' : 'text-slate-500'}`}>
+                      AGENT {tab.num}
+                    </span>
+                    <h3 className={`text-xs sm:text-xs font-black tracking-tight leading-snug ${isActive ? 'text-white' : 'text-slate-200'}`}>
+                      {tab.label}
+                    </h3>
+                  </div>
                 </button>
               );
             })}

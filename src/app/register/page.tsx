@@ -44,6 +44,16 @@ export default function RegisterPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Anti-bot & Cost Defense States
+  const [hpField, setHpField] = useState('');
+  const [formLoadedAt, setFormLoadedAt] = useState<number>(0);
+  const [sessionToken, setSessionToken] = useState<string>('');
+
+  React.useEffect(() => {
+    setFormLoadedAt(Date.now());
+    setSessionToken(`sess_${Math.random().toString(36).substring(2, 10)}_${Date.now().toString(36)}`);
+  }, []);
+
   // GBP Candidate Discovery State
   const [isSearchingGbp, setIsSearchingGbp] = useState(false);
   const [gbpCandidates, setGbpCandidates] = useState<any[]>([]);
@@ -53,8 +63,16 @@ export default function RegisterPage() {
   const [isUnlistedBusiness, setIsUnlistedBusiness] = useState(false);
 
   const handleSearchGbpCandidates = async () => {
-    if (!businessName.trim() && !googleMapsUrlInput.trim()) {
+    const cleanBiz = businessName.trim();
+    const cleanUrl = googleMapsUrlInput.trim();
+
+    if (!cleanBiz && !cleanUrl) {
       setErrorMessage('Please enter your Business Name or Google Maps link to search for your profile.');
+      return;
+    }
+
+    if (cleanBiz && cleanBiz.length < 3 && !cleanUrl) {
+      setErrorMessage('Please enter at least 3 characters of your Business Name to search Google Maps.');
       return;
     }
 
@@ -68,17 +86,27 @@ export default function RegisterPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          businessName: businessName.trim(),
+          businessName: cleanBiz,
           city: city.trim(),
           district: district.trim(),
           address: address.trim(),
-          googleMapsUrl: googleMapsUrlInput.trim() || undefined,
+          googleMapsUrl: cleanUrl || undefined,
           category: category.trim(),
+          sessionToken,
+          hp_field: hpField,
+          formLoadedAt,
         }),
       });
 
       const data = await res.json();
       setHasSearchedGbp(true);
+
+      if (res.status === 429) {
+        setErrorMessage(data.error || 'Search rate limit reached. You can register as unlisted / manual details below.');
+        setShowAddressRefine(true);
+        setIsUnlistedBusiness(true);
+        return;
+      }
 
       if (res.ok && Array.isArray(data.candidates) && data.candidates.length > 0) {
         setGbpCandidates(data.candidates);
@@ -403,6 +431,19 @@ export default function RegisterPage() {
 
           {/* Registration Form */}
           <form onSubmit={handleRegister} className="space-y-3.5 text-xs">
+            {/* Hidden Anti-Bot Honeypot Trap */}
+            <input
+              type="text"
+              name="hp_field"
+              value={hpField}
+              onChange={(e) => setHpField(e.target.value)}
+              tabIndex={-1}
+              autoComplete="off"
+              className="hidden"
+              aria-hidden="true"
+              style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+            />
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 label="Full Name *"

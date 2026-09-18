@@ -127,7 +127,7 @@ export default function ClientPortalDashboard() {
       )}
 
       {/* ========================================================================= */}
-      {/* GREXA-STYLE HERO COMMAND BANNER: All-in-One AI Marketing Team             */}
+      {/* Digital Ranchi-STYLE HERO COMMAND BANNER: All-in-One AI Marketing Team             */}
       {/* ========================================================================= */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 border border-indigo-500/30 p-6 sm:p-8 text-white shadow-2xl">
         {/* Ambient background glow */}
@@ -140,7 +140,7 @@ export default function ClientPortalDashboard() {
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-xs">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                <span>Grexa-Powered AI Local Marketing Team</span>
+                <span>Digital Ranchi-Powered AI Local Marketing Team</span>
               </div>
 
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -221,7 +221,7 @@ export default function ClientPortalDashboard() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 4 CORE PERFORMANCE GROWTH METRICS (GREXA KPI RADAR)                      */}
+      {/* 4 CORE PERFORMANCE GROWTH METRICS (Digital Ranchi KPI RADAR)                      */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         {/* Metric 1: Google Rating */}
@@ -303,7 +303,7 @@ export default function ClientPortalDashboard() {
       </div>
 
       {/* ========================================================================= */}
-      {/* GREXA SIGNATURE: MEET YOUR 4 DIGITAL MARKETING AI AGENTS TEAM             */}
+      {/* Digital Ranchi SIGNATURE: MEET YOUR 4 DIGITAL MARKETING AI AGENTS TEAM             */}
       {/* ========================================================================= */}
       <div className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -323,7 +323,7 @@ export default function ClientPortalDashboard() {
 
         {/* 4 Multi-Gradient Agent Showcase Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          
+
           {/* AGENT 1: Google Business Profile & Local Maps Booster */}
           <div className="p-5 rounded-3xl bg-gradient-to-br from-amber-500/10 via-white to-amber-500/5 dark:from-amber-950/30 dark:via-slate-900 dark:to-slate-900 border border-amber-300 dark:border-amber-700/50 shadow-xs hover:shadow-lg transition-all space-y-4 flex flex-col justify-between">
             <div className="space-y-3">
@@ -623,7 +623,7 @@ export default function ClientPortalDashboard() {
       </div>
 
       {/* ========================================================================= */}
-      {/* GREXA QUICK LAUNCHPAD: ALL-IN-ONE AI LOCAL MARKETING APPS                 */}
+      {/* Digital Ranchi QUICK LAUNCHPAD: ALL-IN-ONE AI LOCAL MARKETING APPS                 */}
       {/* ========================================================================= */}
       <div className="space-y-3 pt-4">
         <div className="flex items-center justify-between">
