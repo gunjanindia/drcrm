@@ -247,15 +247,23 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
-  const [isAiGenerating, setIsAiGenerating] = useState(false);
-  const [aiMessage, setAiMessage] = useState<string | null>(null);
-
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
-  const siteSlug = profile.businessName
-    ? profile.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-')
-    : 'my-business-site';
+  const cleanBizSlug = (profile.businessName || 'my-business')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  const siteSlug = (profile.miniSiteConfig?.customSlug || cleanBizSlug || 'my-business-site')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
   const livePreviewUrl = `/s/${siteSlug}`;
 
   const currentTheme = selectedTemplate
@@ -692,8 +700,19 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
       miniSiteConfig: siteConfigPayload,
     });
 
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`drcrm_published_site_${siteSlug}`, JSON.stringify({
+          html: effectiveHtml,
+          businessName: profile.businessName,
+          config: siteConfigPayload,
+          publishedAt: new Date().toISOString(),
+        }));
+      } catch (e) {}
+    }
+
     try {
-      await fetch('/api/portal/site-builder/publish', {
+      const res = await fetch('/api/portal/site-builder/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -704,6 +723,10 @@ export const OnePageSiteBuilder: React.FC<OnePageSiteBuilderProps> = () => {
           html: effectiveHtml,
         }),
       });
+
+      if (!res.ok) {
+        console.warn('Server publish response non-200, local cache active.');
+      }
     } catch (err) {
       console.error('Failed to sync published site to database:', err);
     }

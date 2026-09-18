@@ -92,6 +92,7 @@ export class AppStore {
   public privateFeedbacks: PrivateFeedback[] = [];
   public standeeTelemetries: StandeeTelemetry[] = [];
   public globalAiPromptConfigs: GlobalAiPromptConfig[] = [];
+  public publishedSites: Record<string, any> = {};
   public leadSources: string[] = [
     'Website Free Audit',
     'Website Direct Checkout',
@@ -724,6 +725,7 @@ export class AppStore {
           privateFeedbacks: this.privateFeedbacks,
           standeeTelemetries: this.standeeTelemetries,
           globalAiPromptConfigs: this.globalAiPromptConfigs,
+          publishedSites: this.publishedSites,
         };
         fs.writeFileSync(storeFile, JSON.stringify(data, null, 2), 'utf-8');
       } catch (e) {
@@ -769,6 +771,7 @@ export class AppStore {
           if (data.privateFeedbacks && Array.isArray(data.privateFeedbacks)) this.privateFeedbacks = data.privateFeedbacks;
           if (data.standeeTelemetries && Array.isArray(data.standeeTelemetries)) this.standeeTelemetries = data.standeeTelemetries;
           if (data.globalAiPromptConfigs && Array.isArray(data.globalAiPromptConfigs)) this.globalAiPromptConfigs = data.globalAiPromptConfigs;
+          if (data.publishedSites && typeof data.publishedSites === 'object') this.publishedSites = data.publishedSites;
         }
       } catch (e) {
         console.error('Failed to load CRM store from disk:', e);
@@ -2051,6 +2054,31 @@ export class AppStore {
     this.globalAiPromptConfigs = this.globalAiPromptConfigs.filter((c) => c.id !== id);
     this.saveToFile();
     return this.globalAiPromptConfigs.length < initialLen;
+  }
+
+  // --- 1-Page Mini Site Publishing ---
+  public publishMiniSite(slug: string, data: {
+    slug: string;
+    clientId?: string;
+    businessName: string;
+    miniSiteConfig: any;
+    customHtml?: string;
+    renderedHtml?: string;
+    publishedAt?: string;
+  }) {
+    const cleanSlug = slug.toLowerCase().trim().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    this.publishedSites[cleanSlug] = {
+      ...data,
+      slug: cleanSlug,
+      publishedAt: data.publishedAt || new Date().toISOString(),
+    };
+    this.saveToFile();
+    return this.publishedSites[cleanSlug];
+  }
+
+  public getPublishedMiniSite(slug: string) {
+    const cleanSlug = slug.toLowerCase().trim().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    return this.publishedSites[cleanSlug] || null;
   }
 }
 

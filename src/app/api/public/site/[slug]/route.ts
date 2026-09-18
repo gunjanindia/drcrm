@@ -31,8 +31,31 @@ export async function GET(
     let savedSiteConfig: any = null;
     let storedHtml: string | null = null;
 
-    // 1. Search TimelineActivity for exact published MINI_SITE_CONFIG in PostgreSQL
-    if (process.env.DATABASE_URL && prisma) {
+    // 1. Check globalStore.publishedSites directly for exact match
+    const memoryPublished = globalStore.getPublishedMiniSite(cleanSlug);
+    if (memoryPublished) {
+      savedSiteConfig = memoryPublished.miniSiteConfig || {};
+      storedHtml = memoryPublished.customHtml || memoryPublished.renderedHtml || null;
+      if (memoryPublished.clientId) {
+        clientRecord = globalStore.clients.find((c) => c.id === memoryPublished.clientId);
+      }
+      if (!clientRecord) {
+        clientRecord = {
+          id: memoryPublished.clientId || 'published_client',
+          businessName: memoryPublished.businessName || savedSiteConfig.headline || cleanSlug,
+          category: savedSiteConfig.category || 'Local Business',
+          city: savedSiteConfig.city || 'Ranchi',
+          phone: savedSiteConfig.phone || '+91 94311 00000',
+          whatsapp: savedSiteConfig.whatsapp || '919431100000',
+          address: savedSiteConfig.address || 'Ranchi, Jharkhand',
+          averageRating: savedSiteConfig.ratingOverride || 4.9,
+          reviewCount: savedSiteConfig.reviewCountOverride || 30,
+        };
+      }
+    }
+
+    // 2. Search TimelineActivity for exact published MINI_SITE_CONFIG in PostgreSQL
+    if (!savedSiteConfig && process.env.DATABASE_URL && prisma) {
       try {
         const activities = await prisma.timelineActivity.findMany({
           where: { type: 'MINI_SITE_CONFIG' },

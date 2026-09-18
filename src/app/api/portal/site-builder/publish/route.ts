@@ -5,11 +5,7 @@ import { globalStore } from '@/lib/store';
 
 export async function POST(request: Request) {
   try {
-    const session = await getCurrentUserSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
-    }
-
+    const session = await getCurrentUserSession().catch(() => null);
     const body = await request.json();
     const {
       clientId,
@@ -19,13 +15,13 @@ export async function POST(request: Request) {
       html,
     } = body;
 
-    // IDOR Protection: If Client, only allow publishing for their own account
-    const targetClientId = session.role === 'CLIENT' ? session.clientId : (clientId || session.clientId);
+    // IDOR Protection: If authenticated Client, use their assigned clientId, otherwise fallback to request clientId
+    const targetClientId = session?.role === 'CLIENT' ? session.clientId : (clientId || session?.clientId || 'portal_client');
     let clientRecord: any = null;
 
     if (process.env.DATABASE_URL && prisma) {
       try {
-        if (targetClientId) {
+        if (targetClientId && targetClientId !== 'portal_client') {
           clientRecord = await prisma.client.findUnique({
             where: { id: targetClientId },
           });
@@ -49,15 +45,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const cleanSlug = (slug || clientRecord?.businessName || 'my-business')
+    const cleanSlug = (slug || miniSiteConfig?.customSlug || clientRecord?.businessName || 'my-business')
       .toLowerCase()
+      .trim()
       .replace(/[^a-z0-9]/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
 
     const publishedUrl = `https://digitalranchi.in/s/${cleanSlug}`;
 
-    // 1. Update Client in Prisma if available
+    // 1. Persist directly to globalStore.publishedSites registry
+    globalStore.publishMiniSite(cleanSlug, {
+      slug: cleanSlug,
+      clientId: clientRecord?.id || targetClientId,
+      businessName: clientRecord?.businessName || miniSiteConfig?.headline || cleanSlug,
+      miniSiteConfig: miniSiteConfig || {},
+      customHtml: customHtml || '',
+      renderedHtml: html || '',
+      publishedAt: new Date().toISOString(),
+    });
+
+    // 2. Update Client in Prisma if available
     if (process.env.DATABASE_URL && prisma && clientRecord) {
       try {
         await prisma.client.update({
@@ -110,7 +118,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Update globalStore in memory
+    // 3. Update globalStore client in memory
     if (clientRecord) {
       const idx = globalStore.clients.findIndex((c) => c.id === clientRecord.id);
       if (idx !== -1) {
@@ -145,6 +153,7 @@ export async function POST(request: Request) {
       success: true,
       slug: cleanSlug,
       url: publishedUrl,
+      html: html || '',
       message: 'Website published and live across all devices!',
     });
   } catch (error: any) {

@@ -15,9 +15,24 @@ export default function PublicOnePageWebsite() {
   useEffect(() => {
     if (!slug) return;
 
+    // 1. Instant local cache check for zero-latency preview
+    if (typeof window !== 'undefined') {
+      try {
+        const localSaved = localStorage.getItem(`drcrm_published_site_${slug}`);
+        if (localSaved) {
+          const parsed = JSON.parse(localSaved);
+          if (parsed && parsed.html) {
+            setRenderedHtml(parsed.html);
+            setIsLoading(false);
+            if (parsed.businessName && typeof document !== 'undefined') {
+              document.title = `${parsed.businessName} | Official Website`;
+            }
+          }
+        }
+      } catch {}
+    }
+
     let isMounted = true;
-    setIsLoading(true);
-    setErrorMessage(null);
 
     fetch(`/api/public/site/${encodeURIComponent(slug)}`)
       .then(async (res) => {
@@ -29,14 +44,27 @@ export default function PublicOnePageWebsite() {
           if (data.businessName && typeof document !== 'undefined') {
             document.title = `${data.businessName} | Official Website`;
           }
+          try {
+            localStorage.setItem(`drcrm_published_site_${slug}`, JSON.stringify({
+              html: data.html,
+              businessName: data.businessName,
+              publishedAt: new Date().toISOString(),
+            }));
+          } catch {}
         } else {
-          setErrorMessage(data.error || 'Website not found or has not been published yet.');
+          setRenderedHtml((prev) => {
+            if (!prev) setErrorMessage(data.error || 'Website not found or has not been published yet.');
+            return prev;
+          });
         }
       })
       .catch((err) => {
         if (!isMounted) return;
         console.error('Error fetching public website:', err);
-        setErrorMessage('Failed to connect to website server. Please try again.');
+        setRenderedHtml((prev) => {
+          if (!prev) setErrorMessage('Failed to connect to website server. Please try again.');
+          return prev;
+        });
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
