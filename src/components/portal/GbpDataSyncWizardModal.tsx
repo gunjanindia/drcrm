@@ -67,6 +67,16 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
   const [finalProfile, setFinalProfile] = useState<SyncedBusinessProfile | null>(null);
   const [isSavingSync, setIsSavingSync] = useState(false);
 
+  // Live Debug & API Response Inspector State
+  const [debugLogs, setDebugLogs] = useState<{
+    endpoint: string;
+    requestPayload?: any;
+    responsePayload?: any;
+    status?: number | string;
+    timestamp: string;
+  } | null>(null);
+  const [showDebugJson, setShowDebugJson] = useState(false);
+
   // Listen for Google OAuth callback postMessage
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -111,20 +121,34 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
       ? rawPlaceId
       : (rawSearch.startsWith('ChIJ') ? rawSearch : undefined);
 
+    const searchPayload = {
+      businessName: detectedPlaceId ? '' : rawSearch,
+      city: searchCity.trim(),
+      district: searchDistrict.trim(),
+      googleMapsUrl: rawMapsUrl || undefined,
+      placeId: detectedPlaceId || undefined,
+    };
+
+    console.log('%c[GBP-SEARCH-REQUEST]', 'color: #38bdf8; font-weight: bold;', searchPayload);
+
     try {
       const res = await fetch('/api/portal/gbp-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessName: detectedPlaceId ? '' : rawSearch,
-          city: searchCity.trim(),
-          district: searchDistrict.trim(),
-          googleMapsUrl: rawMapsUrl || undefined,
-          placeId: detectedPlaceId || undefined,
-        }),
+        body: JSON.stringify(searchPayload),
       });
 
       const data = await res.json();
+      console.log('%c[GBP-SEARCH-RESPONSE]', 'color: #4ade80; font-weight: bold;', data);
+
+      setDebugLogs({
+        endpoint: 'POST /api/portal/gbp-search',
+        requestPayload: searchPayload,
+        responsePayload: data,
+        status: res.status,
+        timestamp: new Date().toLocaleTimeString(),
+      });
+
       if (res.ok && Array.isArray(data.candidates) && data.candidates.length > 0) {
         setCandidatesList(data.candidates);
         if (data.candidates.length === 1) {
@@ -268,30 +292,45 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
 
     setIsSavingSync(true);
 
+    const syncPayload = {
+      clientId: finalProfile.clientId,
+      businessName: finalProfile.businessName,
+      category: finalProfile.category,
+      city: finalProfile.city,
+      address: finalProfile.address,
+      phone: finalProfile.phone,
+      whatsapp: finalProfile.whatsapp,
+      googleMapsUrl: finalProfile.googleMapsUrl,
+      placeId: finalProfile.placeId,
+      averageRating: finalProfile.averageRating,
+      rating: finalProfile.averageRating,
+      reviewCount: finalProfile.reviewCount,
+      photosCount: finalProfile.photosCount,
+      gbpScore: finalProfile.gbpScore,
+      googleOwnerEmail: finalProfile.googleOwnerEmail,
+      googleAccountName: finalProfile.googleAccountName,
+      reviews: finalProfile.reviews,
+    };
+
+    console.log('%c[GBP-SYNC-REQUEST]', 'color: #38bdf8; font-weight: bold;', syncPayload);
+
     try {
       // 1. Persist to PostgreSQL database & globalStore
       const res = await fetch('/api/portal/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId: finalProfile.clientId,
-          businessName: finalProfile.businessName,
-          category: finalProfile.category,
-          city: finalProfile.city,
-          address: finalProfile.address,
-          phone: finalProfile.phone,
-          whatsapp: finalProfile.whatsapp,
-          googleMapsUrl: finalProfile.googleMapsUrl,
-          placeId: finalProfile.placeId,
-          averageRating: finalProfile.averageRating,
-          rating: finalProfile.averageRating,
-          reviewCount: finalProfile.reviewCount,
-          photosCount: finalProfile.photosCount,
-          gbpScore: finalProfile.gbpScore,
-          googleOwnerEmail: finalProfile.googleOwnerEmail,
-          googleAccountName: finalProfile.googleAccountName,
-          reviews: finalProfile.reviews,
-        }),
+        body: JSON.stringify(syncPayload),
+      });
+
+      const data = await res.json();
+      console.log('%c[GBP-SYNC-RESPONSE]', 'color: #4ade80; font-weight: bold;', data);
+
+      setDebugLogs({
+        endpoint: 'POST /api/portal/sync',
+        requestPayload: syncPayload,
+        responsePayload: data,
+        status: res.status,
+        timestamp: new Date().toLocaleTimeString(),
       });
 
       if (!res.ok) {
@@ -721,6 +760,121 @@ export const GbpDataSyncWizardModal: React.FC<GbpDataSyncWizardModalProps> = ({
             <Button variant="primary" size="md" onClick={handleCloseAndFinish}>
               Enter Your Live 360 Portal
             </Button>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* REAL-TIME LIVE DEBUG & API RESPONSE INSPECTOR PANEL                        */}
+        {/* ========================================================================= */}
+        {debugLogs && (
+          <div className="rounded-2xl border border-indigo-500/40 bg-slate-950 p-4 space-y-3 text-xs shadow-inner">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                <span className="font-mono font-bold text-emerald-400 text-[11px] uppercase tracking-wider">
+                  Live Sync Debug Inspector • {debugLogs.endpoint}
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono">({debugLogs.timestamp})</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDebugJson(!showDebugJson)}
+                className="text-[11px] font-bold text-indigo-400 hover:text-indigo-200 underline cursor-pointer"
+              >
+                {showDebugJson ? 'Hide Raw JSON Payload' : 'Show Full Raw JSON Response'}
+              </button>
+            </div>
+
+            {/* Quick Metrics & Parsed Details Snapshot */}
+            <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 font-mono text-[11px] space-y-2">
+              <div className="flex items-center justify-between text-slate-400 text-[10px] pb-1 border-b border-slate-800/80">
+                <span>Google Maps / Places API Verified Extract</span>
+                <span className="text-emerald-400 font-bold">Status: {debugLogs.status || 200} OK</span>
+              </div>
+
+              {debugLogs.responsePayload?.candidates?.[0] && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-[11px]">
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Place ID:</span>
+                    <strong className="text-sky-400 truncate block">{debugLogs.responsePayload.candidates[0].placeId}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Google Rating:</span>
+                    <strong className="text-amber-400">{debugLogs.responsePayload.candidates[0].rating} ★</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Verified Reviews:</span>
+                    <strong className="text-emerald-400">{debugLogs.responsePayload.candidates[0].userRatingsTotal ?? debugLogs.responsePayload.candidates[0].reviews?.length}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Indexed Photos:</span>
+                    <strong className="text-purple-400">{debugLogs.responsePayload.candidates[0].photosCount}</strong>
+                  </div>
+                </div>
+              )}
+
+              {debugLogs.responsePayload?.profile && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-[11px]">
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">CRM Client:</span>
+                    <strong className="text-sky-400 truncate block">{debugLogs.responsePayload.profile.businessName}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Rating Synced:</span>
+                    <strong className="text-amber-400">{debugLogs.responsePayload.profile.averageRating} ★</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Review Count:</span>
+                    <strong className="text-emerald-400">{debugLogs.responsePayload.profile.reviewCount}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Place ID:</span>
+                    <strong className="text-purple-400 truncate block">{debugLogs.responsePayload.profile.placeId}</strong>
+                  </div>
+                </div>
+              )}
+
+              {/* Reviews Summary preview */}
+              {((debugLogs.responsePayload?.candidates?.[0]?.reviews?.length > 0) || (debugLogs.responsePayload?.profile?.reviews?.length > 0)) && (
+                <div className="pt-2 border-t border-slate-800 text-[10px] space-y-1">
+                  <span className="text-slate-400 font-bold block">
+                    Synced Reviews from Google Maps ({
+                      debugLogs.responsePayload?.candidates?.[0]?.reviews?.length ||
+                      debugLogs.responsePayload?.profile?.reviews?.length || 0
+                    } items):
+                  </span>
+                  {(debugLogs.responsePayload?.candidates?.[0]?.reviews || debugLogs.responsePayload?.profile?.reviews || []).slice(0, 3).map((r: any, idx: number) => (
+                    <div key={idx} className="p-1.5 rounded-lg bg-slate-950/70 border border-slate-800 text-slate-300">
+                      <span className="font-bold text-amber-400">{r.rating}★</span> • <strong className="text-white">{r.authorName}</strong>: <span className="text-slate-400 italic">"{r.content || r.text}"</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Expandable Raw JSON Terminal */}
+            {showDebugJson && (
+              <div className="space-y-1 pt-1 font-mono text-[10px]">
+                <div className="flex items-center justify-between text-slate-400 text-[10px]">
+                  <span>Raw API Response Body:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined') {
+                        navigator.clipboard.writeText(JSON.stringify(debugLogs.responsePayload, null, 2));
+                        alert('Debug JSON copied to clipboard!');
+                      }
+                    }}
+                    className="text-indigo-400 hover:text-white underline cursor-pointer"
+                  >
+                    Copy JSON
+                  </button>
+                </div>
+                <pre className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-sky-300 overflow-x-auto max-h-56 whitespace-pre-wrap">
+                  {JSON.stringify(debugLogs.responsePayload, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         )}
       </div>

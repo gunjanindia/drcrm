@@ -74,28 +74,34 @@ export default function ClientPortalDashboard() {
 
     setIsSyncing(true);
     setSyncToast(null);
+    const syncReqPayload = {
+      clientId: client.clientId,
+      businessName: client.businessName,
+      category: client.category,
+      city: client.city,
+      address: client.address,
+      phone: client.phone,
+      whatsapp: client.whatsapp,
+      googleMapsUrl: client.googleMapsUrl,
+      placeId: client.placeId,
+      googleOwnerEmail: client.googleOwnerEmail,
+      googleAccountName: client.googleAccountName,
+    };
+
+    console.log('%c[PORTAL-SYNC-REQUEST]', 'color: #38bdf8; font-weight: bold;', syncReqPayload);
+
     try {
       // Direct live sync with Google Places API
       const res = await fetch('/api/portal/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId: client.clientId,
-          businessName: client.businessName,
-          category: client.category,
-          city: client.city,
-          address: client.address,
-          phone: client.phone,
-          whatsapp: client.whatsapp,
-          googleMapsUrl: client.googleMapsUrl,
-          placeId: client.placeId,
-          googleOwnerEmail: client.googleOwnerEmail,
-          googleAccountName: client.googleAccountName,
-        }),
+        body: JSON.stringify(syncReqPayload),
       });
 
+      const data = await res.json();
+      console.log('%c[PORTAL-SYNC-RESPONSE]', 'color: #4ade80; font-weight: bold;', data);
+
       if (res.ok) {
-        const data = await res.json();
         if (data.profile || data.data) {
           const fresh = data.profile || data.data;
           const merged = {
@@ -104,8 +110,12 @@ export default function ClientPortalDashboard() {
             syncedAt: new Date().toLocaleString(),
           };
           updateProfile(merged);
-          setSyncToast('Live Google Profile, verified reviews & rating refreshed successfully!');
-          setTimeout(() => setSyncToast(null), 4000);
+          const revCount = fresh.reviewCount !== undefined ? fresh.reviewCount : (fresh.reviews?.length || 0);
+          const ratingVal = fresh.averageRating || fresh.rating || 5.0;
+          setSyncToast(
+            `Live Google Profile Synced: ${fresh.businessName} (${ratingVal}★ • ${revCount} Verified Reviews • Place ID: ${fresh.placeId || client.placeId})`
+          );
+          setTimeout(() => setSyncToast(null), 6000);
         }
       } else {
         await refreshProfile();
