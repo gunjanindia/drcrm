@@ -47,32 +47,34 @@ export interface SyncedBusinessProfile {
   isGbpLinked?: boolean;
 }
 
-export const DEMO_BUSINESS_PROFILE: SyncedBusinessProfile = {
+export const INITIAL_PORTAL_PROFILE: SyncedBusinessProfile = {
   isLiveSynced: false,
-  businessName: 'Life in Lights Academy',
-  category: 'Educational institution / Photography Academy',
-  city: 'Dhanbad',
-  address: 'Dhanbad, Jharkhand',
-  phone: '+91 94311 00000',
-  whatsapp: '919431100000',
-  email: 'gunjan.india@gmail.com',
+  businessName: '',
+  category: 'Local Business',
+  city: 'Ranchi',
+  address: '',
+  phone: '',
+  whatsapp: '',
+  email: '',
   websiteUrl: '',
   googleMapsUrl: '',
   placeId: '',
-  averageRating: 4.9,
-  reviewCount: 30,
-  photosCount: 12,
-  gbpScore: 88,
+  averageRating: 0,
+  reviewCount: 0,
+  photosCount: 0,
+  gbpScore: 0,
   packageName: 'Growth Retainer Plan',
-  monthlyRevenue: 999,
-  renewalDate: new Date(Date.now() + 30 * 86400000).toISOString(),
-  googleOwnerEmail: 'gunjan.india@gmail.com',
+  monthlyRevenue: 0,
+  renewalDate: '',
+  googleOwnerEmail: '',
   status: 'ACTIVE',
   isOperational: true,
   reviews: [],
   growthMetrics: [],
-  performanceInsights: [SEEDED_AUTHENTIC_GBP_INSIGHT],
+  performanceInsights: [],
 };
+
+export const DEMO_BUSINESS_PROFILE = INITIAL_PORTAL_PROFILE;
 
 const STORAGE_KEY = 'drcrm_synced_gbp_profile_v2';
 
@@ -82,7 +84,7 @@ export function updateGbpAuthProfile(googleEmail: string, accountName?: string, 
     ...current,
     isLiveSynced: true,
     googleOwnerEmail: googleEmail,
-    googleAccountName: accountName || `${current.businessName} Owner Account`,
+    googleAccountName: accountName || (current.businessName ? `${current.businessName} Owner Account` : 'Verified Google Owner'),
     syncedAt: new Date().toLocaleString(),
   };
   saveSyncedBusinessProfile(updated);
@@ -234,18 +236,18 @@ export function saveSyncedBusinessProfile(profile: SyncedBusinessProfile): void 
   try {
     const completeProfile: SyncedBusinessProfile = {
       ...profile,
-      isLiveSynced: profile.isLiveSynced ?? true,
+      isLiveSynced: profile.isLiveSynced ?? false,
       reviews: profile.reviews || [],
       growthMetrics: profile.growthMetrics || [],
-      performanceInsights: profile.performanceInsights || [SEEDED_AUTHENTIC_GBP_INSIGHT],
-      auditFactors: profile.auditFactors || generateDynamicAuditFactorsForBusiness(
+      performanceInsights: profile.performanceInsights || [],
+      auditFactors: profile.auditFactors || (profile.businessName ? generateDynamicAuditFactorsForBusiness(
         profile.businessName,
         profile.category,
         profile.city,
         profile.averageRating,
         profile.reviewCount,
         profile.photosCount
-      ),
+      ) : []),
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(completeProfile));

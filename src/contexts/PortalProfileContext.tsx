@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   SyncedBusinessProfile,
-  DEMO_BUSINESS_PROFILE,
+  INITIAL_PORTAL_PROFILE,
   getSyncedBusinessProfile,
   saveSyncedBusinessProfile,
   fetchPortalProfileFromServer,
@@ -19,15 +19,15 @@ interface PortalProfileContextType {
 }
 
 const PortalProfileContext = createContext<PortalProfileContextType>({
-  profile: DEMO_BUSINESS_PROFILE,
+  profile: INITIAL_PORTAL_PROFILE,
   isLoading: true,
   updateProfile: () => {},
-  refreshProfile: async () => DEMO_BUSINESS_PROFILE,
+  refreshProfile: async () => INITIAL_PORTAL_PROFILE,
   saveReviewReply: async () => false,
 });
 
 export const PortalProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [profile, setProfile] = useState<SyncedBusinessProfile>(DEMO_BUSINESS_PROFILE);
+  const [profile, setProfile] = useState<SyncedBusinessProfile>(INITIAL_PORTAL_PROFILE);
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshProfile = useCallback(async (): Promise<SyncedBusinessProfile> => {

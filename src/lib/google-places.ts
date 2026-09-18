@@ -453,12 +453,12 @@ export async function searchGooglePlaceCandidates(
             matchConfidence: confidence,
             reviews: Array.isArray(place.reviews)
               ? place.reviews.map((r: any) => ({
-                  authorName: r.authorAttribution?.displayName || 'Verified Customer',
-                  rating: typeof r.rating === 'number' ? r.rating : 5,
-                  text: r.text?.text || r.originalText?.text || 'Great service and very professional experience!',
-                  relativeTime: r.relativePublishTimeDescription || 'Recently',
-                  publishTime: r.publishTime,
-                }))
+                authorName: r.authorAttribution?.displayName || 'Verified Customer',
+                rating: typeof r.rating === 'number' ? r.rating : 5,
+                text: r.text?.text || r.originalText?.text || 'Great service and very professional experience!',
+                relativeTime: r.relativePublishTimeDescription || 'Recently',
+                publishTime: r.publishTime,
+              }))
               : [],
           });
         }
@@ -690,12 +690,12 @@ export async function fetchGooglePlaceByPlaceId(placeId: string): Promise<Google
           matchConfidence: 100,
           reviews: Array.isArray(place.reviews) && place.reviews.length > 0
             ? place.reviews.map((r: any) => ({
-                authorName: r.authorAttribution?.displayName || 'Verified Customer',
-                rating: typeof r.rating === 'number' ? r.rating : 5,
-                text: r.text?.text || r.originalText?.text || 'Great service and authentic experience!',
-                relativeTime: r.relativePublishTimeDescription || 'Recently',
-                publishTime: r.publishTime,
-              }))
+              authorName: r.authorAttribution?.displayName || 'Verified Customer',
+              rating: typeof r.rating === 'number' ? r.rating : 5,
+              text: r.text?.text || r.originalText?.text || 'Great service and authentic experience!',
+              relativeTime: r.relativePublishTimeDescription || 'Recently',
+              publishTime: r.publishTime,
+            }))
             : [],
         };
       }

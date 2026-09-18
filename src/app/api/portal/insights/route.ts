@@ -55,21 +55,22 @@ export async function GET(request: Request) {
     const session = await getCurrentUserSession();
 
     const clientKey = requestedClientId || session?.clientId || session?.email || 'default';
-    const businessNameQuery = requestedBusinessName || 'Life in Lights Academy';
+    const businessNameQuery = requestedBusinessName || '';
 
     // Try reading from PostgreSQL Database via Prisma
     try {
-      const dbRecords = await prisma.gbpMonthlyInsight.findMany({
-        where: {
-          OR: [
-            ...(requestedClientId ? [{ clientId: requestedClientId }] : []),
-            ...(session?.clientId ? [{ clientId: session.clientId }] : []),
-            ...(session?.email ? [{ clientEmail: session.email }] : []),
-            { businessName: { contains: businessNameQuery, mode: 'insensitive' } },
-          ],
-        },
-        orderBy: [{ year: 'asc' }, { month: 'asc' }],
-      });
+      const whereConditions: any[] = [];
+      if (requestedClientId) whereConditions.push({ clientId: requestedClientId });
+      if (session?.clientId) whereConditions.push({ clientId: session.clientId });
+      if (session?.email) whereConditions.push({ clientEmail: session.email });
+      if (businessNameQuery) whereConditions.push({ businessName: { contains: businessNameQuery, mode: 'insensitive' } });
+
+      const dbRecords = whereConditions.length > 0
+        ? await prisma.gbpMonthlyInsight.findMany({
+            where: { OR: whereConditions },
+            orderBy: [{ year: 'asc' }, { month: 'asc' }],
+          })
+        : [];
 
       if (dbRecords && dbRecords.length > 0) {
         const insights = sortInsightsChronologically(dbRecords.map(formatDbInsightToGbp));
@@ -83,56 +84,21 @@ export async function GET(request: Request) {
         });
       }
 
-      // If DB has 0 records, seed the authentic baseline into DB
-      const seeded = await prisma.gbpMonthlyInsight.create({
-        data: {
-          tenantId: 'tenant_main',
-          clientId: requestedClientId || session?.clientId || null,
-          clientEmail: session?.email || 'gunjan.india@gmail.com',
-          businessName: SEEDED_AUTHENTIC_GBP_INSIGHT.businessName,
-          period: SEEDED_AUTHENTIC_GBP_INSIGHT.period,
-          year: SEEDED_AUTHENTIC_GBP_INSIGHT.year || 2026,
-          month: SEEDED_AUTHENTIC_GBP_INSIGHT.month || 9,
-          monthName: SEEDED_AUTHENTIC_GBP_INSIGHT.monthName || 'September',
-          shopCode: SEEDED_AUTHENTIC_GBP_INSIGHT.shopCode || '',
-          address: SEEDED_AUTHENTIC_GBP_INSIGHT.address || '',
-          labels: SEEDED_AUTHENTIC_GBP_INSIGHT.labels || '',
-          searchMobile: SEEDED_AUTHENTIC_GBP_INSIGHT.searchMobile,
-          searchDesktop: SEEDED_AUTHENTIC_GBP_INSIGHT.searchDesktop,
-          mapsMobile: SEEDED_AUTHENTIC_GBP_INSIGHT.mapsMobile,
-          mapsDesktop: SEEDED_AUTHENTIC_GBP_INSIGHT.mapsDesktop,
-          calls: SEEDED_AUTHENTIC_GBP_INSIGHT.calls,
-          messages: SEEDED_AUTHENTIC_GBP_INSIGHT.messages,
-          bookings: SEEDED_AUTHENTIC_GBP_INSIGHT.bookings,
-          directions: SEEDED_AUTHENTIC_GBP_INSIGHT.directions,
-          websiteClicks: SEEDED_AUTHENTIC_GBP_INSIGHT.websiteClicks,
-          foodOrders: 0,
-          foodMenuClicks: 0,
-          hotelBookings: 0,
-          totalSearchViews: SEEDED_AUTHENTIC_GBP_INSIGHT.totalSearchViews,
-          totalMapsViews: SEEDED_AUTHENTIC_GBP_INSIGHT.totalMapsViews,
-          totalViews: SEEDED_AUTHENTIC_GBP_INSIGHT.totalViews,
-          totalActions: SEEDED_AUTHENTIC_GBP_INSIGHT.totalActions,
-          source: 'CSV_UPLOAD',
-        },
-      });
-
-      const formatted = [formatDbInsightToGbp(seeded)];
-      memoryInsightsStore[clientKey] = formatted;
-
+      // If DB has 0 records, return clean empty data
+      const stored = memoryInsightsStore[clientKey] || [];
       return NextResponse.json({
         success: true,
-        data: formatted,
-        count: formatted.length,
-        latest: formatted[0],
-        source: 'DATABASE_POSTGRESQL_INITIALIZED',
+        data: stored,
+        count: stored.length,
+        latest: stored[stored.length - 1] || null,
+        source: 'DATABASE_EMPTY',
       });
     } catch (dbErr) {
       console.warn('PostgreSQL query error, using memory fallback:', dbErr);
     }
 
     const insights = sortInsightsChronologically(
-      memoryInsightsStore[clientKey] || memoryInsightsStore['default'] || [SEEDED_AUTHENTIC_GBP_INSIGHT]
+      memoryInsightsStore[clientKey] || []
     );
 
     return NextResponse.json({
@@ -140,7 +106,7 @@ export async function GET(request: Request) {
       data: insights,
       count: insights.length,
       latest: insights[insights.length - 1] || null,
-      source: 'MEMORY_FALLBACK',
+      source: 'MEMORY_STORE',
     });
   } catch (error: any) {
     console.error('GET /api/portal/insights error:', error);
@@ -193,7 +159,7 @@ export async function POST(request: Request) {
         const targetYear = item.year || new Date().getFullYear();
         const targetMonth = item.month || new Date().getMonth() + 1;
         const targetPeriod = item.period || `${MONTH_SHORT_NAMES[targetMonth - 1]} ${targetYear}`;
-        const targetBusinessName = item.businessName || businessName || 'Life in Lights Academy';
+        const targetBusinessName = item.businessName || businessName || 'Google Business Profile';
 
         // Check if an entry already exists for this business/client & year & month
         const existingRecord = await prisma.gbpMonthlyInsight.findFirst({

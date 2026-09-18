@@ -29,15 +29,11 @@ export const GeminiGbpTemplateGeneratorModal: React.FC<GeminiGbpTemplateGenerato
   onClose,
   onTemplateGenerated,
 }) => {
-  const [businessName, setBusinessName] = useState('Life in Lights Academy');
-  const [category, setCategory] = useState('Photography Academy & Studio');
-  const [city, setCity] = useState('Dhanbad');
-  const [description, setDescription] = useState(
-    'Premier photography institute and creative studio offering professional portrait, wedding, studio lighting, and digital cinematography masterclasses with hands-on practice.'
-  );
-  const [reviewsSummary, setReviewsSummary] = useState(
-    '4.9★ rating with 30+ verified customer reviews praising practical mentor guidance and studio equipment access.'
-  );
+  const [businessName, setBusinessName] = useState('');
+  const [category, setCategory] = useState('');
+  const [city, setCity] = useState('');
+  const [description, setDescription] = useState('');
+  const [reviewsSummary, setReviewsSummary] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<CategoryTemplateData | null>(null);
 

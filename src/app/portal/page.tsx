@@ -66,8 +66,8 @@ export default function ClientPortalDashboard() {
   };
 
   const handleQuickSync = async () => {
-    // If not live synced or using demo placeholder, launch the 2-Min GBP Setup Wizard
-    if (!client.isLiveSynced || client.businessName === 'Life in Lights Academy') {
+    // If not live synced or no business profile connected, launch the 2-Min GBP Setup Wizard
+    if (!client.isLiveSynced || !client.businessName) {
       setIsWizardOpen(true);
       return;
     }
@@ -111,9 +111,9 @@ export default function ClientPortalDashboard() {
           };
           updateProfile(merged);
           const revCount = fresh.reviewCount !== undefined ? fresh.reviewCount : (fresh.reviews?.length || 0);
-          const ratingVal = fresh.averageRating || fresh.rating || 5.0;
+          const ratingVal = fresh.averageRating !== undefined ? fresh.averageRating : (fresh.rating || 0);
           setSyncToast(
-            `Live Google Profile Synced: ${fresh.businessName} (${ratingVal}★ • ${revCount} Verified Reviews • Place ID: ${fresh.placeId || client.placeId})`
+            `Live Google Profile Synced: ${fresh.businessName} (${ratingVal > 0 ? `${ratingVal}★ • ` : ''}${revCount} Verified Reviews • Place ID: ${fresh.placeId || client.placeId})`
           );
           setTimeout(() => setSyncToast(null), 6000);
         }
@@ -302,6 +302,33 @@ export default function ClientPortalDashboard() {
         </div>
       )}
 
+      {/* Unlinked Google Profile Setup Prompt Banner */}
+      {!client.isLiveSynced && (
+        <div className="p-5 rounded-3xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 border border-indigo-500/40 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
+              <Sparkles className="w-5 h-5 text-amber-400" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-black text-indigo-200">
+                Connect Your Google Business Profile
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+                Link your verified Google Maps listing to display authentic ratings, automatically pull customer reviews, track local SEO rank, and enable 1-click AI replies.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsWizardOpen(true)}
+            className="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 shrink-0 cursor-pointer transition-all hover:scale-102"
+          >
+            <Sparkles className="w-4 h-4 text-amber-300" />
+            <span>2-Min Setup Wizard</span>
+          </button>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* 4 CORE PERFORMANCE GROWTH METRICS (Digital Ranchi KPI RADAR)                      */}
       {/* ========================================================================= */}
@@ -317,10 +344,20 @@ export default function ClientPortalDashboard() {
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-            {client.averageRating || 5.0} <span className="text-amber-500 text-lg">★</span>
+            {client.isLiveSynced && (client.averageRating || 0) > 0 ? (
+              <>
+                {Number(client.averageRating).toFixed(1)} <span className="text-amber-500 text-lg">★</span>
+              </>
+            ) : (
+              <span className="text-slate-400 text-2xl font-bold">Unlinked</span>
+            )}
           </div>
           <span className="text-[11px] text-slate-400 block font-medium">
-            Across <strong>{client.reviewCount || reviews.length || 0}</strong> verified Google reviews
+            {client.isLiveSynced ? (
+              <>Across <strong>{client.reviewCount ?? reviews.length ?? 0}</strong> verified Google reviews</>
+            ) : (
+              'Connect Google Profile to sync'
+            )}
           </span>
         </div>
 
@@ -335,13 +372,21 @@ export default function ClientPortalDashboard() {
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
-            #{client.gbpScore >= 85 ? '1' : '2'}
-            <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              Top 3
-            </span>
+            {client.isLiveSynced ? (
+              <>
+                #{client.gbpScore >= 85 ? '1' : '2'}
+                <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  Top 3
+                </span>
+              </>
+            ) : (
+              <span className="text-slate-400 text-2xl font-bold">#—</span>
+            )}
           </div>
           <span className="text-[11px] text-slate-400 block font-medium">
-            Ranked for "{client.category}" in {cityDisplay}
+            {client.isLiveSynced
+              ? `Ranked for "${client.category || 'Local Business'}" in ${cityDisplay}`
+              : 'Sync profile to track search rank'}
           </span>
         </div>
 
@@ -356,10 +401,12 @@ export default function ClientPortalDashboard() {
             </div>
           </div>
           <div className={`text-2xl sm:text-3xl font-black ${pendingReviews.length > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-            {responseRate}%
+            {client.isLiveSynced ? `${responseRate}%` : '—'}
           </div>
           <span className="text-[11px] text-slate-400 block font-medium">
-            {pendingReviews.length > 0
+            {!client.isLiveSynced
+              ? 'No reviews synced yet'
+              : pendingReviews.length > 0
               ? `${pendingReviews.length} pending review requires reply`
               : 'All reviews responded (100% SLA)'}
           </span>
@@ -376,10 +423,18 @@ export default function ClientPortalDashboard() {
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">
-            {client.gbpScore || 88}<span className="text-sm text-slate-400 font-bold">/100</span>
+            {client.isLiveSynced ? (
+              <>
+                {client.gbpScore || 0}<span className="text-sm text-slate-400 font-bold">/100</span>
+              </>
+            ) : (
+              <span className="text-slate-400 text-2xl font-bold">—</span>
+            )}
           </div>
           <span className="text-[11px] text-slate-400 block font-medium">
-            OPTIMAL • Verified Profile & Live Synced
+            {client.isLiveSynced
+              ? 'OPTIMAL • Verified Profile & Live Synced'
+              : 'Pending Google Profile link'}
           </span>
         </div>
       </div>
@@ -557,7 +612,7 @@ export default function ClientPortalDashboard() {
                 <div className="space-y-0.5">
                   <span className="text-[10px] text-slate-500 font-bold block">Review SLA</span>
                   <span className="font-extrabold text-purple-900 dark:text-purple-200">
-                    {client.averageRating || 5.0}★ Rating • {reviews.length} Reviews
+                    {client.isLiveSynced && (client.averageRating || 0) > 0 ? `${Number(client.averageRating).toFixed(1)}★ Rating` : 'Rating not synced'} • {reviews.length} Reviews
                   </span>
                 </div>
                 <span className="text-xs font-black text-purple-600 dark:text-purple-400">

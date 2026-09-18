@@ -56,15 +56,15 @@ type GrowthMetricKey = 'directions' | 'websiteClicks' | 'calls' | 'messages' | '
 
 export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = ({
   insights = [],
-  businessName = 'Life in Lights Academy',
-  city = 'Dhanbad',
+  businessName = '',
+  city = '',
   syncedAt,
   isLiveSynced = true,
   clientId,
   onInsightsUpdated,
 }) => {
   const [activeInsights, setActiveInsights] = useState<GbpDailyOrMonthlyInsight[]>(() => {
-    const raw = insights && insights.length > 0 ? insights : [SEEDED_AUTHENTIC_GBP_INSIGHT];
+    const raw = insights && insights.length > 0 ? insights : [];
     return sortInsightsChronologically(raw);
   });
 
@@ -164,8 +164,7 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
       if (res.ok && json.success) {
         const remaining = Array.isArray(json.data) ? sortInsightsChronologically(json.data) : [];
         if (remaining.length === 0) {
-          // Fallback to baseline
-          setActiveInsights([SEEDED_AUTHENTIC_GBP_INSIGHT]);
+          setActiveInsights([]);
           setSelectedPeriodIndex(0);
         } else {
           setActiveInsights(remaining);

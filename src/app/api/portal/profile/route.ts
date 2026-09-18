@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { globalStore } from '@/lib/store';
 import {
   SyncedBusinessProfile,
-  DEMO_BUSINESS_PROFILE,
+  INITIAL_PORTAL_PROFILE,
   generateDynamicReviewsForBusiness,
   generateDynamicGrowthForBusiness,
   generateDynamicAuditFactorsForBusiness,
@@ -105,17 +105,17 @@ export async function GET(request: Request) {
       return NextResponse.json({
         authenticated: !!session,
         isLiveSynced: false,
-        data: DEMO_BUSINESS_PROFILE,
-        profile: DEMO_BUSINESS_PROFILE,
-        message: 'No specific client record found, using default baseline profile',
+        data: INITIAL_PORTAL_PROFILE,
+        profile: INITIAL_PORTAL_PROFILE,
+        message: 'No specific client record found, please connect your Google Business Profile',
       });
     }
 
     // 3. Construct SyncedBusinessProfile purely from stored database records
-    const rating = typeof clientRecord.averageRating === 'number' ? clientRecord.averageRating : 5.0;
+    const rating = typeof clientRecord.averageRating === 'number' ? clientRecord.averageRating : 0;
     const reviewCount = typeof clientRecord.reviewCount === 'number' ? clientRecord.reviewCount : 0;
-    const gbpScore = typeof clientRecord.gbpScore === 'number' ? clientRecord.gbpScore : 80;
-    const photosCount = 12;
+    const gbpScore = typeof clientRecord.gbpScore === 'number' ? clientRecord.gbpScore : (reviewCount >= 10 ? 88 : (reviewCount >= 2 ? 80 : (clientRecord.isGbpLinked ? 70 : 0)));
+    const photosCount = typeof clientRecord.photosCount === 'number' ? clientRecord.photosCount : (reviewCount > 0 ? 1 : 0);
 
     // Resolve reviews: Check persistent TimelineActivity in Neon PostgreSQL first
     let reviewsToUse: any[] = [];

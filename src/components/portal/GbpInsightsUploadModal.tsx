@@ -39,7 +39,7 @@ export const GbpInsightsUploadModal: React.FC<GbpInsightsUploadModalProps> = ({
   isOpen,
   onClose,
   onInsightsSaved,
-  businessName = 'Life in Lights Academy',
+  businessName = '',
   clientId,
   initialMonth,
   initialYear,

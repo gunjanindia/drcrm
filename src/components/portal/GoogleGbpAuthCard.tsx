@@ -24,7 +24,7 @@ export interface GoogleGbpAuthCardProps {
 }
 
 export const GoogleGbpAuthCard: React.FC<GoogleGbpAuthCardProps> = ({
-  businessName = 'Life in Lights Academy',
+  businessName = '',
   initialAuth = DEFAULT_GBP_AUTH,
   onAuthChange,
 }) => {

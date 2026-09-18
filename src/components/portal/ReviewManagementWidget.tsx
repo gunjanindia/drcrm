@@ -45,7 +45,7 @@ export interface ReviewManagementWidgetProps {
 }
 
 export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
-  businessName = 'Life in Lights Academy',
+  businessName = '',
   reviews: initialReviews,
   currentPoints = 50,
   gbpAuth = DEFAULT_GBP_AUTH,
@@ -59,7 +59,7 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   onProfileSynced,
 }) => {
   const [reviewsList, setReviewsList] = useState<ClientReviewItem[]>(
-    initialReviews || DEFAULT_CLIENT_REVIEWS
+    initialReviews || []
   );
   const [activeTone, setActiveTone] = useState<'WARM' | 'PROFESSIONAL' | 'HINGLISH' | 'RESOLUTION'>('WARM');
   const [draftResponses, setDraftResponses] = useState<Record<string, string>>({});
@@ -810,8 +810,10 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
             </h4>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
               {statusFilter === 'PENDING' && reviewsList.length > 0
-                ? `Every customer review for ${businessName} has been answered. Replying to reviews within 24 hours keeps your local ranking in Google Maps strong!`
-                : `No customer reviews are currently found matching this filter for ${businessName}. Sync live reviews or connect your Google Business Profile.`}
+                ? `Every customer review${businessName ? ` for ${businessName}` : ''} has been answered. Replying to reviews within 24 hours keeps your local ranking in Google Maps strong!`
+                : reviewsList.length === 0
+                ? `No customer reviews are currently synced${businessName ? ` for ${businessName}` : ''}. Link your Google Business Profile or click Sync Live Reviews to fetch customer feedback.`
+                : `No customer reviews match this filter${businessName ? ` for ${businessName}` : ''}. Switch filter tabs or sync live reviews.`}
             </p>
             <div className="pt-2 flex justify-center gap-3">
               {statusFilter === 'PENDING' && reviewsList.length > 0 ? (
