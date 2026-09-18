@@ -1,4 +1,5 @@
 /**
+ *
  * Digital Ranchi — Google Places & Maps Presence Verification Engine
  * 
  * Supports:
@@ -681,7 +682,7 @@ export async function fetchGooglePlaceByPlaceId(placeId: string): Promise<Google
         reviews: Array.isArray(matchedClient.reviews) ? matchedClient.reviews : [],
       };
     }
-  } catch {}
+  } catch { }
 
   const apiKey =
     process.env.GOOGLE_PLACES_API_KEY ||
