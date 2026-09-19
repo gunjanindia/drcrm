@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { globalStore } from '@/lib/store';
 import { checkAndDeductAiCredits } from '@/lib/ai-credits';
 import { checkRateLimit } from '@/lib/rate-limiter';
+import { generateReviewSuggestions } from '@/lib/ai-review-generator';
 
 // Intelligent Category Classification Helper
 function getCategoryAndConfig(categoryOrName: string, globalConfigs: any[]) {
@@ -147,7 +148,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to initialize review experience' }, { status: 500 });
   }
 }
-
 export async function POST(request: Request) {
   try {
     const forwardedHeader = request.headers.get('x-forwarded-for');
@@ -162,31 +162,38 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action, clientId, rating = 5, customerName, customerPhone, customerEmail, message, selectedAspects, source = 'NFC_STANDEE' } = body;
 
-    const client = globalStore.clients.find((c) => c.id === clientId);
-    const settings = globalStore.getAiReviewSettings(clientId || client?.id || 'dynamic');
+    const client = globalStore.clients.find((c) => c.id === clientId) || globalStore.clients[0];
+    const targetClientId = clientId || client?.id || 'dynamic';
+    const settings = globalStore.getAiReviewSettings(targetClientId);
 
     const businessName = client?.businessName || settings.businessType || 'Our Business';
     const city = client?.city || 'Ranchi';
-    const rawCategory = settings.businessType || client?.category || businessName;
-    const { categoryKey, categoryLabel, defaultServices } = getCategoryAndConfig(rawCategory, globalStore.globalAiPromptConfigs);
+    const businessType = settings.businessType || client?.category || 'Local Business & Professional Services';
 
     // ACTION 1: Generate AI Review Variations (4-5 Stars)
     if (action === 'generate_review') {
       const apiKey = process.env.GEMINI_API_KEY;
-      const keywords = (settings.targetKeywords || []).join(', ');
-      const services = (selectedAspects && selectedAspects.length > 0 ? selectedAspects : (settings.keyServices?.length ? settings.keyServices : defaultServices)).join(', ');
+      const targetKeywords = settings.targetKeywords && settings.targetKeywords.length > 0
+        ? settings.targetKeywords
+        : [`best ${businessType} in ${city}`, 'quick service'];
+      const keywordsStr = targetKeywords.join(', ');
+
+      const services = selectedAspects && selectedAspects.length > 0
+        ? selectedAspects
+        : (settings.keyServices?.length ? settings.keyServices : ['quality service', 'reliable support']);
+      const servicesStr = services.join(', ');
 
       let reviewSuggestions: string[] = [];
 
       if (apiKey && apiKey !== 'mock_key' && apiKey.length > 15) {
         try {
-          const prompt = `You are a real, satisfied customer writing a 5-star Google Maps review for "${businessName}" which is a "${categoryLabel}" in ${city}.
+          const prompt = `You are a real, satisfied customer writing a 5-star Google Maps review for "${businessName}" which is a "${businessType}" in ${city}.
 Tone: ${settings.tone || 'PROFESSIONAL'}.
-Key Services / Highlights: ${services}.
-SEO Keywords to naturally weave in without keyword stuffing: ${keywords || 'best service in town'}.
-Instructions: ${settings.customInstructions || `Highlight courteous staff, skilled team, spotless hygiene, and outstanding ${categoryLabel} experience.`}
+Key Services / Highlights to praise: ${servicesStr}.
+Target SEO Keywords to naturally incorporate without keyword stuffing: ${keywordsStr}.
+Merchant Custom Instructions: ${settings.customInstructions || `Highlight courteous staff, skilled team, reliable service, and outstanding ${businessType} experience.`}
 
-Generate 3 DISTINCT, highly realistic, natural 5-star review variations specifically for a ${categoryLabel} (Short & Punchy, Detailed Experience, Enthusiastic Recommendation).
+Generate 3 DISTINCT, highly realistic, natural 5-star review variations specifically for this ${businessType} (Variant 1: Friendly & Personal, Variant 2: Short & Punchy, Variant 3: Detailed & Professional).
 Return as a pure JSON array of 3 strings ONLY: ["Review 1...", "Review 2...", "Review 3..."]`;
 
           const geminiRes = await fetch(
@@ -219,33 +226,18 @@ Return as a pure JSON array of 3 strings ONLY: ["Review 1...", "Review 2...", "R
         }
       }
 
-      // Intelligent Fallback templates tailored strictly to category
+      // Contextual Algorithmic Fallback strictly incorporating businessType, aspects, keywords, tone & custom instructions
       if (reviewSuggestions.length === 0) {
-        if (categoryKey === 'BEAUTY_SALON') {
-          reviewSuggestions = [
-            `Loved my visit to ${businessName}! The stylist understood exactly what I wanted, and the salon maintained impeccable hygiene. Easily the best salon in ${city}!`,
-            `Outstanding beauty services and very courteous staff at ${businessName}. Used premium branded products and took great care. 5 stars without hesitation!`,
-            `Very relaxing ambiance and skilled artists at ${businessName}. Left feeling completely refreshed and satisfied with the results. Highly recommended!`,
-          ];
-        } else if (categoryKey === 'FOOD_BEVERAGE') {
-          reviewSuggestions = [
-            `Amazing food and delightful ambiance at ${businessName}! The flavors were authentic and portion sizes are generous. Best dining in ${city}!`,
-            `Super quick service, polite staff, and mouthwatering dishes at ${businessName}. Highly recommended to everyone!`,
-            `Cozy vibes and top-notch taste. Every dish was freshly prepared and served piping hot at ${businessName}. 10/10 recommendation!`,
-          ];
-        } else if (categoryKey === 'HEALTHCARE') {
-          reviewSuggestions = [
-            `Excellent experience with the doctor and courteous staff at ${businessName}. The clinic is spotlessly clean and treatment was completely painless. Highly recommended in ${city}!`,
-            `Very professional consultation and caring demeanor at ${businessName}. Explained the diagnosis clearly with transparent fees. Truly grateful for the treatment.`,
-            `State-of-the-art facility at ${businessName} with minimal waiting time. The doctor gave ample time and answered all my concerns. Five stars!`,
-          ];
-        } else {
-          reviewSuggestions = [
-            `Outstanding experience with ${businessName}! Extremely polite staff, punctual service, and honest pricing. Easily the best ${categoryLabel} in ${city}.`,
-            `Very impressed by the quality of work and attention to detail at ${businessName}. The team delivered beyond expectations. 5 stars!`,
-            `Prompt turnaround, great ambiance, and fair transparent charges at ${businessName}. Highly recommended to anyone in ${city}!`,
-          ];
-        }
+        reviewSuggestions = generateReviewSuggestions({
+          businessName,
+          businessType,
+          city,
+          aspects: services,
+          targetKeywords,
+          tone: settings.tone || 'PROFESSIONAL',
+          customInstructions: settings.customInstructions,
+          rating,
+        });
       }
 
       // Deduct AI credits for merchant & log usage

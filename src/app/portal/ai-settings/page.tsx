@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { usePortalProfile } from '@/contexts/PortalProfileContext';
 
+import { synthesizeContextualReview } from '@/lib/ai-review-generator';
+
 export default function AiReviewSettingsPage() {
   const { profile } = usePortalProfile();
   const [loading, setLoading] = useState(true);
@@ -92,31 +94,25 @@ export default function AiReviewSettingsPage() {
   // Update simulator review preview when settings change
   useEffect(() => {
     updateSimReview();
-  }, [tone, businessType, simSelectedServices, keyServices]);
+  }, [tone, businessType, simSelectedServices, keyServices, targetKeywords, customInstructions, profile?.businessName, profile?.city]);
 
   const updateSimReview = () => {
     const bName = profile.businessName || 'Our Business';
     const bCity = profile.city || 'Ranchi';
-    const aspects = simSelectedServices.length > 0 ? simSelectedServices.join(' and ') : 'service quality';
+    const chosenAspects = simSelectedServices.length > 0 ? simSelectedServices : (keyServices.length > 0 ? keyServices.slice(0, 2) : ['quality service']);
 
-    if (tone === 'FRIENDLY') {
-      setSimReviewPreview(
-        `Absolutely loved my visit to ${bName}! The team was so warm and welcoming, and the ${aspects} was fantastic. Highly recommend visiting them in ${bCity}!`
-      );
-    } else if (tone === 'SHORT_PUNCHY') {
-      setSimReviewPreview(
-        `Super fast, reliable, and top quality ${aspects}. ${bName} is definitely the best in ${bCity}! 5 stars.`
-      );
-    } else if (tone === 'DETAILED') {
-      setSimReviewPreview(
-        `I had a thoroughly professional experience with ${bName}. The staff took time to understand my requirements, executed the ${aspects} with precision, and maintained transparent pricing throughout. Truly commendable service in ${bCity}.`
-      );
-    } else {
-      // PROFESSIONAL
-      setSimReviewPreview(
-        `Highly professional and courteous experience at ${bName}. Spotless facility, knowledgeable staff, and outstanding ${aspects}. Best ${businessType || profile.category || 'service'} in ${bCity}.`
-      );
-    }
+    const generated = synthesizeContextualReview({
+      businessName: bName,
+      businessType: businessType || profile.category || 'Local Business',
+      city: bCity,
+      aspects: chosenAspects,
+      targetKeywords: targetKeywords.length > 0 ? targetKeywords : [`best ${businessType || profile.category || 'business'} in ${bCity}`],
+      tone,
+      customInstructions,
+      rating: simRating,
+    }, 0);
+
+    setSimReviewPreview(generated);
   };
 
   const handleAddService = () => {
