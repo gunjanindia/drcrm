@@ -1941,6 +1941,70 @@ export class AppStore {
     return defaultSettings;
   }
 
+  public async getAiReviewSettingsAsync(clientId: string, fallbackBusinessName?: string): Promise<AiReviewSettings> {
+    const cleanId = (clientId || '').toLowerCase().trim();
+    const normalized = cleanId.replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+
+    // 1. Check in-memory first
+    const existing = this.aiReviewSettings.find((s) => {
+      if (s.clientId === clientId || s.clientId.toLowerCase() === cleanId) return true;
+      const sNorm = (s.clientId || '').toLowerCase().replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+      return sNorm === normalized || (sNorm.length > 2 && normalized.length > 2 && (sNorm.includes(normalized) || normalized.includes(sNorm)));
+    });
+
+    if (existing) return existing;
+
+    // 2. Query Neon PostgreSQL database for persistent timeline activity
+    const prisma = await getPrisma();
+    if (prisma) {
+      try {
+        const dbClient = await prisma.client.findFirst({
+          where: {
+            OR: [
+              { id: clientId },
+              ...(fallbackBusinessName ? [{ businessName: { contains: fallbackBusinessName, mode: 'insensitive' as const } }] : []),
+              ...(normalized.length > 3 ? [{ businessName: { contains: normalized, mode: 'insensitive' as const } }] : []),
+            ],
+          },
+        }).catch(() => null);
+
+        const clientIdsToSearch = [clientId];
+        if (dbClient) clientIdsToSearch.push(dbClient.id);
+
+        const dbActivity = await prisma.timelineActivity.findFirst({
+          where: {
+            clientId: { in: clientIdsToSearch },
+            type: 'AI_REVIEW_SETTINGS',
+          },
+          orderBy: { timestamp: 'desc' },
+        }).catch(() => null);
+
+        if (dbActivity && dbActivity.description) {
+          const parsed = JSON.parse(dbActivity.description);
+          if (parsed && (parsed.businessType || parsed.keyServices)) {
+            const hydrated: AiReviewSettings = {
+              ...parsed,
+              clientId,
+            };
+            const idx = this.aiReviewSettings.findIndex((s) => s.clientId === clientId);
+            if (idx !== -1) {
+              this.aiReviewSettings[idx] = hydrated;
+            } else {
+              this.aiReviewSettings.push(hydrated);
+            }
+            this.saveToFile();
+            return hydrated;
+          }
+        }
+      } catch (e) {
+        console.error('Error in getAiReviewSettingsAsync Prisma lookup:', e);
+      }
+    }
+
+    // Fallback to synchronous default generation
+    return this.getAiReviewSettings(clientId);
+  }
+
   public saveAiReviewSettings(clientId: string, data: Partial<AiReviewSettings>): AiReviewSettings {
     const cleanId = (clientId || '').toLowerCase().trim();
     const normalized = cleanId.replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
@@ -1977,67 +2041,71 @@ export class AppStore {
     }
 
     this.saveToFile();
+    return savedRecord;
+  }
 
-    // Persist to Neon PostgreSQL Database
-    if (typeof window === 'undefined') {
-      getPrisma().then(async (prisma) => {
-        if (prisma) {
-          try {
-            const dbClient = await prisma.client.findFirst({
-              where: {
-                OR: [
-                  { id: clientId },
-                  { id: savedRecord.clientId },
-                  ...(normalized.length > 3 ? [{ businessName: { contains: normalized, mode: 'insensitive' as const } }] : []),
-                ],
+  public async saveAiReviewSettingsAsync(clientId: string, data: Partial<AiReviewSettings>, businessName?: string): Promise<AiReviewSettings> {
+    const saved = this.saveAiReviewSettings(clientId, data);
+    const cleanId = (clientId || '').toLowerCase().trim();
+    const normalized = cleanId.replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+
+    const prisma = await getPrisma();
+    if (prisma) {
+      try {
+        const dbClient = await prisma.client.findFirst({
+          where: {
+            OR: [
+              { id: clientId },
+              { id: saved.clientId },
+              ...(businessName ? [{ businessName: { contains: businessName, mode: 'insensitive' as const } }] : []),
+              ...(normalized.length > 3 ? [{ businessName: { contains: normalized, mode: 'insensitive' as const } }] : []),
+            ],
+          },
+        }).catch(() => null) || await prisma.client.findFirst().catch(() => null);
+
+        if (dbClient) {
+          const existingAct = await prisma.timelineActivity.findFirst({
+            where: {
+              clientId: dbClient.id,
+              type: 'AI_REVIEW_SETTINGS',
+            },
+          }).catch(() => null);
+
+          if (existingAct) {
+            await prisma.timelineActivity.update({
+              where: { id: existingAct.id },
+              data: {
+                description: JSON.stringify(saved),
+                timestamp: new Date(),
               },
-            }).catch(() => null) || await prisma.client.findFirst().catch(() => null);
+            }).catch(() => null);
+          } else {
+            await prisma.timelineActivity.create({
+              data: {
+                clientId: dbClient.id,
+                type: 'AI_REVIEW_SETTINGS',
+                title: `AI Review Settings for ${saved.businessType}`,
+                description: JSON.stringify(saved),
+                actorName: 'Merchant Portal',
+                timestamp: new Date(),
+              },
+            }).catch(() => null);
+          }
 
-            if (dbClient) {
-              const existingAct = await prisma.timelineActivity.findFirst({
-                where: {
-                  clientId: dbClient.id,
-                  type: 'AI_REVIEW_SETTINGS',
-                },
-              }).catch(() => null);
-
-              if (existingAct) {
-                await prisma.timelineActivity.update({
-                  where: { id: existingAct.id },
-                  data: {
-                    description: JSON.stringify(savedRecord),
-                    timestamp: new Date(),
-                  },
-                }).catch(() => null);
-              } else {
-                await prisma.timelineActivity.create({
-                  data: {
-                    clientId: dbClient.id,
-                    type: 'AI_REVIEW_SETTINGS',
-                    title: `AI Review Settings for ${savedRecord.businessType}`,
-                    description: JSON.stringify(savedRecord),
-                    actorName: 'Merchant Portal',
-                    timestamp: new Date(),
-                  },
-                }).catch(() => null);
-              }
-
-              // Update client category if customized
-              if (data.businessType) {
-                await prisma.client.update({
-                  where: { id: dbClient.id },
-                  data: { category: data.businessType },
-                }).catch(() => null);
-              }
-            }
-          } catch (dbErr) {
-            console.error('Failed to persist AI Review Settings to DB:', dbErr);
+          // Update client category if customized
+          if (data.businessType) {
+            await prisma.client.update({
+              where: { id: dbClient.id },
+              data: { category: data.businessType },
+            }).catch(() => null);
           }
         }
-      }).catch(() => null);
+      } catch (dbErr) {
+        console.error('Failed to persist AI Review Settings to DB (Async):', dbErr);
+      }
     }
 
-    return savedRecord;
+    return saved;
   }
 
   // --- Private Customer Feedback ---
