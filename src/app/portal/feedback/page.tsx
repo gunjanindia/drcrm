@@ -20,8 +20,10 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { PrivateFeedback } from '@/types';
+import { usePortalProfile } from '@/contexts/PortalProfileContext';
 
 export default function PrivateFeedbackInboxPage() {
+  const { profile } = usePortalProfile();
   const [feedbacks, setFeedbacks] = useState<PrivateFeedback[]>([]);
   const [isShieldActive, setIsShieldActive] = useState(true);
   const [totalIntercepted, setTotalIntercepted] = useState(0);
@@ -35,7 +37,11 @@ export default function PrivateFeedbackInboxPage() {
   const [isResolving, setIsResolving] = useState(false);
 
   const fetchFeedbackData = () => {
-    fetch('/api/portal/feedback')
+    setLoading(true);
+    const cid = profile?.clientId || '';
+    const url = cid ? `/api/portal/feedback?clientId=${encodeURIComponent(cid)}` : '/api/portal/feedback';
+
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.data) {
@@ -50,7 +56,7 @@ export default function PrivateFeedbackInboxPage() {
 
   useEffect(() => {
     fetchFeedbackData();
-  }, []);
+  }, [profile?.clientId]);
 
   const handleToggleShield = async () => {
     const nextState = !isShieldActive;
@@ -59,7 +65,10 @@ export default function PrivateFeedbackInboxPage() {
       await fetch('/api/portal/feedback', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isShieldActive: nextState }),
+        body: JSON.stringify({
+          clientId: profile?.clientId,
+          isShieldActive: nextState,
+        }),
       });
     } catch (e) {
       console.error('Error toggling shield:', e);
@@ -72,6 +81,7 @@ export default function PrivateFeedbackInboxPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          clientId: profile?.clientId,
           feedbackId,
           status: newStatus,
           resolutionNotes: notes,

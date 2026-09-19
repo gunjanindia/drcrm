@@ -14,8 +14,8 @@ export async function GET(request: Request) {
 
     const targetClientId =
       session.role === 'CLIENT'
-        ? session.clientId
-        : requestedClientId || session.clientId || globalStore.clients[0]?.id;
+        ? (requestedClientId || session.clientId || globalStore.clients[0]?.id)
+        : (requestedClientId || session.clientId || globalStore.clients[0]?.id);
 
     if (!targetClientId) {
       return NextResponse.json({ error: 'Client ID required' }, { status: 400 });
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
       data: {
         feedbacks,
         isShieldActive: settings.isShieldActive,
-        totalIntercepted: telemetry.privateComplaintsIntercepted,
+        totalIntercepted: telemetry.privateComplaintsIntercepted || feedbacks.length,
       },
     });
   } catch (err: any) {
@@ -49,7 +49,10 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { feedbackId, status, resolutionNotes, isShieldActive, clientId } = body;
 
-    const targetClientId = session.role === 'CLIENT' ? session.clientId : (clientId || session.clientId);
+    const targetClientId =
+      session.role === 'CLIENT'
+        ? (session.clientId || clientId || globalStore.clients[0]?.id)
+        : (clientId || session.clientId || globalStore.clients[0]?.id);
 
     // If updating master shield switch
     if (isShieldActive !== undefined && targetClientId) {

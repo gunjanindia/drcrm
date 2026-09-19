@@ -102,16 +102,19 @@ export async function GET(request: Request) {
     if (!client) {
       client = globalStore.clients.find(
         (c) =>
+          c.id === slug ||
+          c.id === cleanSlug ||
+          c.id.toLowerCase() === slug.toLowerCase() ||
           c.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-').includes(cleanSlug) ||
           cleanSlug.includes(c.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-'))
       ) || null;
     }
 
-    const businessName = client?.businessName || cleanSlug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Salon & Beauty Parlour';
+    const businessName = client?.businessName || cleanSlug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Verified Business';
     const rawCategory = client?.category || businessName;
     const { categoryKey, categoryLabel, defaultServices } = getCategoryAndConfig(rawCategory, globalStore.globalAiPromptConfigs);
 
-    const clientId = client?.id || order?.clientId || `cli_${cleanSlug}`;
+    const clientId = client?.id || order?.clientId || (slug.startsWith('cli_') ? slug : `cli_${cleanSlug}`);
     const settings = globalStore.getAiReviewSettings(clientId);
 
     // Record Telemetry scan
@@ -148,6 +151,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to initialize review experience' }, { status: 500 });
   }
 }
+
 export async function POST(request: Request) {
   try {
     const forwardedHeader = request.headers.get('x-forwarded-for');
@@ -162,8 +166,16 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action, clientId, rating = 5, customerName, customerPhone, customerEmail, message, selectedAspects, source = 'NFC_STANDEE' } = body;
 
-    const client = globalStore.clients.find((c) => c.id === clientId) || globalStore.clients[0];
-    const targetClientId = clientId || client?.id || 'dynamic';
+    let client = globalStore.clients.find((c) => c.id === clientId);
+    if (!client && clientId) {
+      const clean = clientId.toLowerCase().replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+      client = globalStore.clients.find((c) => {
+        const cClean = c.businessName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return c.id === clientId || (cClean.length > 2 && (cClean.includes(clean) || clean.includes(cClean)));
+      });
+    }
+
+    const targetClientId = clientId || client?.id || globalStore.clients[0]?.id || 'guest_feedback';
     const settings = globalStore.getAiReviewSettings(targetClientId);
 
     const businessName = client?.businessName || settings.businessType || 'Our Business';

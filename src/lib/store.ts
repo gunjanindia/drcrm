@@ -1928,7 +1928,15 @@ export class AppStore {
   // --- Private Customer Feedback ---
   public getPrivateFeedbacks(clientId?: string): PrivateFeedback[] {
     if (clientId) {
-      return this.privateFeedbacks.filter((f) => f.clientId === clientId);
+      const normalized = clientId.toLowerCase().replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+      return this.privateFeedbacks.filter((f) => {
+        if (f.clientId === clientId) return true;
+        const fNorm = (f.clientId || '').toLowerCase().replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+        return (
+          fNorm === normalized ||
+          (fNorm.length > 2 && normalized.length > 2 && (fNorm.includes(normalized) || normalized.includes(fNorm)))
+        );
+      });
     }
     return this.privateFeedbacks;
   }
@@ -1942,9 +1950,25 @@ export class AppStore {
     this.privateFeedbacks.unshift(newFeedback);
 
     // Update telemetry intercepted complaints
-    const telemIndex = this.standeeTelemetries.findIndex((t) => t.clientId === data.clientId);
+    const telemIndex = this.standeeTelemetries.findIndex((t) => {
+      if (t.clientId === data.clientId) return true;
+      const tNorm = (t.clientId || '').toLowerCase().replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+      const dNorm = (data.clientId || '').toLowerCase().replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+      return tNorm === dNorm;
+    });
     if (telemIndex !== -1) {
       this.standeeTelemetries[telemIndex].privateComplaintsIntercepted += 1;
+    } else {
+      this.standeeTelemetries.push({
+        clientId: data.clientId,
+        totalScans: 1,
+        nfcTaps: data.source === 'NFC_STANDEE' ? 1 : 0,
+        qrScans: data.source === 'QR_CODE' ? 1 : 0,
+        aiReviewsGenerated: 0,
+        googleRedirects: 0,
+        privateComplaintsIntercepted: 1,
+        lastScannedAt: new Date().toISOString(),
+      });
     }
 
     this.saveToFile();
