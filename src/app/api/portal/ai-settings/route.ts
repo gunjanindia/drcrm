@@ -14,8 +14,8 @@ export async function GET(request: Request) {
 
     const targetClientId =
       session.role === 'CLIENT'
-        ? session.clientId
-        : requestedClientId || session.clientId || globalStore.clients[0]?.id;
+        ? (session.clientId || requestedClientId || globalStore.clients[0]?.id)
+        : (requestedClientId || session.clientId || globalStore.clients[0]?.id);
 
     if (!targetClientId) {
       return NextResponse.json({ error: 'Client ID required' }, { status: 400 });
@@ -29,6 +29,7 @@ export async function GET(request: Request) {
       data: {
         settings,
         client: {
+          id: client?.id || targetClientId,
           businessName: client?.businessName,
           category: client?.category,
           city: client?.city,
@@ -52,7 +53,11 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { clientId, businessType, keyServices, targetKeywords, tone, isShieldActive, customInstructions, reviewRedirectUrl } = body;
 
-    const targetClientId = session.role === 'CLIENT' ? session.clientId : (clientId || session.clientId);
+    const targetClientId =
+      session.role === 'CLIENT'
+        ? (session.clientId || clientId || globalStore.clients[0]?.id)
+        : (clientId || session.clientId || globalStore.clients[0]?.id);
+
     if (!targetClientId) {
       return NextResponse.json({ error: 'Client ID required' }, { status: 400 });
     }

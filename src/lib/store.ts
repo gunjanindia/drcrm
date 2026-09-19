@@ -1853,13 +1853,13 @@ export class AppStore {
     const category = (client?.category || '').toLowerCase();
     const city = client?.city || 'Ranchi';
 
-    let businessType = client?.category || 'Salon & Beauty Parlour';
-    let keyServices = ['Hair Styling & Cut', 'Bridal Makeup', 'Facial Glow Treatment', 'Hair Spa', 'Hygienic Manicure & Pedicure'];
-    let targetKeywords = [`best salon in ${city}`, 'bridal makeup artist', 'hair spa treatment', 'hygienic parlour', 'glowing skin treatment'];
-    let customInstructions = 'Highlight courteous staff, skilled hair stylists, spotless salon hygiene, relaxing ambiance, and premium beauty products.';
+    let businessType = client?.category || 'Local Business & Professional Services';
+    let keyServices = ['Quality Service', 'Honest Pricing', 'Prompt Response', 'Expert Consultation', 'Reliable Support'];
+    let targetKeywords = [`best ${client?.category || 'service'} in ${city}`, 'quick service', 'honest pricing', 'trustworthy business'];
+    let customInstructions = 'Highlight courteous staff, punctual fulfillment, and fair transparent pricing.';
 
     if (category.includes('dent') || category.includes('doctor') || category.includes('clinic') || category.includes('health') || category.includes('hospital')) {
-      businessType = client?.category || 'Dental Clinic & Implant Center';
+      businessType = client?.category || 'Dental & Healthcare Clinic';
       keyServices = ['Painless Treatment', 'Doctor Consultation', 'Clean Clinic', 'Accurate Diagnosis', 'Gentle Care'];
       targetKeywords = [`best clinic in ${city}`, 'painless treatment', 'experienced doctor', 'clean clinic', 'caring staff'];
       customInstructions = 'Highlight compassionate doctor consultation, gentle painless treatment, spotless clinic hygiene, and transparent guidance.';
@@ -1873,11 +1873,11 @@ export class AppStore {
       keyServices = ['Hair Styling & Cut', 'Bridal Makeup', 'Facial Glow Treatment', 'Hair Spa', 'Hygienic Manicure & Pedicure'];
       targetKeywords = [`best salon in ${city}`, 'bridal makeup artist', 'hair spa treatment', 'hygienic parlour', 'glowing skin treatment'];
       customInstructions = 'Highlight courteous staff, skilled hair stylists, spotless salon hygiene, relaxing ambiance, and premium beauty products.';
-    } else if (client?.category) {
-      businessType = client.category;
-      keyServices = ['Quality Service', 'Honest Pricing', 'Prompt Response', 'Expert Consultation', 'Reliable Support'];
-      targetKeywords = [`best ${client.category} in ${city}`, 'quick service', 'honest pricing', 'trustworthy business'];
-      customInstructions = 'Highlight courteous staff, punctual fulfillment, and fair transparent pricing.';
+    } else if (category.includes('study') || category.includes('school') || category.includes('college') || category.includes('coaching') || category.includes('education') || category.includes('institute')) {
+      businessType = client?.category || 'Educational Institute & Study Center';
+      keyServices = ['Expert Faculty', 'Comprehensive Study Material', 'Supportive Learning Environment', 'Personal Mentorship', 'Doubt Clearing Sessions'];
+      targetKeywords = [`best coaching in ${city}`, 'top study center', 'expert faculty', 'exam preparation', 'quality education'];
+      customInstructions = 'Highlight dedicated mentors, excellent study atmosphere, structured guidance, and student success.';
     }
 
     const defaultSettings: AiReviewSettings = {

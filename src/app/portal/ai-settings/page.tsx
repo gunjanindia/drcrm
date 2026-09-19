@@ -42,17 +42,22 @@ export default function AiReviewSettingsPage() {
   const [simGenerating, setSimGenerating] = useState(false);
 
   useEffect(() => {
-    fetch('/api/portal/ai-settings')
+    const cid = profile?.clientId || '';
+    const url = cid ? `/api/portal/ai-settings?clientId=${encodeURIComponent(cid)}` : '/api/portal/ai-settings';
+
+    setLoading(true);
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.data?.settings) {
           const s = data.data.settings;
-          const detectedCategory = s.businessType || profile.category || 'Salon & Beauty Parlour';
+          const detectedCategory = s.businessType || data.data.client?.category || profile.category || 'Local Business';
           setBusinessType(detectedCategory);
 
           const isSalon = detectedCategory.toLowerCase().includes('salon') || detectedCategory.toLowerCase().includes('beauty') || detectedCategory.toLowerCase().includes('parlour') || detectedCategory.toLowerCase().includes('spa');
           const isHealth = detectedCategory.toLowerCase().includes('dent') || detectedCategory.toLowerCase().includes('doctor') || detectedCategory.toLowerCase().includes('clinic') || detectedCategory.toLowerCase().includes('health');
           const isFood = detectedCategory.toLowerCase().includes('food') || detectedCategory.toLowerCase().includes('restaur') || detectedCategory.toLowerCase().includes('cafe') || detectedCategory.toLowerCase().includes('sweet');
+          const isEdu = detectedCategory.toLowerCase().includes('study') || detectedCategory.toLowerCase().includes('school') || detectedCategory.toLowerCase().includes('college') || detectedCategory.toLowerCase().includes('coaching') || detectedCategory.toLowerCase().includes('education');
 
           const defaultServices = isSalon
             ? ['Hair Styling & Cut', 'Bridal Makeup', 'Facial Glow Treatment', 'Hair Spa', 'Hygienic Manicure & Pedicure']
@@ -60,14 +65,20 @@ export default function AiReviewSettingsPage() {
             ? ['Painless Treatment', 'Doctor Consultation', 'Clean Clinic', 'Accurate Diagnosis', 'Gentle Care']
             : isFood
             ? ['Delicious Fresh Food', 'Quick Table Service', 'Cozy Ambiance', 'Family Dining', 'Authentic Taste']
+            : isEdu
+            ? ['Expert Faculty', 'Comprehensive Study Material', 'Supportive Learning Environment', 'Personal Mentorship', 'Doubt Clearing Sessions']
             : ['Quality Service', 'Honest Pricing', 'Prompt Response', 'Expert Consultation', 'Reliable Support'];
 
-          const finalServices = s.keyServices && s.keyServices.length > 0 && !s.keyServices.includes('Painless Service') && !s.keyServices.includes('Painless Root Canal')
+          const finalServices = Array.isArray(s.keyServices) && s.keyServices.length > 0
             ? s.keyServices
             : defaultServices;
 
           setKeyServices(finalServices);
-          setTargetKeywords(s.targetKeywords && s.targetKeywords.length > 0 ? s.targetKeywords : [`best ${detectedCategory} in ${profile.city || 'Ranchi'}`, 'quick service']);
+          setTargetKeywords(
+            Array.isArray(s.targetKeywords) && s.targetKeywords.length > 0
+              ? s.targetKeywords
+              : [`best ${detectedCategory} in ${profile.city || 'Ranchi'}`, 'quick service']
+          );
           setTone(s.tone || 'PROFESSIONAL');
           setCustomInstructions(s.customInstructions || '');
           setIsShieldActive(s.isShieldActive ?? true);
@@ -76,7 +87,7 @@ export default function AiReviewSettingsPage() {
       })
       .catch((err) => console.error('Failed to load AI review settings:', err))
       .finally(() => setLoading(false));
-  }, [profile]);
+  }, [profile?.clientId, profile?.category, profile?.city]);
 
   // Update simulator review preview when settings change
   useEffect(() => {
@@ -103,7 +114,7 @@ export default function AiReviewSettingsPage() {
     } else {
       // PROFESSIONAL
       setSimReviewPreview(
-        `Highly professional and courteous experience at ${bName}. Spotless facility, knowledgeable staff, and outstanding ${aspects}. Best ${profile.category || 'service'} in ${bCity}.`
+        `Highly professional and courteous experience at ${bName}. Spotless facility, knowledgeable staff, and outstanding ${aspects}. Best ${businessType || profile.category || 'service'} in ${bCity}.`
       );
     }
   };
@@ -140,6 +151,7 @@ export default function AiReviewSettingsPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          clientId: profile.clientId,
           businessType,
           keyServices,
           targetKeywords,
@@ -149,12 +161,15 @@ export default function AiReviewSettingsPage() {
         }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 3000);
+      } else {
+        alert(data.error || 'Failed to save settings. Please try again.');
       }
     } catch (e) {
       console.error('Failed to save AI settings:', e);
+      alert('Network error occurred while saving AI settings.');
     } finally {
       setSaving(false);
     }
