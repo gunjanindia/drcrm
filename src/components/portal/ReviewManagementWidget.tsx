@@ -23,6 +23,7 @@ import {
 import { ClientReviewItem, DEFAULT_CLIENT_REVIEWS, GoogleGbpAuthProfile, DEFAULT_GBP_AUTH } from '@/lib/client-360-data';
 import { aiAssistantEngine } from '@/lib/ai-engine';
 import { Button, Badge, Modal } from '@/components/ui';
+import { buildGoogleReviewDialogUrl } from '@/lib/review-urls';
 import {
   GbpAccountLocationSelectorModal,
   GbpDiscoveredLocation,
@@ -141,13 +142,12 @@ export const ReviewManagementWidget: React.FC<ReviewManagementWidgetProps> = ({
   }, [businessName, city, authGoogleEmail]);
 
   const getTargetMapsUrl = () => {
-    if (googleMapsUrl && googleMapsUrl.startsWith('http')) return googleMapsUrl;
-    if (placeId && !placeId.startsWith('loc_')) return `https://search.google.com/local/writereview?placeid=${placeId}`;
-    const targetName = businessName && businessName !== 'Your Business Profile' && businessName !== 'Business Profile'
-      ? businessName
-      : 'Business Profile';
-    const citySuffix = city ? ` ${city}` : '';
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${targetName}${citySuffix}`)}`;
+    return buildGoogleReviewDialogUrl({
+      placeId,
+      googleMapsUrl,
+      businessName,
+      city,
+    });
   };
 
   const handleGenerateReply = async (rev: ClientReviewItem) => {

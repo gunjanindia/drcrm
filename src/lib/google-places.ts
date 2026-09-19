@@ -447,7 +447,9 @@ export async function searchGooglePlaceCandidates(
             rating: typeof place.rating === 'number' ? place.rating : 5.0,
             userRatingsTotal: typeof place.userRatingCount === 'number' ? place.userRatingCount : (Array.isArray(place.reviews) ? place.reviews.length : 0),
             photosCount: Array.isArray(place.photos) ? place.photos.length : (Array.isArray(place.reviews) && place.reviews.length > 0 ? 1 : 0),
-            googleMapsUrl: place.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(candName)}`,
+            googleMapsUrl: place.id
+              ? `https://search.google.com/local/writereview?placeid=${place.id}`
+              : (place.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(candName)}`),
             isOperational: place.businessStatus === 'OPERATIONAL' || place.businessStatus === undefined,
             hasWebsite: Boolean(place.websiteUri),
             matchedCategory: place.primaryType,
@@ -716,7 +718,7 @@ export async function fetchGooglePlaceByPlaceId(placeId: string): Promise<Google
           rating: typeof place.rating === 'number' ? place.rating : 5.0,
           userRatingsTotal: count,
           photosCount: Array.isArray(place.photos) ? place.photos.length : (count > 0 ? 1 : 0),
-          googleMapsUrl: place.googleMapsUri || `https://search.google.com/local/writereview?placeid=${cleanId}`,
+          googleMapsUrl: `https://search.google.com/local/writereview?placeid=${encodeURIComponent(place.id || cleanId)}`,
           isOperational: place.businessStatus === 'OPERATIONAL' || place.businessStatus === undefined,
           hasWebsite: Boolean(place.websiteUri),
           matchedCategory: place.primaryType || 'Local Business',

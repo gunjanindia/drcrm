@@ -285,11 +285,11 @@
       "businessName": "Lay Taal Kathak Kendra",
       "legalName": "Royal Beauty Parlour and Boutique",
       "category": "Dance Academy",
-      "contactName": "Tanuja Sinha",
+      "contactName": "Royal Beauty Parlour and Boutique",
       "phone": "9263229810",
       "whatsapp": "9263229810",
-      "email": "tanujasinharanchi@gmail.com",
-      "address": "Sumiran Banquet Hall, Latma Rd, near Hethu Bridge, Singh More, Prem Nagar, Ranchi, Jharkhand 834003, India",
+      "email": "mishasharmarbp@gmail.com",
+      "address": "Tinkoniya Bazar, Ormajhi Road, Boreya, Ranchi, Jharkhand 834006, India, Ranchi, Jharkhand",
       "city": "Ranchi",
       "state": "Jharkhand",
       "pincode": "834001",
@@ -421,17 +421,15 @@
       "monthlyRevenue": 1500,
       "activeSince": "2026-09-18T13:50:48.578Z",
       "renewalDate": "2026-10-02T13:50:47.962Z",
-      "reviewCount": 2,
-      "averageRating": 5.0,
-      "gbpScore": 80,
-      "status": "ACTIVE",
+      "reviewCount": 30,
+      "averageRating": 4.9,
+      "gbpScore": 88,
+      "status": "ONBOARDING",
       "aiCreditBalance": 14,
       "trialEndsAt": "2026-10-02T13:50:47.962Z",
       "subscriptionStatus": "TRIAL",
       "isGbpLinked": true,
-      "placeId": "ChIJAQN8pJQf9TkRsHVxKxqf_VI",
-      "gbpLocationId": "ChIJAQN8pJQf9TkRsHVxKxqf_VI",
-      "googleMapsUrl": "https://www.google.com/maps/place/Lay+Taal+Kathak+Kendra/@23.302129,85.3183547,15z/data=!4m7!3m6!1s0x39f51f94a47c0301:0x52fd9f1a2b7175b0!8m2!3d23.3021308!4d85.3368087",
+      "gbpLocationId": "loc_1789739431776",
       "createdAt": "2026-09-18T13:50:48.578Z"
     }
   ],
@@ -2047,6 +2045,29 @@
       "customInstructions": "Highlight hands-on camera experience, mentor support, and state-of-the-art studio lighting.",
       "reviewRedirectUrl": "https://maps.google.com/?q=Life+in+Lights+Academy+Dhanbad",
       "updatedAt": "2026-09-18T16:07:38.979Z"
+    },
+    {
+      "clientId": "cli_lay-taal-dance-academy",
+      "businessType": "Salon & Beauty Parlour",
+      "keyServices": [
+        "Hair Styling & Cut",
+        "Bridal Makeup",
+        "Facial Glow Treatment",
+        "Hair Spa",
+        "Hygienic Manicure & Pedicure"
+      ],
+      "targetKeywords": [
+        "best salon in Ranchi",
+        "bridal makeup artist",
+        "hair spa treatment",
+        "hygienic parlour",
+        "glowing skin treatment"
+      ],
+      "tone": "PROFESSIONAL",
+      "isShieldActive": true,
+      "customInstructions": "Highlight courteous staff, skilled hair stylists, spotless salon hygiene, relaxing ambiance, and premium beauty products.",
+      "reviewRedirectUrl": "",
+      "updatedAt": "2026-09-19T09:23:30.031Z"
     }
   ],
   "privateFeedbacks": [
@@ -2183,6 +2204,60 @@
           "taps": 8,
           "scans": 5,
           "reviews": 9
+        }
+      ]
+    },
+    {
+      "clientId": "cli_lay-taal-dance-academy",
+      "totalScans": 1,
+      "nfcTaps": 1,
+      "qrScans": 0,
+      "aiReviewsGenerated": 0,
+      "googleRedirects": 0,
+      "privateComplaintsIntercepted": 0,
+      "lastScannedAt": "2026-09-19T09:23:30.045Z",
+      "scansByDate": [
+        {
+          "date": "Mon",
+          "taps": 0,
+          "scans": 0,
+          "reviews": 0
+        },
+        {
+          "date": "Tue",
+          "taps": 0,
+          "scans": 0,
+          "reviews": 0
+        },
+        {
+          "date": "Wed",
+          "taps": 0,
+          "scans": 0,
+          "reviews": 0
+        },
+        {
+          "date": "Thu",
+          "taps": 0,
+          "scans": 0,
+          "reviews": 0
+        },
+        {
+          "date": "Fri",
+          "taps": 0,
+          "scans": 0,
+          "reviews": 0
+        },
+        {
+          "date": "Sat",
+          "taps": 0,
+          "scans": 0,
+          "reviews": 0
+        },
+        {
+          "date": "Sun",
+          "taps": 0,
+          "scans": 0,
+          "reviews": 0
         }
       ]
     }

@@ -3,6 +3,7 @@ import { globalStore } from '@/lib/store';
 import { checkAndDeductAiCredits } from '@/lib/ai-credits';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { generateReviewSuggestions } from '@/lib/ai-review-generator';
+import { buildGoogleReviewDialogUrl } from '@/lib/review-urls';
 
 // Intelligent Category Classification Helper
 function getCategoryAndConfig(categoryOrName: string, globalConfigs: any[]) {
@@ -130,6 +131,19 @@ export async function GET(request: Request) {
 
     const city = client?.city || 'Ranchi';
 
+    const matchedLead = client?.leadId
+      ? globalStore.leads.find((l) => l.id === client?.leadId)
+      : globalStore.leads.find((l) => l.businessName.toLowerCase() === businessName.toLowerCase());
+
+    const directPlaceId = (client as any)?.placeId || client?.gbpLocationId || (matchedLead as any)?.placeId;
+    const rawMapsUrl = settings.reviewRedirectUrl || client?.googleMapsUrl || matchedLead?.googleMapsUrl;
+    const directReviewDialogUrl = buildGoogleReviewDialogUrl({
+      placeId: directPlaceId,
+      googleMapsUrl: rawMapsUrl,
+      businessName,
+      city,
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -139,7 +153,8 @@ export async function GET(request: Request) {
         city,
         rating: client?.averageRating || 5.0,
         reviewCount: client?.reviewCount || 42,
-        googleMapsUrl: settings.reviewRedirectUrl || client?.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(businessName)}`,
+        placeId: directPlaceId || undefined,
+        googleMapsUrl: directReviewDialogUrl,
         isShieldActive: settings.isShieldActive ?? true,
         keyServices,
         targetKeywords: settings.targetKeywords || [`best ${categoryLabel} in ${city}`, 'quick service'],
@@ -268,11 +283,25 @@ Return as a pure JSON array of 3 strings ONLY: ["Review 1...", "Review 2...", "R
         globalStore.recordStandeeScan(client.id, 'REVIEW_GEN');
       }
 
+      const matchedLead = client?.leadId
+        ? globalStore.leads.find((l) => l.id === client?.leadId)
+        : globalStore.leads.find((l) => l.businessName.toLowerCase() === businessName.toLowerCase());
+
+      const directPlaceId = (client as any)?.placeId || client?.gbpLocationId || (matchedLead as any)?.placeId;
+      const rawMapsUrl = settings.reviewRedirectUrl || client?.googleMapsUrl || matchedLead?.googleMapsUrl;
+      const directReviewDialogUrl = buildGoogleReviewDialogUrl({
+        placeId: directPlaceId,
+        googleMapsUrl: rawMapsUrl,
+        businessName,
+        city,
+      });
+
       return NextResponse.json({
         success: true,
         data: {
           reviews: reviewSuggestions,
-          googleMapsUrl: settings.reviewRedirectUrl || client?.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(businessName)}`,
+          placeId: directPlaceId || undefined,
+          googleMapsUrl: directReviewDialogUrl,
         },
       });
     }

@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ShieldAlert,
 } from 'lucide-react';
+import { buildGoogleReviewDialogUrl } from '@/lib/review-urls';
 
 export default function PublicStandeeReviewPage() {
   const params = useParams();
@@ -82,6 +83,13 @@ export default function PublicStandeeReviewPage() {
       if (data.success && data.data?.reviews) {
         setAiReviews(data.data.reviews);
         setSelectedReviewText(data.data.reviews[0] || '');
+        if (data.data.googleMapsUrl) {
+          setMerchantData((prev: any) => ({
+            ...prev,
+            googleMapsUrl: data.data.googleMapsUrl,
+            ...(data.data.placeId && { placeId: data.data.placeId }),
+          }));
+        }
       }
     } catch (e) {
       console.warn('AI review generation error:', e);
@@ -127,12 +135,22 @@ export default function PublicStandeeReviewPage() {
         }).catch(() => {});
       }
 
-      // Open Google Maps Review dialog in a new tab
-      const targetUrl = merchantData?.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(merchantData?.businessName || 'Business')}`;
+      // Open Google Business Profile Review Dialog URL in a new tab
+      const targetUrl = buildGoogleReviewDialogUrl({
+        placeId: merchantData?.placeId,
+        googleMapsUrl: merchantData?.googleMapsUrl,
+        businessName: merchantData?.businessName || 'Business',
+        city: merchantData?.city || 'Ranchi',
+      });
       window.open(targetUrl, '_blank');
     } catch (e) {
       // Fallback redirect
-      const targetUrl = merchantData?.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(merchantData?.businessName || 'Business')}`;
+      const targetUrl = buildGoogleReviewDialogUrl({
+        placeId: merchantData?.placeId,
+        googleMapsUrl: merchantData?.googleMapsUrl,
+        businessName: merchantData?.businessName || 'Business',
+        city: merchantData?.city || 'Ranchi',
+      });
       window.open(targetUrl, '_blank');
     }
   };
@@ -477,12 +495,17 @@ export default function PublicStandeeReviewPage() {
               Thank you for sharing your feedback. Please click below to post on Google Maps:
             </p>
             <a
-              href={merchantData?.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(businessName)}`}
+              href={buildGoogleReviewDialogUrl({
+                placeId: merchantData?.placeId,
+                googleMapsUrl: merchantData?.googleMapsUrl,
+                businessName: merchantData?.businessName || 'Business',
+                city: merchantData?.city || 'Ranchi',
+              })}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-lg"
             >
-              Continue to Google Maps <ExternalLink className="w-3.5 h-3.5" />
+              Continue to Google Maps Review Box <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
         )}
