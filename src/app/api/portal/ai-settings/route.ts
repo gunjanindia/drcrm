@@ -13,7 +13,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const requestedClientId = searchParams.get('clientId');
 
-    const prisma = await getPrisma();
     let targetClient: any = null;
 
     // 1. If explicit clientId requested
@@ -90,7 +89,6 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { clientId, businessType, keyServices, targetKeywords, tone, isShieldActive, customInstructions, reviewRedirectUrl } = body;
 
-    const prisma = await getPrisma();
     let targetClient: any = null;
 
     if (clientId) {
