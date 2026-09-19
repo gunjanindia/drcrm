@@ -828,7 +828,7 @@ export class AppStore {
     const prisma = await getPrisma();
     if (prisma) {
       try {
-        const [dbUsers, dbClients, dbLeads, dbTasks, dbProjects, dbServices, dbPackages, dbTax, dbSiteSettings, dbAuditRecords] = await Promise.all([
+        const [dbUsers, dbClients, dbLeads, dbTasks, dbProjects, dbServices, dbPackages, dbTax, dbSiteSettings, dbAuditRecords, dbActivities] = await Promise.all([
             prisma.user.findMany().catch(() => []),
             prisma.client.findMany().catch(() => []),
             prisma.lead.findMany({ orderBy: { createdAt: 'desc' } }).catch(() => []),
@@ -839,7 +839,40 @@ export class AppStore {
             prisma.taxConfiguration.findFirst().catch(() => null),
             prisma.siteSetting.findFirst({ where: { tenantId: 'tenant_main' } }).catch(() => null),
             prisma.auditRecord.findMany({ orderBy: { scannedAt: 'desc' }, take: 200 }).catch(() => []),
+            prisma.timelineActivity.findMany({
+              where: { type: { in: ['AI_REVIEW_SETTINGS', 'PRIVATE_FEEDBACK'] } },
+              orderBy: { timestamp: 'desc' },
+            }).catch(() => []),
           ]);
+
+          // Hydrate persistent AI Review Settings from PostgreSQL
+          if (dbActivities && Array.isArray(dbActivities)) {
+            for (const act of dbActivities) {
+              if (act.type === 'AI_REVIEW_SETTINGS' && act.description) {
+                try {
+                  const parsed = JSON.parse(act.description);
+                  if (parsed && parsed.clientId) {
+                    const idx = this.aiReviewSettings.findIndex((s) => s.clientId === parsed.clientId);
+                    if (idx !== -1) {
+                      this.aiReviewSettings[idx] = { ...this.aiReviewSettings[idx], ...parsed };
+                    } else {
+                      this.aiReviewSettings.push(parsed);
+                    }
+                  }
+                } catch {}
+              } else if (act.type === 'PRIVATE_FEEDBACK' && act.description) {
+                try {
+                  const parsed = JSON.parse(act.description);
+                  if (parsed && parsed.id) {
+                    const idx = this.privateFeedbacks.findIndex((f) => f.id === parsed.id);
+                    if (idx === -1) {
+                      this.privateFeedbacks.unshift(parsed);
+                    }
+                  }
+                } catch {}
+              }
+            }
+          }
 
           if (dbSiteSettings) {
             this.siteSettings = {
@@ -1846,10 +1879,22 @@ export class AppStore {
 
   // --- AI Review Engine Settings ---
   public getAiReviewSettings(clientId: string): AiReviewSettings {
-    const existing = this.aiReviewSettings.find((s) => s.clientId === clientId);
+    const cleanId = (clientId || '').toLowerCase().trim();
+    const normalized = cleanId.replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+
+    const existing = this.aiReviewSettings.find((s) => {
+      if (s.clientId === clientId || s.clientId.toLowerCase() === cleanId) return true;
+      const sNorm = (s.clientId || '').toLowerCase().replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+      return sNorm === normalized || (sNorm.length > 2 && normalized.length > 2 && (sNorm.includes(normalized) || normalized.includes(sNorm)));
+    });
     if (existing) return existing;
 
-    const client = this.clients.find((c) => c.id === clientId);
+    const client = this.clients.find((c) => {
+      if (c.id === clientId || c.id.toLowerCase() === cleanId) return true;
+      const cNorm = (c.id || '').toLowerCase().replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+      return cNorm === normalized || (cNorm.length > 2 && normalized.length > 2 && (cNorm.includes(normalized) || normalized.includes(cNorm)));
+    });
+
     const category = (client?.category || '').toLowerCase();
     const city = client?.city || 'Ranchi';
 
@@ -1897,18 +1942,27 @@ export class AppStore {
   }
 
   public saveAiReviewSettings(clientId: string, data: Partial<AiReviewSettings>): AiReviewSettings {
-    const index = this.aiReviewSettings.findIndex((s) => s.clientId === clientId);
+    const cleanId = (clientId || '').toLowerCase().trim();
+    const normalized = cleanId.replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+
+    const index = this.aiReviewSettings.findIndex((s) => {
+      if (s.clientId === clientId || s.clientId.toLowerCase() === cleanId) return true;
+      const sNorm = (s.clientId || '').toLowerCase().replace(/^cli_/, '').replace(/[^a-z0-9]/g, '');
+      return sNorm === normalized || (sNorm.length > 2 && normalized.length > 2 && (sNorm.includes(normalized) || normalized.includes(sNorm)));
+    });
+
+    let savedRecord: AiReviewSettings;
+
     if (index !== -1) {
-      this.aiReviewSettings[index] = {
+      savedRecord = {
         ...this.aiReviewSettings[index],
         ...data,
-        clientId,
+        clientId: this.aiReviewSettings[index].clientId,
         updatedAt: new Date().toISOString(),
       };
-      this.saveToFile();
-      return this.aiReviewSettings[index];
+      this.aiReviewSettings[index] = savedRecord;
     } else {
-      const newSettings: AiReviewSettings = {
+      savedRecord = {
         clientId,
         businessType: data.businessType || 'Local Business',
         keyServices: data.keyServices || [],
@@ -1919,10 +1973,71 @@ export class AppStore {
         reviewRedirectUrl: data.reviewRedirectUrl,
         updatedAt: new Date().toISOString(),
       };
-      this.aiReviewSettings.push(newSettings);
-      this.saveToFile();
-      return newSettings;
+      this.aiReviewSettings.push(savedRecord);
     }
+
+    this.saveToFile();
+
+    // Persist to Neon PostgreSQL Database
+    if (typeof window === 'undefined') {
+      getPrisma().then(async (prisma) => {
+        if (prisma) {
+          try {
+            const dbClient = await prisma.client.findFirst({
+              where: {
+                OR: [
+                  { id: clientId },
+                  { id: savedRecord.clientId },
+                  ...(normalized.length > 3 ? [{ businessName: { contains: normalized, mode: 'insensitive' as const } }] : []),
+                ],
+              },
+            }).catch(() => null) || await prisma.client.findFirst().catch(() => null);
+
+            if (dbClient) {
+              const existingAct = await prisma.timelineActivity.findFirst({
+                where: {
+                  clientId: dbClient.id,
+                  type: 'AI_REVIEW_SETTINGS',
+                },
+              }).catch(() => null);
+
+              if (existingAct) {
+                await prisma.timelineActivity.update({
+                  where: { id: existingAct.id },
+                  data: {
+                    description: JSON.stringify(savedRecord),
+                    timestamp: new Date(),
+                  },
+                }).catch(() => null);
+              } else {
+                await prisma.timelineActivity.create({
+                  data: {
+                    clientId: dbClient.id,
+                    type: 'AI_REVIEW_SETTINGS',
+                    title: `AI Review Settings for ${savedRecord.businessType}`,
+                    description: JSON.stringify(savedRecord),
+                    actorName: 'Merchant Portal',
+                    timestamp: new Date(),
+                  },
+                }).catch(() => null);
+              }
+
+              // Update client category if customized
+              if (data.businessType) {
+                await prisma.client.update({
+                  where: { id: dbClient.id },
+                  data: { category: data.businessType },
+                }).catch(() => null);
+              }
+            }
+          } catch (dbErr) {
+            console.error('Failed to persist AI Review Settings to DB:', dbErr);
+          }
+        }
+      }).catch(() => null);
+    }
+
+    return savedRecord;
   }
 
   // --- Private Customer Feedback ---
