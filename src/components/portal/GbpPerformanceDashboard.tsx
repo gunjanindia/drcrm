@@ -35,7 +35,6 @@ import {
 import { Button } from '@/components/ui';
 import {
   GbpDailyOrMonthlyInsight,
-  SEEDED_AUTHENTIC_GBP_INSIGHT,
   sortInsightsChronologically,
   MONTH_NAMES,
   MONTH_SHORT_NAMES,
@@ -80,33 +79,46 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionNotification, setActionNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Fetch verified insights from PostgreSQL database on mount
-  useEffect(() => {
-    let isMounted = true;
-    async function loadDatabaseInsights() {
-      try {
-        const queryParams = new URLSearchParams();
-        if (clientId) queryParams.set('clientId', clientId);
-        if (businessName) queryParams.set('businessName', businessName);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(true);
 
-        const res = await fetch(`/api/portal/insights?${queryParams.toString()}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && Array.isArray(json.data) && json.data.length > 0 && isMounted) {
-            const sorted = sortInsightsChronologically(json.data);
-            setActiveInsights(sorted);
-            setSelectedPeriodIndex(sorted.length - 1);
-          }
-        }
-      } catch (err) {
-        console.warn('Initial insights fetch error:', err);
+  // Sync insights prop when it changes
+  useEffect(() => {
+    if (Array.isArray(insights)) {
+      if (insights.length > 0) {
+        const sorted = sortInsightsChronologically(insights);
+        setActiveInsights(sorted);
+        setSelectedPeriodIndex(sorted.length - 1);
+        setIsLoadingInsights(false);
       }
     }
+  }, [insights]);
 
+  const loadDatabaseInsights = async () => {
+    setIsLoadingInsights(true);
+    try {
+      const queryParams = new URLSearchParams();
+      if (clientId) queryParams.set('clientId', clientId);
+      if (businessName) queryParams.set('businessName', businessName);
+
+      const res = await fetch(`/api/portal/insights?${queryParams.toString()}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          const sorted = sortInsightsChronologically(json.data);
+          setActiveInsights(sorted);
+          setSelectedPeriodIndex(sorted.length > 0 ? sorted.length - 1 : 0);
+        }
+      }
+    } catch (err) {
+      console.warn('Initial insights fetch error:', err);
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  };
+
+  // Fetch verified insights from PostgreSQL database on mount
+  useEffect(() => {
     loadDatabaseInsights();
-    return () => {
-      isMounted = false;
-    };
   }, [clientId, businessName]);
 
   // Keep activeInsights chronologically sorted
@@ -185,7 +197,24 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
     }
   };
 
-  // If zero insight records exist, show clean empty state without any fabricated numbers
+  // Loading state while querying database
+  if (isLoadingInsights && activeInsights.length === 0) {
+    return (
+      <div className="p-8 sm:p-12 rounded-3xl bg-slate-900 border border-slate-800 text-center space-y-4 text-white shadow-xl animate-pulse">
+        <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center mx-auto">
+          <RefreshCw className="w-6 h-6 animate-spin text-indigo-400" />
+        </div>
+        <div className="space-y-1.5 max-w-md mx-auto">
+          <h4 className="text-base font-bold text-white">Loading Google Performance Insights...</h4>
+          <p className="text-xs text-slate-400">
+            Fetching verified search, maps, and growth metrics for <strong>{businessName || 'your business'}</strong>...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // If zero insight records exist, show clean empty state with reload/upload options
   if (!currentInsight) {
     return (
       <div className="p-8 sm:p-12 rounded-3xl bg-slate-900 border border-slate-800 text-center space-y-5 text-white shadow-xl">
@@ -194,13 +223,26 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
         </div>
         <div className="space-y-1.5 max-w-md mx-auto">
           <h4 className="text-lg font-bold text-white">
-            No Google Business Profile Insights Synced Yet
+            No Google Business Profile Insights Available
           </h4>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Upload the authentic CSV insight export from your Google Business Profile manager or connect the Google Maps API for <strong>{businessName}</strong>.
+            {businessName ? (
+              <>No monthly search impressions, maps visibility, or customer action records are indexed yet for <strong>{businessName}</strong>.</>
+            ) : (
+              <>No verified performance metrics are indexed yet. Connect your Google profile or import an authentic monthly CSV report.</>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap justify-center gap-3 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            icon={RefreshCw}
+            onClick={() => loadDatabaseInsights()}
+            className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
+          >
+            Reload Insights
+          </Button>
           <Button
             variant="primary"
             size="sm"
@@ -436,6 +478,15 @@ export const GbpPerformanceDashboard: React.FC<GbpPerformanceDashboardProps> = (
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={RefreshCw}
+              onClick={() => loadDatabaseInsights()}
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-bold"
+            >
+              Reload Data
+            </Button>
             <Button
               variant="outline"
               size="sm"

@@ -3,17 +3,14 @@ import { getCurrentUserSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
   GbpDailyOrMonthlyInsight,
-  SEEDED_AUTHENTIC_GBP_INSIGHT,
   parseGbpInsightsCsv,
   sortInsightsChronologically,
   MONTH_NAMES,
   MONTH_SHORT_NAMES,
 } from '@/lib/gbp-insights-engine';
 
-// In-memory fallback cache
-const memoryInsightsStore: Record<string, GbpDailyOrMonthlyInsight[]> = {
-  default: [SEEDED_AUTHENTIC_GBP_INSIGHT],
-};
+// In-memory cache per client
+const memoryInsightsStore: Record<string, GbpDailyOrMonthlyInsight[]> = {};
 
 function formatDbInsightToGbp(dbRecord: any): GbpDailyOrMonthlyInsight {
   return {
@@ -248,7 +245,7 @@ export async function POST(request: Request) {
     }
 
     // Memory Store fallback
-    const existing = memoryInsightsStore[clientKey] || [SEEDED_AUTHENTIC_GBP_INSIGHT];
+    const existing = memoryInsightsStore[clientKey] || [];
     const map = new Map<string, GbpDailyOrMonthlyInsight>();
     for (const item of existing) {
       map.set(`${item.year || 2026}_${item.month || 9}`, item);

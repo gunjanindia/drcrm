@@ -85,20 +85,15 @@ export async function GET(request: Request) {
         }
       }
 
-      // If staff/admin viewing without specific client, fallback to first available active client
-      if (!clientRecord && session.role !== 'CLIENT') {
-        clientRecord = globalStore.clients.find((c) => c.status === 'ACTIVE' || c.isGbpLinked) || globalStore.clients[0] || null;
+      // If staff/admin viewing without specific client, only look for active client if explicit
+      if (!clientRecord && session.role !== 'CLIENT' && requestedClientId) {
+        clientRecord = globalStore.clients.find((c) => c.id === requestedClientId) || null;
       }
     }
 
-    // 3. If still no client record found via session, check globalStore.clients (client-side/demo mode support)
-    if (!clientRecord && globalStore.clients.length > 0) {
-      if (requestedClientId) {
-        clientRecord = globalStore.clients.find((c) => c.id === requestedClientId);
-      }
-      if (!clientRecord) {
-        clientRecord = globalStore.clients.find((c) => c.isGbpLinked || (c as any).isLiveSynced || c.status === 'ACTIVE') || globalStore.clients[0];
-      }
+    // 3. Only look in globalStore if explicit requestedClientId was provided
+    if (!clientRecord && requestedClientId && globalStore.clients.length > 0) {
+      clientRecord = globalStore.clients.find((c) => c.id === requestedClientId) || null;
     }
 
     if (!clientRecord) {

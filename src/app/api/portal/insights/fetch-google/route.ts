@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { getCurrentUserSession } from '@/lib/auth';
 import {
   GbpDailyOrMonthlyInsight,
-  SEEDED_AUTHENTIC_GBP_INSIGHT,
   MONTH_NAMES,
   MONTH_SHORT_NAMES,
 } from '@/lib/gbp-insights-engine';
@@ -25,24 +24,10 @@ export async function POST(request: Request) {
     const formattedPeriod = periodLabel || `${MONTH_SHORT_NAMES[selectedMonth - 1] || 'Sep'} ${selectedYear}`;
 
     if (!token) {
-      // Return the verified authentic export record for the location
       return NextResponse.json({
-        success: true,
-        source: 'OFFICIAL_GBP_EXPORT_BASELINE',
-        message: `Loaded verified authentic Google Business Profile insight record for ${formattedPeriod}.`,
-        data: [
-          {
-            ...SEEDED_AUTHENTIC_GBP_INSIGHT,
-            businessName: businessName || SEEDED_AUTHENTIC_GBP_INSIGHT.businessName,
-            address: address || SEEDED_AUTHENTIC_GBP_INSIGHT.address,
-            period: formattedPeriod,
-            month: selectedMonth,
-            year: selectedYear,
-            monthName,
-            importedAt: new Date().toLocaleString(),
-          },
-        ],
-      });
+        success: false,
+        error: 'Google OAuth token or connected Google Business Profile is required. Please connect your Google account or upload an authentic CSV report.',
+      }, { status: 400 });
     }
 
     // If active OAuth token is provided, attempt live query to Google Performance API
@@ -162,23 +147,10 @@ export async function POST(request: Request) {
       console.warn('Google Business Performance API call failed, using verified export data:', apiErr);
     }
 
-    // Fallback to authentic verified export data
     return NextResponse.json({
-      success: true,
-      source: 'OFFICIAL_GBP_EXPORT_FALLBACK',
-      message: `Loaded verified authentic Google Business Profile export data for ${formattedPeriod}.`,
-      data: [
-        {
-          ...SEEDED_AUTHENTIC_GBP_INSIGHT,
-          businessName: businessName || SEEDED_AUTHENTIC_GBP_INSIGHT.businessName,
-          address: address || SEEDED_AUTHENTIC_GBP_INSIGHT.address,
-          period: formattedPeriod,
-          month: selectedMonth,
-          year: selectedYear,
-          monthName,
-        },
-      ],
-    });
+      success: false,
+      error: 'Google Business Profile Performance API query was unsuccessful. Please upload an official monthly CSV export from Google Business Profile manager.',
+    }, { status: 502 });
   } catch (error: any) {
     console.error('POST /api/portal/insights/fetch-google error:', error);
     return NextResponse.json({ error: 'Failed to fetch Google API insights' }, { status: 500 });

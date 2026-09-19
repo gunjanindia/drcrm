@@ -8,7 +8,7 @@ import {
   BUSINESS_CATEGORIES,
   BusinessCategoryType,
 } from './client-360-data';
-import { GbpDailyOrMonthlyInsight, SEEDED_AUTHENTIC_GBP_INSIGHT } from './gbp-insights-engine';
+import { GbpDailyOrMonthlyInsight } from './gbp-insights-engine';
 
 export interface SyncedBusinessProfile {
   clientId?: string;
@@ -268,9 +268,8 @@ export function clearSyncedBusinessProfile(): void {
 export async function fetchPortalProfileFromServer(clientIdParam?: string): Promise<SyncedBusinessProfile> {
   if (typeof window === 'undefined') return DEMO_BUSINESS_PROFILE;
   try {
-    const localProfile = getSyncedBusinessProfile();
     const urlParams = new URLSearchParams(window.location.search);
-    const targetClientId = clientIdParam || urlParams.get('clientId') || (localProfile?.isLiveSynced && localProfile.clientId ? localProfile.clientId : undefined);
+    const targetClientId = clientIdParam || urlParams.get('clientId') || undefined;
     const endpoint = targetClientId
       ? `/api/portal/profile?clientId=${encodeURIComponent(targetClientId)}`
       : '/api/portal/profile';
@@ -279,23 +278,6 @@ export async function fetchPortalProfileFromServer(clientIdParam?: string): Prom
     if (res.ok) {
       const data = await res.json();
       if (data.data) {
-        // If server profile has real synced data
-        if (data.data.isLiveSynced || (data.data.businessName && data.data.businessName !== DEMO_BUSINESS_PROFILE.businessName)) {
-          saveSyncedBusinessProfile(data.data);
-          return data.data;
-        }
-
-        // If server returned default fallback DEMO profile, but localStorage already holds a verified live synced profile, preserve localProfile
-        if (localProfile && localProfile.isLiveSynced && localProfile.businessName !== DEMO_BUSINESS_PROFILE.businessName) {
-          // Push local profile to server in background so server becomes updated
-          fetch('/api/portal/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(localProfile),
-          }).catch(() => null);
-          return localProfile;
-        }
-
         saveSyncedBusinessProfile(data.data);
         return data.data;
       }
